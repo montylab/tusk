@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
+import { useTasksStore } from '../stores/tasks'
 
-defineProps<{
-  tasks: Task[]
-}>()
+const tasksStore = useTasksStore()
+const { shortcutTasks } = storeToRefs(tasksStore)
 
 const emit = defineEmits<{
   (e: 'drag-start', payload: { event: MouseEvent, task: Task }): void
@@ -46,7 +47,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
     <h3 class="pile-title">Shortcuts</h3>
     <div class="pile-content">
       <div 
-        v-for="(task, index) in tasks" 
+        v-for="(task, index) in shortcutTasks" 
         :key="task.id"
         class="pile-task"
         :style="{ 

@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
+import { useTasksStore } from '../stores/tasks'
 
-defineProps<{
-  tasks: Task[]
-}>()
+const tasksStore = useTasksStore()
+const { todoTasks } = storeToRefs(tasksStore)
 
 const emit = defineEmits<{
   (e: 'drag-start', payload: { event: MouseEvent, task: Task }): void
@@ -44,7 +45,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
     <h3 class="pile-title">To Do</h3>
     <div class="pile-content">
       <div 
-        v-for="(task, index) in tasks" 
+        v-for="(task, index) in todoTasks" 
         :key="task.id"
         class="pile-task"
         :style="{ 
@@ -55,7 +56,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
       >
         <TaskItem :task="task" />
       </div>
-      <div v-if="tasks.length === 0" class="empty-state">
+      <div v-if="todoTasks.length === 0" class="empty-state">
         No tasks to do
       </div>
     </div>
