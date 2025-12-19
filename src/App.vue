@@ -22,10 +22,11 @@ const createTask = ({ text, startTime, category }: { text: string, startTime: nu
   })
 }
 
-const scheduleTask = ({ taskId, startTime }: { taskId: number, startTime: number }) => {
+const scheduleTask = ({ taskId, startTime, duration }: { taskId: number, startTime: number, duration?: number }) => {
   const task = tasks.value.find(t => t.id === taskId)
   if (task) {
     task.startTime = startTime
+    if (duration) task.duration = duration
   }
 }
 </script>

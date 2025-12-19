@@ -4,6 +4,8 @@ import type { Task } from '../types'
 
 const props = defineProps<{
   task: Task
+  isDragging?: boolean
+  isShaking?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -30,9 +32,11 @@ const onMouseDown = (e: MouseEvent) => {
 <template>
   <div 
     class="task-item" 
+    :class="{ 'shaking': isShaking, 'dragging': isDragging }"
     @mousedown.prevent="onMouseDown"
     :style="{ borderColor: itemColor }"
   >
+
     <div class="color-stripe" :style="{ background: itemColor }"></div>
     <div class="content">
       <h4 class="title">{{ task.text }}</h4>
@@ -44,7 +48,6 @@ const onMouseDown = (e: MouseEvent) => {
            {{ Math.floor(task.startTime) }}:{{ (Math.round((task.startTime % 1) * 60)).toString().padStart(2, '0') }}
         </span>
       </div>
-     
     </div>
   </div>
 </template>
@@ -64,9 +67,16 @@ const onMouseDown = (e: MouseEvent) => {
   transition: transform 0.1s;
 }
 
+.task-item.dragging {
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    cursor: grabbing;
+}
+
 .task-item:active {
   cursor: grabbing;
 }
+
 
 .color-stripe {
   width: 4px;
@@ -111,5 +121,15 @@ const onMouseDown = (e: MouseEvent) => {
 .time-badge {
   font-size: 0.65rem;
   color: var(--text-muted);
+}
+
+@keyframes shake {
+  0% { transform: scaleX(1); }
+  50% { transform: scaleX(1.03);}
+  100% { transform: scaleX(1);}
+}
+
+.shaking {
+    animation: shake .4s infinite ease-in-out;
 }
 </style>
