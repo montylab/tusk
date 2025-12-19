@@ -1,4 +1,4 @@
-import { computed, type Ref } from 'vue'
+import { computed, unref, type Ref } from 'vue'
 import type { Task } from '../types'
 
 interface LayoutConfig {
@@ -8,32 +8,44 @@ interface LayoutConfig {
 }
 
 export function useTaskLayout(
-    tasks: Task[],
+    tasks: Task[] | Ref<Task[]> | (() => Task[]),
     activeTaskId: Ref<number | null>,
     currentSnapTime: Ref<number | null>,
     currentDuration: Ref<number | null>,
     config: LayoutConfig
 ) {
+    const taskList = computed(() => {
+        const t = typeof tasks === 'function' ? tasks() : unref(tasks)
+        return t || []
+    })
 
     // 1. Flatten tasks with current active state
     const displayedTasks = computed(() => {
-        return tasks.map(t => {
+        return taskList.value.map(t => {
             let startTime = t.startTime!
             let duration = t.duration
 
-            // Override if active
+            // Style coordinate (for "ghost" snap or resize feedback)
+            let displayStart = startTime
+            let displayDuration = duration
+
             if (t.id === activeTaskId.value) {
-                if (currentSnapTime.value !== null) startTime = currentSnapTime.value
-                if (currentDuration.value !== null) duration = currentDuration.value
+                if (currentSnapTime.value !== null) displayStart = currentSnapTime.value
+                if (currentDuration.value !== null) displayDuration = currentDuration.value
             }
 
             return {
                 ...t,
-                displayStart: startTime,
-                displayDuration: duration,
-                endTime: startTime + (duration / 60)
+                displayStart,
+                displayDuration,
+                // Layout coordinates (original ones to keep grid stable during drag)
+                // However, we DO want to use the new coordinates for resize so the grid 
+                // adapts to the new space requirement. We only want to freeze for DRAG.
+                layoutStart: (t.id === activeTaskId.value && currentSnapTime.value !== null && currentDuration.value === null) ? startTime : displayStart,
+                layoutDuration: (t.id === activeTaskId.value && currentDuration.value !== null) ? displayDuration : duration,
+                layoutEnd: ((t.id === activeTaskId.value && currentSnapTime.value !== null && currentDuration.value === null) ? startTime : displayStart) + (((t.id === activeTaskId.value && currentDuration.value !== null) ? displayDuration : duration) / 60)
             }
-        }).sort((a, b) => a.displayStart - b.displayStart)
+        }).sort((a, b) => a.layoutStart - b.layoutStart)
     })
 
     // 2. Calculate Layout positions
@@ -48,17 +60,17 @@ export function useTaskLayout(
         for (const task of displayedTasks.value) {
             if (currentCluster.length === 0) {
                 currentCluster.push(task)
-                clusterEnd = task.endTime
+                clusterEnd = task.layoutEnd
             } else {
                 // If overlap (start < max end of cluster)
-                if (task.displayStart < clusterEnd) {
+                if (task.layoutStart < clusterEnd) {
                     currentCluster.push(task)
-                    clusterEnd = Math.max(clusterEnd, task.endTime)
+                    clusterEnd = Math.max(clusterEnd, task.layoutEnd)
                 } else {
                     // No overlap, seal cluster
                     clusters.push(currentCluster)
                     currentCluster = [task]
-                    clusterEnd = task.endTime
+                    clusterEnd = task.layoutEnd
                 }
             }
         }
@@ -77,15 +89,15 @@ export function useTaskLayout(
                 // Find first column where task fits
                 let placed = false
                 for (let i = 0; i < columns.length; i++) {
-                    if (columns[i] <= task.displayStart + 0.01) { // 0.01 epsilon
-                        columns[i] = task.endTime
+                    if (columns[i] <= task.layoutStart + 0.01) { // 0.01 epsilon
+                        columns[i] = task.layoutEnd
                         taskColumns.push(i)
                         placed = true
                         break
                     }
                 }
                 if (!placed) {
-                    columns.push(task.endTime)
+                    columns.push(task.layoutEnd)
                     taskColumns.push(columns.length - 1)
                 }
             }

@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, computed, unref, type Ref } from 'vue'
 import type { Task } from '../types'
 import { getRandomCategory } from '../utils'
 
@@ -8,15 +8,21 @@ interface OperationConfig {
     startHour: number
     endHour: number
     hourHeight: number
+    getTrashBounds?: () => DOMRect | null
 }
 
 export function useTaskOperations(
-    tasks: Task[],
+    tasks: Task[] | Ref<Task[]> | (() => Task[]),
     emit: (event: any, payload: any) => void,
     config: OperationConfig
 ) {
+    const taskList = computed(() => {
+        const t = typeof tasks === 'function' ? tasks() : unref(tasks)
+        return t || []
+    })
     const mode = ref<OperationMode>('none')
     const activeTaskId = ref<number | null>(null)
+    const isOverTrash = ref(false)
 
     // Initial state for op
     const initialStart = ref(0)
@@ -31,11 +37,23 @@ export function useTaskOperations(
         e.preventDefault()
         e.stopPropagation()
 
-        const task = tasks.find(t => t.id === taskId)
+        const task = taskList.value.find(t => t.id === taskId)
         if (!task) return
 
+        let targetTaskId = taskId
+
+        // Handle Clone & Drag
+        if (opMode === 'drag' && e.ctrlKey) {
+            const newTaskId = Date.now() + Math.floor(Math.random() * 1000)
+            emit('duplicate-task', {
+                originalTaskId: taskId,
+                newTaskId: newTaskId
+            })
+            targetTaskId = newTaskId
+        }
+
         mode.value = opMode
-        activeTaskId.value = taskId
+        activeTaskId.value = targetTaskId
         initialStart.value = task.startTime!
         initialDuration.value = task.duration
         startY.value = e.clientY
@@ -64,6 +82,18 @@ export function useTaskOperations(
             // Clamp
             snapped = Math.max(config.startHour, Math.min(config.endHour - (initialDuration.value / 60), snapped))
             currentSnapTime.value = snapped
+
+            // Check trash collision
+            const trashBounds = config.getTrashBounds?.()
+            if (trashBounds) {
+                const b = trashBounds
+                isOverTrash.value = (
+                    e.clientX >= b.left &&
+                    e.clientX <= b.right &&
+                    e.clientY >= b.top &&
+                    e.clientY <= b.bottom
+                )
+            }
         }
         else if (mode.value === 'resize-bottom') {
             let deltaMinutes = deltaHours * 60
@@ -109,17 +139,30 @@ export function useTaskOperations(
         }
     }
 
-    const onMouseUp = () => {
+    const onMouseUp = (e: MouseEvent) => {
         if (mode.value !== 'none' && activeTaskId.value !== null) {
-            const finalStart = currentSnapTime.value ?? initialStart.value
-            const finalDuration = currentDuration.value ?? initialDuration.value
+            // Final check for trash collision at drop point
+            const trashBounds = config.getTrashBounds?.()
+            const finalOverTrash = trashBounds && (
+                e.clientX >= trashBounds.left &&
+                e.clientX <= trashBounds.right &&
+                e.clientY >= trashBounds.top &&
+                e.clientY <= trashBounds.bottom
+            ) || isOverTrash.value
 
-            if (finalStart !== initialStart.value || finalDuration !== initialDuration.value) {
-                emit('task-dropped', {
-                    taskId: activeTaskId.value,
-                    startTime: finalStart,
-                    duration: finalDuration
-                })
+            if (mode.value === 'drag' && finalOverTrash) {
+                emit('delete-task', { taskId: activeTaskId.value })
+            } else {
+                const finalStart = currentSnapTime.value ?? initialStart.value
+                const finalDuration = currentDuration.value ?? initialDuration.value
+
+                if (finalStart !== initialStart.value || finalDuration !== initialDuration.value) {
+                    emit('task-dropped', {
+                        taskId: activeTaskId.value,
+                        startTime: finalStart,
+                        duration: finalDuration
+                    })
+                }
             }
         }
 
@@ -127,6 +170,7 @@ export function useTaskOperations(
         activeTaskId.value = null
         currentSnapTime.value = null
         currentDuration.value = null
+        isOverTrash.value = false
 
         window.removeEventListener('mousemove', onMouseMove)
         window.removeEventListener('mouseup', onMouseUp)
@@ -157,6 +201,7 @@ export function useTaskOperations(
         activeTaskId,
         currentSnapTime,
         currentDuration,
+        isOverTrash,
         startOperation,
         handleSlotClick
     }
