@@ -3,6 +3,7 @@ import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
 import { useTaskOperations } from '../composables/useTaskOperations'
 import { useTaskLayout } from '../composables/useTaskLayout'
+import { useTasksStore } from '../stores/tasks'
 import { ref, watch } from 'vue'
 
 const props = withDefaults(defineProps<{
@@ -19,13 +20,37 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  (e: 'task-dropped', payload: { taskId: number, startTime: number, duration?: number }): void
-  (e: 'create-task', payload: { text: string, startTime: number, category: string }): void
-  (e: 'duplicate-task', payload: { originalTaskId: number, newTaskId: number }): void
-  (e: 'delete-task', payload: { taskId: number }): void
   (e: 'update:is-over-trash', payload: boolean): void
   (e: 'external-task-dropped', payload: { taskId: number, startTime: number, duration?: number }): void
 }>()
+
+// Store access for task operations
+const tasksStore = useTasksStore()
+
+// Internal task operation handlers
+const handleCreateTask = (payload: { text: string, startTime: number, category: string }) => {
+  tasksStore.createTask({
+    ...payload,
+    completed: false,
+    duration: 60
+  })
+}
+
+const handleScheduleTask = (payload: { taskId: number, startTime: number, duration?: number }) => {
+  tasksStore.scheduleTask(payload.taskId, payload.startTime, payload.duration)
+}
+
+const handleDuplicateTask = (payload: { originalTaskId: number }) => {
+  const original = tasksStore.getTaskById(payload.originalTaskId)
+  if (original) {
+    const { id, ...taskData } = original
+    tasksStore.createTask(taskData)
+  }
+}
+
+const handleDeleteTask = (payload: { taskId: number }) => {
+  tasksStore.deleteTask(payload.taskId)
+}
 
 const hours = Array.from({ length: props.endHour - props.startHour }, (_, i) => i + props.startHour)
 
@@ -47,9 +72,15 @@ const {
         endHour: props.endHour,
         hourHeight: 80,
         getTrashBounds: () => props.trashBounds,
-        getContainerRect: () => containerRect.value, // Added
-        getScrollTop: () => scrollTop.value,         // Added
-        activeExternalTask: () => props.activeExternalTask
+        getContainerRect: () => containerRect.value,
+        getScrollTop: () => scrollTop.value,
+        activeExternalTask: () => props.activeExternalTask,
+        // Wire up internal handlers
+        onTaskDropped: handleScheduleTask,
+        onCreateTask: handleCreateTask,
+        onDuplicateTask: handleDuplicateTask,
+        onDeleteTask: handleDeleteTask,
+        onExternalTaskDropped: (payload) => emit('external-task-dropped', payload)
     }
 )
 

@@ -5,8 +5,8 @@ import DayView from './components/DayView.vue'
 import TrashBasket from './components/TrashBasket.vue'
 import ShortcutsPile from './components/ShortcutsPile.vue'
 import ToDoPile from './components/ToDoPile.vue'
-import type { Task } from './types'
 import { useTasksStore } from './stores/tasks'
+import { useExternalDrag } from './composables/useExternalDrag'
 
 // Initialize store
 const tasksStore = useTasksStore()
@@ -17,83 +17,18 @@ onMounted(() => {
   tasksStore.loadTasks()
 })
 
-// --- Drag State ---
-const activeExternalTask = ref<{ source: 'shortcut' | 'todo', task: Task } | null>(null)
-
-// --- Actions ---
-const createTask = ({ text, startTime, category }: { text: string, startTime: number, category: string }) => {
-  tasksStore.createTask({
-    text,
-    category,
-    completed: false,
-    startTime: startTime,
-    duration: 60 // Default duration 1 hr
-  })
-}
-
-const scheduleTask = ({ taskId, startTime, duration }: { taskId: number, startTime: number, duration?: number }) => {
-  tasksStore.scheduleTask(taskId, startTime, duration)
-}
-
-const duplicateTask = ({ originalTaskId, newTaskId }: { originalTaskId: number, newTaskId: number }) => {
-  const original = tasksStore.getTaskById(originalTaskId)
-  if (original) {
-    // Create a copy without the id (it will be auto-generated)
-    const { id, ...taskData } = original
-    tasksStore.createTask(taskData)
-  }
-}
-
-const deleteTask = ({ taskId }: { taskId: number }) => {
-  tasksStore.deleteTask(taskId)
-}
-
+// UI state
 const trashBounds = ref<DOMRect | null>(null)
 const isOverTrash = ref(false)
 const dayViewRef = ref<any>(null)
 
-const handleExternalDragStart = (source: 'shortcut' | 'todo', task: Task, event: MouseEvent) => {
-  activeExternalTask.value = { source, task }
-  // Pass the drag event to DayView so it can initiate the ghost logic
-  if (dayViewRef.value) {
-    dayViewRef.value.startExternalDrag(event, task)
-  }
-}
-
-const handleExternalTaskDropped = ({ taskId, startTime, duration }: { taskId: number, startTime: number, duration?: number }) => {
-  if (!activeExternalTask.value) return
-
-  const { source, task } = activeExternalTask.value
-  
-  // 1. Create task in calendar (id will be auto-generated)
-  const { id, ...taskData } = task
-  tasksStore.createTask({
-    ...taskData,
-    startTime,
-    duration: duration || task.duration || 60,
-    isShortcut: false // Remove shortcut flag when scheduling
-  })
-
-  // 2. If it was a ToDo, remove from pile
-  if (source === 'todo') {
-    tasksStore.deleteTask(task.id)
-  }
-
-  activeExternalTask.value = null
-}
-
-const handleExternalTaskDeleted = () => {
-  if (!activeExternalTask.value) return
-  
-  const { source, task } = activeExternalTask.value
-  
-  // If it was a ToDo, remove from pile (shortcuts are permanent templates)
-  if (source === 'todo') {
-    tasksStore.deleteTask(task.id)
-  }
-  
-  activeExternalTask.value = null
-}
+// External drag handling
+const {
+  activeExternalTask,
+  handleExternalDragStart,
+  handleExternalTaskDropped,
+  handleExternalTaskDeleted
+} = useExternalDrag(dayViewRef)
 
 </script>
 
@@ -115,10 +50,6 @@ const handleExternalTaskDeleted = () => {
         :trash-bounds="trashBounds"
         :active-external-task="activeExternalTask?.task || null"
         @update:is-over-trash="isOverTrash = $event"
-        @delete-task="deleteTask($event)"
-        @task-dropped="scheduleTask($event)"
-        @duplicate-task="duplicateTask($event)"
-        @create-task="createTask($event)"
         @external-task-dropped="handleExternalTaskDropped"
         @delete-external-task="handleExternalTaskDeleted"
       />

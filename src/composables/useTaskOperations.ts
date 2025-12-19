@@ -12,6 +12,12 @@ interface OperationConfig {
     getContainerRect?: () => DOMRect | null
     getScrollTop?: () => number
     activeExternalTask?: () => Task | null
+    // Handler callbacks
+    onTaskDropped?: (payload: { taskId: number, startTime: number, duration: number }) => void
+    onCreateTask?: (payload: { text: string, startTime: number, category: string }) => void
+    onDuplicateTask?: (payload: { originalTaskId: number }) => void
+    onDeleteTask?: (payload: { taskId: number }) => void
+    onExternalTaskDropped?: (payload: { taskId: number, startTime: number, duration: number }) => void
 }
 
 export function useTaskOperations(
@@ -47,12 +53,10 @@ export function useTaskOperations(
 
         // Handle Clone & Drag
         if (opMode === 'drag' && e.ctrlKey) {
-            const newTaskId = Date.now() + Math.floor(Math.random() * 1000)
-            emit('duplicate-task', {
-                originalTaskId: taskId,
-                newTaskId: newTaskId
-            })
-            targetTaskId = newTaskId
+            config.onDuplicateTask?.({ originalTaskId: taskId })
+            // Note: We can't get the new ID synchronously anymore
+            // The duplicate will appear in the next render
+            return
         }
 
         mode.value = opMode
@@ -190,7 +194,7 @@ export function useTaskOperations(
 
             if (mode.value === 'drag' && finalOverTrash) {
                 if (activeTaskId.value !== null) {
-                    emit('delete-task', { taskId: activeTaskId.value })
+                    config.onDeleteTask?.({ taskId: activeTaskId.value })
                 }
             } else {
                 const finalStart = currentSnapTime.value ?? initialStart.value
@@ -198,7 +202,7 @@ export function useTaskOperations(
 
                 if (activeTaskId.value !== null) {
                     if (finalStart !== initialStart.value || finalDuration !== initialDuration.value) {
-                        emit('task-dropped', {
+                        config.onTaskDropped?.({
                             taskId: activeTaskId.value,
                             startTime: finalStart,
                             duration: finalDuration
@@ -210,7 +214,7 @@ export function useTaskOperations(
                         emit('delete-external-task', {})
                     } else if (currentSnapTime.value !== null) {
                         // Only create task if it was dropped over the calendar (has a snap position)
-                        emit('external-task-dropped', {
+                        config.onExternalTaskDropped?.({
                             taskId: Date.now(),
                             startTime: currentSnapTime.value,
                             duration: finalDuration
@@ -236,7 +240,7 @@ export function useTaskOperations(
         const startTime = hour + (quarter * 0.25)
         const text = prompt("Enter task title:")
         if (text) {
-            emit('create-task', {
+            config.onCreateTask?.({
                 text,
                 startTime,
                 category: getRandomCategory()
