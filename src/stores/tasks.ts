@@ -15,11 +15,15 @@ export const useTasksStore = defineStore('tasks', () => {
     )
 
     const todoTasks = computed(() =>
-        tasks.value.filter(task => task.startTime === null && !task.isShortcut)
+        tasks.value
+            .filter(task => task.startTime === null && !task.isShortcut)
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     )
 
     const shortcutTasks = computed(() =>
-        tasks.value.filter(task => task.isShortcut === true)
+        tasks.value
+            .filter(task => task.isShortcut === true)
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     )
 
     const getTaskById = computed(() => (id: number) =>
@@ -31,7 +35,13 @@ export const useTasksStore = defineStore('tasks', () => {
         loading.value = true
         error.value = null
         try {
-            tasks.value = await taskApi.getTasks()
+            const fetchedTasks = await taskApi.getTasks()
+            // Normalize order for legacy tasks or tasks starting at 0
+            // We want unique, incrementing orders based on their original arrival
+            tasks.value = fetchedTasks.map((t, i) => ({
+                ...t,
+                order: t.order ?? (i * 10)
+            }))
         } catch (err) {
             error.value = err instanceof Error ? err.message : 'Failed to load tasks'
             console.error('Error loading tasks:', err)
@@ -43,9 +53,14 @@ export const useTasksStore = defineStore('tasks', () => {
     const createTask = (taskData: Omit<Task, 'id'>) => {
         // Optimistic update: create task immediately with temporary ID
         const tempId = Date.now()
+        // Ensure new task has an order
+        const list = taskData.isShortcut ? shortcutTasks.value : todoTasks.value
+        const maxOrder = list.length > 0 ? Math.max(...list.map(t => t.order || 0)) : 0
+
         const newTask: Task = {
             ...taskData,
-            id: tempId
+            id: tempId,
+            order: taskData.order ?? (maxOrder + 10)
         }
         tasks.value.push(newTask)
 
@@ -143,6 +158,32 @@ export const useTasksStore = defineStore('tasks', () => {
         deleteTask(id)
     }
 
+    const reorderTask = (id: number, targetIndex: number, listType: 'todo' | 'shortcut') => {
+        const list = listType === 'todo' ? todoTasks.value : shortcutTasks.value
+        const otherTasks = list.filter(t => t.id !== id)
+
+        let newOrder: number
+        if (otherTasks.length === 0) {
+            newOrder = 10
+        } else if (targetIndex <= 0) {
+            newOrder = (otherTasks[0].order ?? 0) - 10
+        } else if (targetIndex >= otherTasks.length) {
+            newOrder = (otherTasks[otherTasks.length - 1].order ?? 0) + 10
+        } else {
+            const prev = otherTasks[targetIndex - 1].order ?? 0
+            const next = otherTasks[targetIndex].order ?? 0
+
+            if (prev === next) {
+                // Should not happen with normalized data, but as a fallback
+                newOrder = prev + 0.5
+            } else {
+                newOrder = (prev + next) / 2
+            }
+        }
+
+        updateTask(id, { order: newOrder })
+    }
+
     return {
         // State
         tasks,
@@ -161,6 +202,7 @@ export const useTasksStore = defineStore('tasks', () => {
         scheduleTask,
         unscheduleTask,
         convertToTodo,
-        convertToShortcut
+        convertToShortcut,
+        reorderTask
     }
 })

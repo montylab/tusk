@@ -1,6 +1,7 @@
 import { ref, onUnmounted, computed, unref, type Ref } from 'vue'
 import type { Task } from '../types'
 import { getRandomCategory } from '../utils'
+import { useDragState } from './useDragState'
 
 type OperationMode = 'none' | 'drag' | 'resize-top' | 'resize-bottom'
 
@@ -8,11 +9,9 @@ interface OperationConfig {
     startHour: number
     endHour: number
     hourHeight: number
-    getTrashBounds?: () => DOMRect | null
     getContainerRect?: () => DOMRect | null
     getScrollTop?: () => number
     activeExternalTask?: () => Task | null
-    isOverSidebar?: () => boolean
     // Handler callbacks
     onTaskDropped?: (payload: { taskId: number, startTime: number, duration: number }) => void
     onCreateTask?: (payload: { text: string, startTime: number, category: string }) => void
@@ -33,7 +32,7 @@ export function useTaskOperations(
     })
     const mode = ref<OperationMode>('none')
     const activeTaskId = ref<number | null>(null)
-    const isOverTrash = ref(false)
+    const { isOverTrash, isOverTodo, isOverShortcut, updateCollision, resetCollisions } = useDragState()
 
     // Initial state for op
     const initialStart = ref(0)
@@ -154,22 +153,8 @@ export function useTaskOperations(
             }
         }
 
-        // Check trash collision
-        const trashBounds = config.getTrashBounds?.()
-        if (trashBounds) {
-            const b = trashBounds
-            isOverTrash.value = (
-                e.clientX >= b.left &&
-                e.clientX <= b.right &&
-                e.clientY >= b.top &&
-                e.clientY <= b.bottom
-            )
-        }
-
-        // Emit current mouse position for sidebar collision detection
-        if (mode.value === 'drag') {
-            emit('task-over-sidebar', e)
-        }
+        // Update centralized collision state
+        updateCollision(e)
     }
 
     const onWheel = (e: WheelEvent) => {
@@ -189,61 +174,54 @@ export function useTaskOperations(
     }
 
     const onMouseUp = (e: MouseEvent) => {
-        if (mode.value !== 'none') {
-            // Final check for trash collision at drop point
-            const trashBounds = config.getTrashBounds?.()
-            const finalOverTrash = trashBounds && (
-                e.clientX >= trashBounds.left &&
-                e.clientX <= trashBounds.right &&
-                e.clientY >= trashBounds.top &&
-                e.clientY <= trashBounds.bottom
-            ) || isOverTrash.value
+        try {
+            if (mode.value !== 'none') {
+                const finalOverTrash = isOverTrash.value
+                const finalStart = currentSnapTime.value ?? initialStart.value
+                const finalDuration = currentDuration.value ?? initialDuration.value
 
-            const finalStart = currentSnapTime.value ?? initialStart.value
-            const finalDuration = currentDuration.value ?? initialDuration.value
-
-            if (mode.value === 'drag' && finalOverTrash) {
                 if (activeTaskId.value !== null) {
-                    config.onDeleteTask?.({ taskId: activeTaskId.value })
-                } else {
-                    emit('delete-external-task', {})
-                }
-            } else if (mode.value === 'drag' && activeTaskId.value !== null) {
-                // Check if dropped on a sidebar pile (App.vue will handle the logic via event)
-                emit('task-dropped-on-sidebar', { taskId: activeTaskId.value, event: e })
-
-                if (!config.isOverSidebar?.() && (finalStart !== initialStart.value || finalDuration !== initialDuration.value)) {
-                    config.onTaskDropped?.({
-                        taskId: activeTaskId.value,
-                        startTime: finalStart,
-                        duration: finalDuration
-                    })
-                }
-            } else {
-                // This was an external task
-                if (config.isOverSidebar?.()) {
-                    // Dropped over a sidebar pile (To-Do or Shortcut)
-                    emit('external-task-dropped-on-sidebar', { event: e })
-                } else if (currentSnapTime.value !== null) {
-                    // Only create task if it was dropped over the calendar (has a snap position)
-                    config.onExternalTaskDropped?.({
-                        taskId: Date.now(),
-                        startTime: currentSnapTime.value,
-                        duration: finalDuration
-                    })
+                    // Internal task operation (drag or resize)
+                    if (mode.value === 'drag' && finalOverTrash) {
+                        config.onDeleteTask?.({ taskId: activeTaskId.value })
+                    } else if (mode.value === 'drag' && (isOverTodo.value || isOverShortcut.value)) {
+                        emit('task-dropped-on-sidebar', { taskId: activeTaskId.value, event: e })
+                    } else if (finalStart !== initialStart.value || finalDuration !== initialDuration.value) {
+                        // Persist any change (drag position or resize)
+                        config.onTaskDropped?.({
+                            taskId: activeTaskId.value,
+                            startTime: finalStart,
+                            duration: finalDuration
+                        })
+                    }
+                } else if (mode.value === 'drag') {
+                    // External task operation
+                    if (finalOverTrash) {
+                        emit('delete-external-task', {})
+                    } else if (isOverTodo.value || isOverShortcut.value) {
+                        // Dropped over a sidebar pile (To-Do or Shortcut)
+                        emit('external-task-dropped-on-sidebar', { event: e })
+                    } else if (currentSnapTime.value !== null) {
+                        // Only create task if it was dropped over the calendar (has a snap position)
+                        config.onExternalTaskDropped?.({
+                            taskId: Date.now(),
+                            startTime: currentSnapTime.value,
+                            duration: finalDuration
+                        })
+                    }
                 }
             }
+        } finally {
+            mode.value = 'none'
+            activeTaskId.value = null
+            currentSnapTime.value = null
+            currentDuration.value = null
+            resetCollisions()
+
+            window.removeEventListener('mousemove', onMouseMove)
+            window.removeEventListener('mouseup', onMouseUp)
+            window.removeEventListener('wheel', onWheel)
         }
-
-        mode.value = 'none'
-        activeTaskId.value = null
-        currentSnapTime.value = null
-        currentDuration.value = null
-        isOverTrash.value = false
-
-        window.removeEventListener('mousemove', onMouseMove)
-        window.removeEventListener('mouseup', onMouseUp)
-        window.removeEventListener('wheel', onWheel)
     }
 
     const handleSlotClick = (hour: number, quarter: number) => {
@@ -273,6 +251,7 @@ export function useTaskOperations(
         isOverTrash,
         startOperation,
         startExternalDrag,
+        resetCollisions,
         handleSlotClick
     }
 }

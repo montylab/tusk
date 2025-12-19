@@ -4,27 +4,23 @@ import type { Task } from '../types'
 import { useTaskOperations } from '../composables/useTaskOperations'
 import { useTaskLayout } from '../composables/useTaskLayout'
 import { useTasksStore } from '../stores/tasks'
+import { useDragState } from '../composables/useDragState'
 import { ref, watch } from 'vue'
 
 const props = withDefaults(defineProps<{
   tasks: Task[]
   startHour?: number
   endHour?: number
-  trashBounds?: DOMRect | null
   activeExternalTask?: Task | null
-  isOverSidebar?: boolean
 }>(), {
   startHour: 6,
   endHour: 22,
-  trashBounds: null,
-  activeExternalTask: null,
-  isOverSidebar: false
+  activeExternalTask: null
 })
 
 const emit = defineEmits<{
   (e: 'update:is-over-trash', payload: boolean): void
   (e: 'external-task-dropped', payload: { taskId: number, startTime: number, duration?: number }): void
-  (e: 'task-over-sidebar', payload: MouseEvent): void
   (e: 'task-dropped-on-sidebar', payload: { taskId: number, event: MouseEvent }): void
   (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
   (e: 'delete-external-task', payload: {}): void
@@ -60,15 +56,13 @@ const handleDeleteTask = (payload: { taskId: number }) => {
 
 const hours = Array.from({ length: props.endHour - props.startHour }, (_, i) => i + props.startHour)
 
-// 1. Interaction Logic
 const { 
     mode, 
     activeTaskId, 
     currentSnapTime, 
-    currentDuration, // Kept currentDuration as it's used in template
-    isOverTrash,
+    currentDuration,
     startOperation, 
-    startExternalDrag: startExternalDragOp, // Renamed to avoid conflict with exposed function
+    startExternalDrag: startExternalDragOp, 
     handleSlotClick 
 } = useTaskOperations(
     () => props.tasks, 
@@ -77,11 +71,9 @@ const {
         startHour: props.startHour, 
         endHour: props.endHour,
         hourHeight: 80,
-        getTrashBounds: () => props.trashBounds,
         getContainerRect: () => containerRect.value,
         getScrollTop: () => scrollTop.value,
         activeExternalTask: () => props.activeExternalTask,
-        isOverSidebar: () => props.isOverSidebar,
         // Wire up internal handlers
         onTaskDropped: handleScheduleTask,
         onCreateTask: handleCreateTask,
@@ -91,6 +83,8 @@ const {
         onExternalTaskDroppedOnSidebar: (payload: { event: MouseEvent }) => emit('external-task-dropped-on-sidebar', payload)
     }
 )
+
+const { isOverTrash } = useDragState()
 
 watch(isOverTrash, (val) => {
     emit('update:is-over-trash', val)

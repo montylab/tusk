@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import DayView from './components/DayView.vue'
 import TrashBasket from './components/TrashBasket.vue'
@@ -7,6 +7,7 @@ import ShortcutsPile from './components/ShortcutsPile.vue'
 import ToDoPile from './components/ToDoPile.vue'
 import { useTasksStore } from './stores/tasks'
 import { useExternalDrag } from './composables/useExternalDrag'
+import { useDragState } from './composables/useDragState'
 
 // Initialize store
 const tasksStore = useTasksStore()
@@ -17,15 +18,20 @@ onMounted(() => {
   tasksStore.loadTasks()
 })
 
-// UI state
-const trashBounds = ref<DOMRect | null>(null)
-const todoPileBounds = ref<DOMRect | null>(null)
-const shortcutPileBounds = ref<DOMRect | null>(null)
+// Shared drag state
+const { 
+  trashBounds, 
+  todoBounds, 
+  shortcutBounds, 
+  isOverTrash, 
+  isOverTodo, 
+  isOverShortcut 
+} = useDragState()
 
-const isOverTrash = ref(false)
-const isOverTodo = ref(false)
-const isOverShortcut = ref(false)
+const todoInsertionIndex = ref<number | null>(null)
+const shortcutInsertionIndex = ref<number | null>(null)
 
+// Reference to DayView for external drag initiation
 const dayViewRef = ref<any>(null)
 
 // External drag handling
@@ -36,66 +42,80 @@ const {
   handleExternalTaskDeleted
 } = useExternalDrag(dayViewRef)
 
-// Reverse drag-and-drop detection
-const checkCollision = (e: MouseEvent) => {
-  if (!todoPileBounds.value || !shortcutPileBounds.value) return
-
-  const check = (bounds: DOMRect) => {
-    return e.clientX >= bounds.left &&
-           e.clientX <= bounds.right &&
-           e.clientY >= bounds.top &&
-           e.clientY <= bounds.bottom
-  }
-
-  isOverTodo.value = check(todoPileBounds.value)
-  isOverShortcut.value = check(shortcutPileBounds.value)
-}
-
 const handleCalendarTaskDropped = (payload: { taskId: number, event: MouseEvent }) => {
-  // Perform one final collision check at drop position
-  checkCollision(payload.event)
-
   if (isOverTodo.value) {
     tasksStore.convertToTodo(payload.taskId)
+    if (todoInsertionIndex.value !== null) {
+      tasksStore.reorderTask(payload.taskId, todoInsertionIndex.value, 'todo')
+    }
   } else if (isOverShortcut.value) {
     tasksStore.convertToShortcut(payload.taskId)
+    if (shortcutInsertionIndex.value !== null) {
+      tasksStore.reorderTask(payload.taskId, shortcutInsertionIndex.value, 'shortcut')
+    }
   }
+  
+  // Cleanup indices
+  todoInsertionIndex.value = null
+  shortcutInsertionIndex.value = null
 }
 
-const handleExternalTaskSidebarDrop = (payload: { event: MouseEvent }) => {
+const handleExternalTaskSidebarDrop = () => {
   if (!activeExternalTask.value) return
-  
-  // 1. Perform final collision check
-  checkCollision(payload.event)
   
   const { source, task } = activeExternalTask.value
   
   // 2. Handle the transfer
-  if (isOverTodo.value && source === 'shortcut') {
-    // Shortcut -> To-Do: Just create a normal task from the shortcut
-    tasksStore.createTask({
-      ...task,
-      isShortcut: false,
-      startTime: null
-    })
-  } else if (isOverShortcut.value && source === 'todo') {
-    // To-Do -> Shortcut: Convert existing to-do to shortcut
-    tasksStore.convertToShortcut(task.id)
+  if (isOverTodo.value) {
+    if (source === 'shortcut') {
+      // Shortcut -> To-Do (Clone as new task)
+      const newTask = tasksStore.createTask({
+        ...task,
+        isShortcut: false,
+        startTime: null
+      })
+      if (todoInsertionIndex.value !== null) {
+        tasksStore.reorderTask(newTask.id, todoInsertionIndex.value, 'todo')
+      }
+    } else if (source === 'todo' && todoInsertionIndex.value !== null) {
+      // Internal To-Do reorder: find original index and adjust target
+      const oldIndex = tasksStore.todoTasks.findIndex(t => t.id === task.id)
+      let targetIndex = todoInsertionIndex.value
+      if (oldIndex !== -1 && targetIndex > oldIndex) {
+        targetIndex -= 1
+      }
+      tasksStore.reorderTask(task.id, targetIndex, 'todo')
+    }
+  } else if (isOverShortcut.value) {
+    if (source === 'todo') {
+      // To-Do -> Shortcut
+      tasksStore.convertToShortcut(task.id)
+      if (shortcutInsertionIndex.value !== null) {
+        tasksStore.reorderTask(task.id, shortcutInsertionIndex.value, 'shortcut')
+      }
+    } else if (source === 'shortcut' && shortcutInsertionIndex.value !== null) {
+      // Internal Shortcut reorder: find original index and adjust target
+      const oldIndex = tasksStore.shortcutTasks.findIndex(t => t.id === task.id)
+      let targetIndex = shortcutInsertionIndex.value
+      if (oldIndex !== -1 && targetIndex > oldIndex) {
+        targetIndex -= 1
+      }
+      tasksStore.reorderTask(task.id, targetIndex, 'shortcut')
+    }
   }
   
-  // 3. Clear the active drag state
+  // 3. Clear the active drag state and indices
   activeExternalTask.value = null
+  todoInsertionIndex.value = null
+  shortcutInsertionIndex.value = null
 }
 
-// Global mouse tracking during calendar drag
-watch(isOverTrash, (val) => {
-  if (!val) {
-    // If not over trash, reset other highlights to allow checkCollision to take over
-    isOverTodo.value = false
-    isOverShortcut.value = false
-  }
-})
 
+const handleExternalTaskDeletedWrapper = () => {
+  handleExternalTaskDeleted()
+  todoInsertionIndex.value = null
+  shortcutInsertionIndex.value = null
+}
 </script>
 
 <template>
@@ -113,15 +133,12 @@ watch(isOverTrash, (val) => {
         :tasks="scheduledTasks" 
         :start-hour="8"
         :end-hour="24"
-        :trash-bounds="trashBounds"
         :active-external-task="activeExternalTask?.task || null"
-        :is-over-sidebar="isOverTodo || isOverShortcut"
         @update:is-over-trash="isOverTrash = $event"
         @external-task-dropped="handleExternalTaskDropped"
-        @delete-external-task="handleExternalTaskDeleted"
-        @task-over-sidebar="checkCollision($event)"
+        @delete-external-task="handleExternalTaskDeletedWrapper"
         @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
-        @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop($event)"
+        @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop"
       />
     </main>
 
@@ -129,12 +146,16 @@ watch(isOverTrash, (val) => {
         <div class="pile-container">
             <ShortcutsPile 
                 :is-highlighted="isOverShortcut"
-                @update:bounds="shortcutPileBounds = $event"
+                :active-task-id="activeExternalTask?.task.id"
+                @update:bounds="shortcutBounds = $event"
+                @update:insertion-index="shortcutInsertionIndex = $event"
                 @drag-start="handleExternalDragStart('shortcut', $event.task, $event.event)"
             />
             <ToDoPile 
                 :is-highlighted="isOverTodo"
-                @update:bounds="todoPileBounds = $event"
+                :active-task-id="activeExternalTask?.task.id"
+                @update:bounds="todoBounds = $event"
+                @update:insertion-index="todoInsertionIndex = $event"
                 @drag-start="handleExternalDragStart('todo', $event.task, $event.event)"
             />
         </div>
