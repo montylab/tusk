@@ -9,6 +9,9 @@ interface OperationConfig {
     endHour: number
     hourHeight: number
     getTrashBounds?: () => DOMRect | null
+    getContainerRect?: () => DOMRect | null
+    getScrollTop?: () => number
+    activeExternalTask?: () => Task | null
 }
 
 export function useTaskOperations(
@@ -68,31 +71,54 @@ export function useTaskOperations(
         }
     }
 
+    // Logic to initiate an operation from an external source (sidebar)
+    const startExternalDrag = (e: MouseEvent, task: Task) => {
+        mode.value = 'drag'
+        activeTaskId.value = null
+
+        initialStart.value = config.startHour
+        initialDuration.value = task.duration || 60
+        startY.value = e.clientY
+
+        currentSnapTime.value = null
+        currentDuration.value = initialDuration.value
+
+        window.addEventListener('mousemove', onMouseMove)
+        window.addEventListener('mouseup', onMouseUp)
+        window.addEventListener('wheel', onWheel, { passive: false })
+    }
+
     const onMouseMove = (e: MouseEvent) => {
         if (mode.value === 'none') return
 
-        const deltaY = e.clientY - startY.value
-        // Assumed fixed height from CSS is 80px per hour
         const hourHeight = config.hourHeight
+        const deltaY = e.clientY - startY.value
         const deltaHours = deltaY / hourHeight
 
         if (mode.value === 'drag') {
-            let rawNewTime = initialStart.value + deltaHours
-            let snapped = Math.round(rawNewTime * 4) / 4
-            // Clamp
-            snapped = Math.max(config.startHour, Math.min(config.endHour - (initialDuration.value / 60), snapped))
-            currentSnapTime.value = snapped
+            const containerRect = config.getContainerRect?.()
+            const scrollTop = config.getScrollTop?.() || 0
 
-            // Check trash collision
-            const trashBounds = config.getTrashBounds?.()
-            if (trashBounds) {
-                const b = trashBounds
-                isOverTrash.value = (
-                    e.clientX >= b.left &&
-                    e.clientX <= b.right &&
-                    e.clientY >= b.top &&
-                    e.clientY <= b.bottom
-                )
+            if (activeTaskId.value === null && containerRect) {
+                // External drag: calculate time based on absolute mouse position relative to container
+                const relativeY = e.clientY - containerRect.top + scrollTop
+                const rawTime = (relativeY / config.hourHeight) + config.startHour
+
+                // Only snap if we are horizontally over the calendar or close to it
+                const isOverCalendar = e.clientX >= containerRect.left && e.clientX <= containerRect.right
+                if (isOverCalendar) {
+                    currentSnapTime.value = Math.max(config.startHour,
+                        Math.min(config.endHour - (currentDuration.value! / 60),
+                            Math.floor(rawTime * 4) / 4))
+                } else {
+                    currentSnapTime.value = null
+                }
+            } else {
+                // Internal drag: relative movement
+                const rawNewTime = initialStart.value + deltaHours
+                let snapped = Math.round(rawNewTime * 4) / 4
+                snapped = Math.max(config.startHour, Math.min(config.endHour - (currentDuration.value! / 60), snapped))
+                currentSnapTime.value = snapped
             }
         }
         else if (mode.value === 'resize-bottom') {
@@ -121,6 +147,18 @@ export function useTaskOperations(
                 currentDuration.value = newDuration
             }
         }
+
+        // Check trash collision
+        const trashBounds = config.getTrashBounds?.()
+        if (trashBounds) {
+            const b = trashBounds
+            isOverTrash.value = (
+                e.clientX >= b.left &&
+                e.clientX <= b.right &&
+                e.clientY >= b.top &&
+                e.clientY <= b.bottom
+            )
+        }
     }
 
     const onWheel = (e: WheelEvent) => {
@@ -140,7 +178,7 @@ export function useTaskOperations(
     }
 
     const onMouseUp = (e: MouseEvent) => {
-        if (mode.value !== 'none' && activeTaskId.value !== null) {
+        if (mode.value !== 'none') {
             // Final check for trash collision at drop point
             const trashBounds = config.getTrashBounds?.()
             const finalOverTrash = trashBounds && (
@@ -151,17 +189,33 @@ export function useTaskOperations(
             ) || isOverTrash.value
 
             if (mode.value === 'drag' && finalOverTrash) {
-                emit('delete-task', { taskId: activeTaskId.value })
+                if (activeTaskId.value !== null) {
+                    emit('delete-task', { taskId: activeTaskId.value })
+                }
             } else {
                 const finalStart = currentSnapTime.value ?? initialStart.value
                 const finalDuration = currentDuration.value ?? initialDuration.value
 
-                if (finalStart !== initialStart.value || finalDuration !== initialDuration.value) {
-                    emit('task-dropped', {
-                        taskId: activeTaskId.value,
-                        startTime: finalStart,
-                        duration: finalDuration
-                    })
+                if (activeTaskId.value !== null) {
+                    if (finalStart !== initialStart.value || finalDuration !== initialDuration.value) {
+                        emit('task-dropped', {
+                            taskId: activeTaskId.value,
+                            startTime: finalStart,
+                            duration: finalDuration
+                        })
+                    }
+                } else {
+                    // This was an external task
+                    if (finalOverTrash) {
+                        emit('delete-external-task', {})
+                    } else if (currentSnapTime.value !== null) {
+                        // Only create task if it was dropped over the calendar (has a snap position)
+                        emit('external-task-dropped', {
+                            taskId: Date.now(),
+                            startTime: currentSnapTime.value,
+                            duration: finalDuration
+                        })
+                    }
                 }
             }
         }
@@ -203,6 +257,7 @@ export function useTaskOperations(
         currentDuration,
         isOverTrash,
         startOperation,
+        startExternalDrag,
         handleSlotClick
     }
 }

@@ -10,18 +10,21 @@ const props = withDefaults(defineProps<{
   startHour?: number
   endHour?: number
   trashBounds?: DOMRect | null
+  activeExternalTask?: Task | null
 }>(), {
   startHour: 6,
   endHour: 22,
-  trashBounds: null
+  trashBounds: null,
+  activeExternalTask: null
 })
 
 const emit = defineEmits<{
-  (e: 'task-dropped', payload: { taskId: number, startTime: number, duration: number }): void
+  (e: 'task-dropped', payload: { taskId: number, startTime: number, duration?: number }): void
   (e: 'create-task', payload: { text: string, startTime: number, category: string }): void
   (e: 'duplicate-task', payload: { originalTaskId: number, newTaskId: number }): void
   (e: 'delete-task', payload: { taskId: number }): void
-  (e: 'update:is-over-trash', value: boolean): void
+  (e: 'update:is-over-trash', payload: boolean): void
+  (e: 'external-task-dropped', payload: { taskId: number, startTime: number, duration?: number }): void
 }>()
 
 const hours = Array.from({ length: props.endHour - props.startHour }, (_, i) => i + props.startHour)
@@ -31,16 +34,24 @@ const {
     mode, 
     activeTaskId, 
     currentSnapTime, 
-    currentDuration, 
+    currentDuration, // Kept currentDuration as it's used in template
     isOverTrash,
     startOperation, 
+    startExternalDrag: startExternalDragOp, // Renamed to avoid conflict with exposed function
     handleSlotClick 
-} = useTaskOperations(() => props.tasks, emit, { 
-    startHour: props.startHour, 
-    endHour: props.endHour,
-    hourHeight: 80,
-    getTrashBounds: () => props.trashBounds
-})
+} = useTaskOperations(
+    () => props.tasks, 
+    emit, 
+    { 
+        startHour: props.startHour, 
+        endHour: props.endHour,
+        hourHeight: 80,
+        getTrashBounds: () => props.trashBounds,
+        getContainerRect: () => containerRect.value, // Added
+        getScrollTop: () => scrollTop.value,         // Added
+        activeExternalTask: () => props.activeExternalTask
+    }
+)
 
 watch(isOverTrash, (val) => {
     emit('update:is-over-trash', val)
@@ -82,19 +93,28 @@ type OperationMode = 'none' | 'drag' | 'resize-top' | 'resize-bottom'
 
 const handleStartOperation = (e: MouseEvent, taskId: number, opMode: OperationMode) => {
     if (opMode === 'drag') {
-        updateContainerRect()
-        const task = layoutTasks.value.find(t => t.id === taskId)
-        if (task && containerRect.value) {
-            const taskLeft = containerRect.value.left + (parseFloat(task.style.left) / 100 * containerRect.value.width)
-            dragOffsetX.value = e.clientX - taskLeft
-            
-            mouseX.value = e.clientX
-            mouseY.value = e.clientY
-            window.addEventListener('mousemove', onWindowMouseMove)
-            window.addEventListener('mouseup', onWindowMouseUp)
-        }
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+        dragOffsetX.value = e.clientX - rect.left
+        mouseX.value = e.clientX
+        mouseY.value = e.clientY
+        window.addEventListener('mousemove', onWindowMouseMove)
+        window.addEventListener('mouseup', onWindowMouseUp)
     }
     startOperation(e, taskId, opMode)
+}
+
+const handleExternalDrag = (e: MouseEvent, task: Task) => {
+    // For external tasks, calculate offset relative to the item being clicked
+    updateContainerRect()
+    const target = e.currentTarget as HTMLElement
+    const rect = target.getBoundingClientRect()
+    dragOffsetX.value = e.clientX - rect.left
+    
+    mouseX.value = e.clientX
+    mouseY.value = e.clientY
+    window.addEventListener('mousemove', onWindowMouseMove)
+    window.addEventListener('mouseup', onWindowMouseUp)
+    startExternalDragOp(e, task)
 }
 
 watch(activeTaskId, (id) => {
@@ -117,29 +137,54 @@ const { layoutTasks } = useTaskLayout(
     }
 )
 
+// 3. Coordinate External Drag
+defineExpose({
+    startExternalDrag: handleExternalDrag // Expose the new handler
+})
+
 const getTeleportStyle = (task: any) => {
-    if (task.id !== activeTaskId.value || mode.value !== 'drag' || !containerRect.value) {
+    const isInternalDrag = activeTaskId.value !== null && mode.value === 'drag' && task.id === activeTaskId.value;
+    const isExternalDrag = activeTaskId.value === null && mode.value === 'drag' && props.activeExternalTask && task.id === props.activeExternalTask.id;
+
+    if (!isInternalDrag && !isExternalDrag) {
         return {};
     }
 
     const freeLeft = mouseX.value - dragOffsetX.value;
+    const freeTop = mouseY.value - 20;
+
+    if (isExternalDrag) {
+        // External tasks always follow mouse freely (ghost handled snapped position)
+        return {
+            position: 'fixed' as const,
+            top: freeTop + 'px',
+            left: freeLeft + 'px',
+            width: '180px',
+            zIndex: 9999,
+            pointerEvents: 'none' as const,
+            opacity: 0.7,
+            transition: 'none'
+        };
+    }
+
+    // Internal Drag Snapping (uses task.style from layout engine)
+    if (!containerRect.value || !task.style) return {};
+
     const snappedLeft = containerRect.value.left + (parseFloat(task.style.left) / 100 * containerRect.value.width);
-    
-    // Threshold for snapping (60px)
+    const pixelWidth = (parseFloat(task.style.width) / 100 * containerRect.value.width);
     const threshold = 60;
     const isInsideSnapRange = Math.abs(freeLeft - snappedLeft) < threshold;
     const finalLeft = isInsideSnapRange ? snappedLeft : freeLeft;
+    const finalTop = parseFloat(task.style.top) + containerRect.value.top - scrollTop.value;
 
     return {
         position: 'fixed' as const,
-        // Vertical is always snapped to grid
-        top: (parseFloat(task.style.top) + containerRect.value.top - scrollTop.value) + 'px',
+        top: finalTop + 'px',
         left: finalLeft + 'px',
-        width: (parseFloat(task.style.width) / 100 * containerRect.value.width) + 'px',
+        width: pixelWidth + 'px',
         zIndex: 9999,
         pointerEvents: 'none' as const,
         opacity: 0.5,
-        // Add a smooth transition only for the horizontal snap
         transition: isInsideSnapRange ? 'left 0.1s ease-out' : 'none'
     };
 };
@@ -200,6 +245,39 @@ const getTeleportStyle = (task: any) => {
                             </div>
                         </Teleport>
                      </template>
+
+                     <template v-if="activeExternalTask && currentSnapTime !== null">
+                        <div 
+                            class="task-wrapper-absolute ghost-external"
+                            :style="{
+                                top: `${(currentSnapTime - startHour) * 80}px`,
+                                height: `${((currentDuration || activeExternalTask.duration) / 60) * 80}px`,
+                                left: '0%',
+                                width: 'calc(100% - 8px)',
+                                zIndex: 5,
+                                opacity: 0.3,
+                                pointerEvents: 'none',
+                                padding: '0 4px',
+                                background: 'rgba(255,255,255,0.1)',
+                                borderRadius: '6px'
+                            }"
+                        >
+                            <TaskItem :task="activeExternalTask" />
+                        </div>
+                     </template>
+
+                     <!-- Floating Item for External Drag (Teleport to Body) -->
+                     <Teleport to="body" v-if="activeExternalTask && activeTaskId === null && mode === 'drag'">
+                        <div 
+                            class="task-wrapper-absolute is-dragging"
+                            :style="getTeleportStyle(activeExternalTask)"
+                        >
+                            <TaskItem 
+                                :task="activeExternalTask" 
+                                :is-dragging="true"
+                            />
+                        </div>
+                     </Teleport>
                 </div>
             </div>
         </div>
