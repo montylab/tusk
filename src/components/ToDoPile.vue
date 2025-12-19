@@ -3,13 +3,27 @@ import { storeToRefs } from 'pinia'
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
 import { useTasksStore } from '../stores/tasks'
+import { ref, watch } from 'vue'
 
 const tasksStore = useTasksStore()
 const { todoTasks } = storeToRefs(tasksStore)
 
+const props = defineProps<{
+  isHighlighted?: boolean
+}>()
+
 const emit = defineEmits<{
   (e: 'drag-start', payload: { event: MouseEvent, task: Task }): void
+  (e: 'update:bounds', bounds: DOMRect): void
 }>()
+
+const pileRef = ref<HTMLElement | null>(null)
+
+watch(pileRef, (el) => {
+  if (el) {
+    emit('update:bounds', el.getBoundingClientRect())
+  }
+}, { immediate: true })
 
 const categoryColors: Record<string, string> = {
   Work: '#4facfe',
@@ -23,9 +37,11 @@ const getCategoryColor = (category: string) => {
   return categoryColors[category] || categoryColors.Default
 }
 
-const getChaoticStyle = (index: number) => {
-  const rotation = (index % 7) - 3 // -3 to 3 degrees
-  const xOffset = (index % 4) * 3 - 6 // -6 to 6px
+const getChaoticStyle = (id: number) => {
+  // Use id as a seed for stable "chaos"
+  const seed = (id * 1337) % 100
+  const rotation = (seed % 7) - 3 // -3 to 3 degrees
+  const xOffset = (seed % 4) * 3 - 6 // -6 to 6px
   
   return {
     transform: `rotate(${rotation}deg) translateX(${xOffset}px)`,
@@ -41,21 +57,27 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 </script>
 
 <template>
-  <div class="todo-pile">
+  <div 
+    ref="pileRef"
+    class="todo-pile"
+    :class="{ 'is-highlighted': isHighlighted }"
+  >
     <h3 class="pile-title">To Do</h3>
     <div class="pile-content">
-      <div 
-        v-for="(task, index) in todoTasks" 
-        :key="task.id"
-        class="pile-task"
-        :style="{ 
-          ...getChaoticStyle(index),
-          boxShadow: `0 0 2px 1px ${getCategoryColor(task.category)}, 0 2px 5px rgba(0,0,0,0.2)`
-        }"
-        @mousedown="handleMouseDown($event, task)"
-      >
-        <TaskItem :task="task" />
-      </div>
+      <TransitionGroup name="task-list">
+        <div 
+          v-for="task in todoTasks" 
+          :key="task.id"
+          class="pile-task"
+          :style="{ 
+            ...getChaoticStyle(task.id),
+            boxShadow: `0 0 2px 1px ${getCategoryColor(task.category)}, 0 2px 5px rgba(0,0,0,0.2)`
+          }"
+          @mousedown="handleMouseDown($event, task)"
+        >
+          <TaskItem :task="task" />
+        </div>
+      </TransitionGroup>
       <div v-if="todoTasks.length === 0" class="empty-state">
         No tasks to do
       </div>
@@ -70,6 +92,16 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
   flex-direction: column;
   padding: 1rem;
   background: rgba(255, 255, 255, 0.01);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+
+.todo-pile.is-highlighted {
+  background: rgba(var(--accent-rgb, 79, 172, 254), 0.1);
+  border-color: rgba(var(--accent-rgb, 79, 172, 254), 0.3);
+  box-shadow: inset 0 0 20px rgba(var(--accent-rgb, 79, 172, 254), 0.05);
+  transform: scale(1.02);
 }
 
 .pile-title {
@@ -105,5 +137,25 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
   color: var(--text-muted);
   font-style: italic;
   padding: 2rem;
+}
+
+/* Animations */
+.task-list-enter-active,
+.task-list-leave-active {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.task-list-enter-from {
+  opacity: 0;
+  transform: scale(0.5) translateY(-20px) rotate(10deg);
+}
+
+.task-list-leave-to {
+  opacity: 0;
+  transform: scale(0.8) translateY(20px);
+}
+
+.task-list-move {
+  transition: transform 0.4s ease;
 }
 </style>

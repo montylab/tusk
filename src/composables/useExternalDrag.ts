@@ -39,12 +39,10 @@ export function useExternalDrag(dayViewRef: any) {
     const handleExternalTaskDeleted = () => {
         if (!activeExternalTask.value) return
 
-        const { source, task } = activeExternalTask.value
+        const { task } = activeExternalTask.value
 
-        // If it was a ToDo, remove from pile (shortcuts are permanent templates)
-        if (source === 'todo') {
-            tasksStore.deleteTask(task.id)
-        }
+        // Remove from pile (To-Do or Shortcut)
+        tasksStore.deleteTask(task.id)
 
         activeExternalTask.value = null
     }

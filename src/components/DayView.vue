@@ -12,16 +12,22 @@ const props = withDefaults(defineProps<{
   endHour?: number
   trashBounds?: DOMRect | null
   activeExternalTask?: Task | null
+  isOverSidebar?: boolean
 }>(), {
   startHour: 6,
   endHour: 22,
   trashBounds: null,
-  activeExternalTask: null
+  activeExternalTask: null,
+  isOverSidebar: false
 })
 
 const emit = defineEmits<{
   (e: 'update:is-over-trash', payload: boolean): void
   (e: 'external-task-dropped', payload: { taskId: number, startTime: number, duration?: number }): void
+  (e: 'task-over-sidebar', payload: MouseEvent): void
+  (e: 'task-dropped-on-sidebar', payload: { taskId: number, event: MouseEvent }): void
+  (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
+  (e: 'delete-external-task', payload: {}): void
 }>()
 
 // Store access for task operations
@@ -66,7 +72,7 @@ const {
     handleSlotClick 
 } = useTaskOperations(
     () => props.tasks, 
-    emit, 
+    emit as any, 
     { 
         startHour: props.startHour, 
         endHour: props.endHour,
@@ -75,12 +81,14 @@ const {
         getContainerRect: () => containerRect.value,
         getScrollTop: () => scrollTop.value,
         activeExternalTask: () => props.activeExternalTask,
+        isOverSidebar: () => props.isOverSidebar,
         // Wire up internal handlers
         onTaskDropped: handleScheduleTask,
         onCreateTask: handleCreateTask,
         onDuplicateTask: handleDuplicateTask,
         onDeleteTask: handleDeleteTask,
-        onExternalTaskDropped: (payload) => emit('external-task-dropped', payload)
+        onExternalTaskDropped: (payload) => emit('external-task-dropped', payload),
+        onExternalTaskDroppedOnSidebar: (payload: { event: MouseEvent }) => emit('external-task-dropped-on-sidebar', payload)
     }
 )
 

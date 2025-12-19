@@ -50,7 +50,7 @@ export const useTasksStore = defineStore('tasks', () => {
         tasks.value.push(newTask)
 
         // Sync to backend in background
-        taskApi.createTask(taskData)
+        taskApi.createTask(newTask)
             .then(savedTask => {
                 // Replace temp task with real one from backend
                 const index = tasks.value.findIndex(t => t.id === tempId)
@@ -122,6 +122,27 @@ export const useTasksStore = defineStore('tasks', () => {
         updateTask(id, { startTime: null })
     }
 
+    const convertToTodo = (id: number) => {
+        updateTask(id, { startTime: null, isShortcut: false })
+    }
+
+    const convertToShortcut = (id: number) => {
+        const original = getTaskById.value(id)
+        if (!original) return
+
+        // Create a new shortcut template from the task
+        const { id: _, ...taskData } = original
+        createTask({
+            ...taskData,
+            startTime: null,
+            isShortcut: true,
+            completed: false
+        })
+
+        // Remove the original calendar task
+        deleteTask(id)
+    }
+
     return {
         // State
         tasks,
@@ -138,6 +159,8 @@ export const useTasksStore = defineStore('tasks', () => {
         updateTask,
         deleteTask,
         scheduleTask,
-        unscheduleTask
+        unscheduleTask,
+        convertToTodo,
+        convertToShortcut
     }
 })

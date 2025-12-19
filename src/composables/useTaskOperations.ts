@@ -12,17 +12,19 @@ interface OperationConfig {
     getContainerRect?: () => DOMRect | null
     getScrollTop?: () => number
     activeExternalTask?: () => Task | null
+    isOverSidebar?: () => boolean
     // Handler callbacks
     onTaskDropped?: (payload: { taskId: number, startTime: number, duration: number }) => void
     onCreateTask?: (payload: { text: string, startTime: number, category: string }) => void
     onDuplicateTask?: (payload: { originalTaskId: number }) => void
     onDeleteTask?: (payload: { taskId: number }) => void
     onExternalTaskDropped?: (payload: { taskId: number, startTime: number, duration: number }) => void
+    onExternalTaskDroppedOnSidebar?: (payload: { event: MouseEvent }) => void
 }
 
 export function useTaskOperations(
     tasks: Task[] | Ref<Task[]> | (() => Task[]),
-    emit: (event: any, payload: any) => void,
+    emit: (event: string, payload: any) => void,
     config: OperationConfig
 ) {
     const taskList = computed(() => {
@@ -163,6 +165,11 @@ export function useTaskOperations(
                 e.clientY <= b.bottom
             )
         }
+
+        // Emit current mouse position for sidebar collision detection
+        if (mode.value === 'drag') {
+            emit('task-over-sidebar', e)
+        }
     }
 
     const onWheel = (e: WheelEvent) => {
@@ -192,34 +199,38 @@ export function useTaskOperations(
                 e.clientY <= trashBounds.bottom
             ) || isOverTrash.value
 
+            const finalStart = currentSnapTime.value ?? initialStart.value
+            const finalDuration = currentDuration.value ?? initialDuration.value
+
             if (mode.value === 'drag' && finalOverTrash) {
                 if (activeTaskId.value !== null) {
                     config.onDeleteTask?.({ taskId: activeTaskId.value })
+                } else {
+                    emit('delete-external-task', {})
+                }
+            } else if (mode.value === 'drag' && activeTaskId.value !== null) {
+                // Check if dropped on a sidebar pile (App.vue will handle the logic via event)
+                emit('task-dropped-on-sidebar', { taskId: activeTaskId.value, event: e })
+
+                if (!config.isOverSidebar?.() && (finalStart !== initialStart.value || finalDuration !== initialDuration.value)) {
+                    config.onTaskDropped?.({
+                        taskId: activeTaskId.value,
+                        startTime: finalStart,
+                        duration: finalDuration
+                    })
                 }
             } else {
-                const finalStart = currentSnapTime.value ?? initialStart.value
-                const finalDuration = currentDuration.value ?? initialDuration.value
-
-                if (activeTaskId.value !== null) {
-                    if (finalStart !== initialStart.value || finalDuration !== initialDuration.value) {
-                        config.onTaskDropped?.({
-                            taskId: activeTaskId.value,
-                            startTime: finalStart,
-                            duration: finalDuration
-                        })
-                    }
-                } else {
-                    // This was an external task
-                    if (finalOverTrash) {
-                        emit('delete-external-task', {})
-                    } else if (currentSnapTime.value !== null) {
-                        // Only create task if it was dropped over the calendar (has a snap position)
-                        config.onExternalTaskDropped?.({
-                            taskId: Date.now(),
-                            startTime: currentSnapTime.value,
-                            duration: finalDuration
-                        })
-                    }
+                // This was an external task
+                if (config.isOverSidebar?.()) {
+                    // Dropped over a sidebar pile (To-Do or Shortcut)
+                    emit('external-task-dropped-on-sidebar', { event: e })
+                } else if (currentSnapTime.value !== null) {
+                    // Only create task if it was dropped over the calendar (has a snap position)
+                    config.onExternalTaskDropped?.({
+                        taskId: Date.now(),
+                        startTime: currentSnapTime.value,
+                        duration: finalDuration
+                    })
                 }
             }
         }

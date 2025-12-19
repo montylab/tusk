@@ -37,13 +37,18 @@ export const getTasks = async (): Promise<Task[]> => {
 }
 
 // Create a new task
-export const createTask = async (task: Omit<Task, 'id'>): Promise<Task> => {
+export const createTask = async (task: Partial<Task>): Promise<Task> => {
     await delay(200)
     const tasks = await getTasks()
     const newTask: Task = {
+        text: 'New Task',
+        category: 'Default',
+        completed: false,
+        startTime: null,
+        duration: 60,
         ...task,
-        id: Date.now()
-    }
+        id: task.id || Date.now()
+    } as Task
     tasks.push(newTask)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
     return newTask
