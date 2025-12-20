@@ -3,15 +3,14 @@ import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import DayView from './components/DayView.vue'
 import TrashBasket from './components/TrashBasket.vue'
-import ShortcutsPile from './components/ShortcutsPile.vue'
-import ToDoPile from './components/ToDoPile.vue'
+import TaskPile from './components/TaskPile.vue'
 import { useTasksStore } from './stores/tasks'
 import { useExternalDrag } from './composables/useExternalDrag'
 import { useDragState } from './composables/useDragState'
 
 // Initialize store
 const tasksStore = useTasksStore()
-const { scheduledTasks } = storeToRefs(tasksStore)
+const { scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
 
 // Load tasks on mount
 onMounted(() => {
@@ -144,16 +143,24 @@ const handleExternalTaskDeletedWrapper = () => {
 
     <aside class="sidebar right">
         <div class="pile-container">
-            <ShortcutsPile 
+            <TaskPile 
+                title="Shortcuts"
+                :tasks="shortcutTasks"
+                list-type="shortcut"
                 :is-highlighted="isOverShortcut"
                 :active-task-id="activeExternalTask?.task.id"
+                :insertion-index="shortcutInsertionIndex"
                 @update:bounds="shortcutBounds = $event"
                 @update:insertion-index="shortcutInsertionIndex = $event"
                 @drag-start="handleExternalDragStart('shortcut', $event.task, $event.event)"
             />
-            <ToDoPile 
+            <TaskPile 
+                title="To Do"
+                :tasks="todoTasks"
+                list-type="todo"
                 :is-highlighted="isOverTodo"
                 :active-task-id="activeExternalTask?.task.id"
+                :insertion-index="todoInsertionIndex"
                 @update:bounds="todoBounds = $event"
                 @update:insertion-index="todoInsertionIndex = $event"
                 @drag-start="handleExternalDragStart('todo', $event.task, $event.event)"
