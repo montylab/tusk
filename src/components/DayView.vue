@@ -5,7 +5,7 @@ import { useTaskOperations } from '../composables/useTaskOperations'
 import { useTaskLayout } from '../composables/useTaskLayout'
 import { useTasksStore } from '../stores/tasks'
 import { useDragState } from '../composables/useDragState'
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 
 const props = withDefaults(defineProps<{
   tasks: Task[]
@@ -175,6 +175,44 @@ defineExpose({
     startExternalDrag: handleExternalDrag // Expose the new handler
 })
 
+const currentTime = ref(new Date())
+let timer: any = null
+
+onMounted(() => {
+  timer = setInterval(() => {
+    currentTime.value = new Date()
+  }, 60000)
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
+
+const getTaskStatus = (task: Task) => {
+  if (task.startTime === null) return null
+  
+  const now = currentTime.value
+  const currentTotalHours = now.getHours() + now.getMinutes() / 60
+  
+  const taskStart = task.startTime
+  const taskEnd = task.startTime + (task.duration / 60)
+  
+  if (currentTotalHours < taskStart) return 'future'
+  if (currentTotalHours >= taskEnd) return 'past'
+  return 'on-air'
+}
+
+const timeIndicatorTop = computed(() => {
+  const now = currentTime.value
+  const currentTotalHours = now.getHours() + now.getMinutes() / 60
+  
+  if (currentTotalHours < props.startHour || currentTotalHours > props.endHour) {
+    return -100 // Hide if out of range
+  }
+  
+  return (currentTotalHours - props.startHour) * 80
+})
+
 const getTeleportStyle = (task: any) => {
     const isInternalDrag = activeTaskId.value !== null && mode.value === 'drag' && task.id === activeTaskId.value;
     const isExternalDrag = activeTaskId.value === null && mode.value === 'drag' && props.activeExternalTask && task.id === props.activeExternalTask.id;
@@ -271,6 +309,7 @@ const getTeleportStyle = (task: any) => {
                                     :task="task" 
                                     :is-dragging="task.id === activeTaskId && mode === 'drag'"
                                     :is-shaking="task.isOverlapping"
+                                    :status="getTaskStatus(task)"
                                 />
                                 
                                 <!-- Bottom Handle -->
@@ -311,6 +350,15 @@ const getTeleportStyle = (task: any) => {
                             />
                         </div>
                      </Teleport>
+
+                     <!-- Current Time Indicator -->
+                     <div 
+                        v-if="timeIndicatorTop >= 0"
+                        class="current-time-line"
+                        :style="{ top: `${timeIndicatorTop}px` }"
+                     >
+                        <div class="time-dot"></div>
+                     </div>
                 </div>
             </div>
         </div>
@@ -456,5 +504,58 @@ const getTeleportStyle = (task: any) => {
 }
 .resize-handle.top { top: -4px; }
 .resize-handle.bottom { bottom: -4px; }
+
+/* Current Time Indicator */
+.current-time-line {
+    position: absolute;
+    left: -60px; /* Extend to time label area */
+    right: 0;
+    height: 2px;
+    background: #ff4b1f; /* Vibrant red */
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 0 8px rgba(255, 75, 31, 0.4);
+}
+
+.current-time-line::after {
+    content: '';
+    position: absolute;
+    left: 60px;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, #ff4b1f, transparent);
+    top: 0;
+}
+
+.time-dot {
+    position: absolute;
+    left: 56px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    background: #ff4b1f;
+    border-radius: 50%;
+    border: 2px solid var(--bg-card);
+    box-shadow: 0 0 10px rgba(255, 75, 31, 0.8);
+    z-index: 101;
+}
+
+.time-dot::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 50%;
+    background: rgba(255, 75, 31, 0.2);
+    animation: ripple 2s infinite ease-out;
+}
+
+@keyframes ripple {
+    0% { transform: scale(0.5); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
 </style>
 ```

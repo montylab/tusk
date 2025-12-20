@@ -6,6 +6,13 @@ import * as taskApi from '../services/taskApi'
 export const useTasksStore = defineStore('tasks', () => {
     // State
     const tasks = ref<Task[]>([])
+    const categoryColors = ref<Record<string, string>>({
+        Work: 'var(--color-work)',
+        Personal: 'var(--color-personal)',
+        Urgent: 'var(--color-urgent)',
+        Learning: 'var(--color-learning)',
+        Default: 'var(--color-default)'
+    })
     const loading = ref(false)
     const error = ref<string | null>(null)
 
@@ -187,6 +194,7 @@ export const useTasksStore = defineStore('tasks', () => {
     return {
         // State
         tasks,
+        categoryColors,
         loading,
         error,
         // Getters

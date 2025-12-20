@@ -7,4 +7,5 @@ export interface Task {
     duration: number; // minutes
     isShortcut?: boolean; // Marks shortcut templates
     order?: number; // Sorting order in piles
+    color?: string; // Hex or CSS variable name
 }

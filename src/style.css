@@ -7,12 +7,19 @@
   --text-main: #ffffff;
   --text-muted: #rgba(255, 255, 255, 0.7);
   --border-color: #333;
-  
+
   /* Spacing */
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 2rem;
   --radius: 12px;
+
+  /* Category Colors */
+  --color-work: #4facfe;
+  --color-personal: #43e97b;
+  --color-urgent: #ff4b1f;
+  --color-learning: #f093fb;
+  --color-default: #666;
 
   /* Typography */
   --font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -36,7 +43,9 @@ body {
   padding: var(--spacing-lg);
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-weight: 600;
   line-height: 1.2;
 }

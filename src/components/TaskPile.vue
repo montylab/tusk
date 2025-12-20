@@ -2,6 +2,7 @@
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useTasksStore } from '../stores/tasks'
 
 const props = defineProps<{
   title: string
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   (e: 'update:insertion-index', index: number | null): void
 }>()
 
+const tasksStore = useTasksStore()
 const pileRef = ref<HTMLElement | null>(null)
 const contentRef = ref<HTMLElement | null>(null)
 
@@ -33,27 +35,21 @@ onUnmounted(() => {
   window.removeEventListener('mousemove', handleMouseMove)
 })
 
-const categoryColors: Record<string, string> = {
-  Work: '#4facfe',
-  Personal: '#43e97b',
-  Urgent: '#ff4b1f',
-  Learning: '#f093fb',
-  Default: '#666'
-}
-
-const getCategoryColor = (category: string) => {
-  return categoryColors[category] || categoryColors.Default
-}
-
-const getChaoticStyle = (id: number) => {
-  const seed = (id * 1337) % 100
+const getChaoticStyle = (task: Task) => {
+  const seed = (task.id * 1337) % 100
   const rotation = (seed % 7) - 3
   const xOffset = (seed % 4) * 3 - 6
+  
+  // Dynamic height based on duration
+  let height = 68
+  if (task.duration <= 15) height = 42
+  else if (task.duration <= 30) height = 52
   
   return {
     transform: `rotate(${rotation}deg) translateX(${xOffset}px)`,
     margin: '12px 0',
     width: '100%',
+    height: `${height}px`,
     cursor: 'grab'
   }
 }
@@ -117,13 +113,15 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
           <div 
             class="pile-task"
             :class="{ 'is-active-drag': task.id === activeTaskId }"
-            :style="{ 
-              ...getChaoticStyle(task.id),
-              boxShadow: `0 0 2px 1px ${getCategoryColor(task.category)}, 0 2px 5px rgba(0,0,0,0.2)`
-            }"
+            :style="[
+              getChaoticStyle(task),
+              { '--category-color': task.color || tasksStore.categoryColors[task.category] || tasksStore.categoryColors.Default }
+            ]"
             @mousedown="handleMouseDown($event, task)"
           >
-            <TaskItem :task="task" />
+            <TaskItem 
+              :task="task" 
+            />
           </div>
         </div>
         
@@ -188,12 +186,14 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 }
 
 .pile-task {
+  --category-color: var(--color-default);
   backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
   will-change: transform;
   border-radius: 6px;
   overflow: hidden;
   transition: all 0.3s ease;
+  box-shadow: 0 0 2px 1px var(--category-color), 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .pile-task.is-active-drag {
@@ -211,6 +211,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
   color: var(--text-muted);
   font-style: italic;
   padding: 2rem;
+  z-index: 1;
 }
 
 .insertion-indicator {
