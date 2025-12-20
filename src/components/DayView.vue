@@ -177,30 +177,42 @@ defineExpose({
 
 const currentTime = ref(new Date())
 let timer: any = null
+const taskStatuses = ref<Record<number, 'past' | 'future' | 'on-air' | null>>({})
+
+const updateTaskStatuses = () => {
+    const now = currentTime.value
+    const currentTotalHours = now.getHours() + now.getMinutes() / 60
+    
+    const newStatuses: Record<number, 'past' | 'future' | 'on-air' | null> = {}
+    props.tasks.forEach(task => {
+        if (task.startTime === null) {
+            newStatuses[task.id] = null
+            return
+        }
+        
+        const taskStart = task.startTime
+        const taskEnd = task.startTime + (task.duration / 60)
+        
+        if (currentTotalHours < taskStart) newStatuses[task.id] = 'future'
+        else if (currentTotalHours >= taskEnd) newStatuses[task.id] = 'past'
+        else newStatuses[task.id] = 'on-air'
+    })
+    taskStatuses.value = newStatuses
+}
 
 onMounted(() => {
-  timer = setInterval(() => {
-    currentTime.value = new Date()
-  }, 60000)
+    updateTaskStatuses()
+    setTimeout(() => {
+        timer = setInterval(() => {
+            currentTime.value = new Date()
+            updateTaskStatuses()
+        }, 60000)      
+    }, (60-currentTime.value.getSeconds()) * 1000)
 })
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
 })
-
-const getTaskStatus = (task: Task) => {
-  if (task.startTime === null) return null
-  
-  const now = currentTime.value
-  const currentTotalHours = now.getHours() + now.getMinutes() / 60
-  
-  const taskStart = task.startTime
-  const taskEnd = task.startTime + (task.duration / 60)
-  
-  if (currentTotalHours < taskStart) return 'future'
-  if (currentTotalHours >= taskEnd) return 'past'
-  return 'on-air'
-}
 
 const timeIndicatorTop = computed(() => {
   const now = currentTime.value
@@ -309,7 +321,7 @@ const getTeleportStyle = (task: any) => {
                                     :task="task" 
                                     :is-dragging="task.id === activeTaskId && mode === 'drag'"
                                     :is-shaking="task.isOverlapping"
-                                    :status="getTaskStatus(task)"
+                                    :status="taskStatuses[task.id]"
                                 />
                                 
                                 <!-- Bottom Handle -->

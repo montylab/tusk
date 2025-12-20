@@ -79,7 +79,6 @@ const onMouseDown = (e: MouseEvent) => {
   cursor: grab;
   user-select: none;
   display: flex;
-  /* overflow: hidden; */
   border: 1px solid var(--category-color);
   width: 100%;
   height: 100%;
