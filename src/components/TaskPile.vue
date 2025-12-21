@@ -9,7 +9,7 @@ const props = defineProps<{
   tasks: Task[]
   listType: 'todo' | 'shortcut'
   isHighlighted?: boolean
-  activeTaskId?: number | null
+  activeTaskId?: number | string | null
   insertionIndex: number | null
 }>()
 
@@ -23,20 +23,54 @@ const tasksStore = useTasksStore()
 const pileRef = ref<HTMLElement | null>(null)
 const contentRef = ref<HTMLElement | null>(null)
 
+const updateBounds = () => {
+  if (pileRef.value) {
+    const rect = pileRef.value.getBoundingClientRect()
+    emit('update:bounds', rect)
+  }
+}
+
 // For some reason, the parent needs the bounds for collision detection
 onMounted(() => {
+  // Initial update
+  updateBounds()
+
+  // Watch for resizes
   if (pileRef.value) {
-    emit('update:bounds', pileRef.value.getBoundingClientRect())
+    const resizeObserver = new ResizeObserver(() => {
+        updateBounds()
+    })
+    resizeObserver.observe(pileRef.value)
+    
+    // Cleanup stored on element for unmount
+    ;(pileRef.value as any).__resizeObserver = resizeObserver
   }
+  
+  // Also watch window resize just in case (e.g. layout shift without element resize)
+  window.addEventListener('resize', updateBounds)
   window.addEventListener('mousemove', handleMouseMove)
 })
 
 onUnmounted(() => {
+  if (pileRef.value && (pileRef.value as any).__resizeObserver) {
+    (pileRef.value as any).__resizeObserver.disconnect()
+  }
+  window.removeEventListener('resize', updateBounds)
   window.removeEventListener('mousemove', handleMouseMove)
 })
 
 const getChaoticStyle = (task: Task) => {
-  const seed = (task.id * 1337) % 100
+  const getSeed = (id: string | number) => {
+    if (typeof id === 'number') return id
+    let hash = 0
+    for (let i = 0; i < id.length; i++) {
+        hash = ((hash << 5) - hash) + id.charCodeAt(i)
+        hash |= 0
+    }
+    return Math.abs(hash)
+  }
+
+  const seed = (getSeed(task.id) * 1337) % 100
   const rotation = (seed % 7) - 3
   const xOffset = (seed % 4) * 3 - 6
   
@@ -119,9 +153,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
             ]"
             @mousedown="handleMouseDown($event, task)"
           >
-            <TaskItem 
-              :task="task" 
-            />
+            <TaskItem :task="task" />
           </div>
         </div>
         
@@ -180,7 +212,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 
 .pile-content {
   flex: 1;
-  overflow-y: auto;
+  /* overflow: auto; */
   padding: 10px;
   position: relative;
 }
@@ -191,7 +223,6 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
   -webkit-font-smoothing: antialiased;
   will-change: transform;
   border-radius: 6px;
-  overflow: hidden;
   transition: all 0.3s ease;
   box-shadow: 0 0 2px 1px var(--category-color), 0 2px 5px rgba(0,0,0,0.2);
 }

@@ -40,7 +40,10 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: var(--spacing-lg);
+}
+
+#app {
+  width: 100%;
 }
 
 h1,

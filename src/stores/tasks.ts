@@ -1,11 +1,22 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Task } from '../types'
-import * as taskApi from '../services/taskApi'
+import * as firebaseService from '../services/firebaseService'
+import { useUserStore } from './user'
 
 export const useTasksStore = defineStore('tasks', () => {
-    // State
-    const tasks = ref<Task[]>([])
+    const userStore = useUserStore()
+
+    // --- State ---
+    const tasks = ref<Task[]>([]) // Merged view for read-only access
+
+    // Internal separate states
+    const calendarTasksState = ref<Task[]>([])
+    const todoTasksState = ref<Task[]>([])
+    const shortcutsTasksState = ref<Task[]>([])
+
+    const currentDate = ref(new Date().toISOString().split('T')[0])
+
     const categoryColors = ref<Record<string, string>>({
         Work: 'var(--color-work)',
         Personal: 'var(--color-personal)',
@@ -16,179 +27,294 @@ export const useTasksStore = defineStore('tasks', () => {
     const loading = ref(false)
     const error = ref<string | null>(null)
 
-    // Getters
-    const scheduledTasks = computed(() =>
-        tasks.value.filter(task => task.startTime !== null && !task.isShortcut)
-    )
+    let unsubs: (() => void)[] = []
 
-    const todoTasks = computed(() =>
-        tasks.value
-            .filter(task => task.startTime === null && !task.isShortcut)
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    )
+    // --- Getters ---
+    const scheduledTasks = computed(() => calendarTasksState.value)
+    const todoTasks = computed(() => todoTasksState.value.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
+    const shortcutTasks = computed(() => shortcutsTasksState.value.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
 
-    const shortcutTasks = computed(() =>
-        tasks.value
-            .filter(task => task.isShortcut === true)
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    )
+    const getTaskById = computed(() => (id: string | number) => {
+        return calendarTasksState.value.find(t => t.id === id) ||
+            todoTasksState.value.find(t => t.id === id) ||
+            shortcutsTasksState.value.find(t => t.id === id)
+    })
 
-    const getTaskById = computed(() => (id: number) =>
-        tasks.value.find(task => task.id === id)
-    )
-
-    // Actions
-    const loadTasks = async () => {
-        loading.value = true
-        error.value = null
-        try {
-            const fetchedTasks = await taskApi.getTasks()
-            // Normalize order for legacy tasks or tasks starting at 0
-            // We want unique, incrementing orders based on their original arrival
-            tasks.value = fetchedTasks.map((t, i) => ({
-                ...t,
-                order: t.order ?? (i * 10)
-            }))
-        } catch (err) {
-            error.value = err instanceof Error ? err.message : 'Failed to load tasks'
-            console.error('Error loading tasks:', err)
-        } finally {
-            loading.value = false
-        }
-    }
-
-    const createTask = (taskData: Omit<Task, 'id'>) => {
-        // Optimistic update: create task immediately with temporary ID
-        const tempId = Date.now()
-        // Ensure new task has an order
-        const list = taskData.isShortcut ? shortcutTasks.value : todoTasks.value
-        const maxOrder = list.length > 0 ? Math.max(...list.map(t => t.order || 0)) : 0
-
-        const newTask: Task = {
-            ...taskData,
-            id: tempId,
-            order: taskData.order ?? (maxOrder + 10)
-        }
-        tasks.value.push(newTask)
-
-        // Sync to backend in background
-        taskApi.createTask(newTask)
-            .then(savedTask => {
-                // Replace temp task with real one from backend
-                const index = tasks.value.findIndex(t => t.id === tempId)
-                if (index !== -1) {
-                    tasks.value[index] = savedTask
-                }
-            })
-            .catch(err => {
-                error.value = err instanceof Error ? err.message : 'Failed to create task'
-                console.error('Error creating task:', err)
-                // Revert optimistic update on error
-                tasks.value = tasks.value.filter(t => t.id !== tempId)
-            })
-
-        return newTask
-    }
-
-    const updateTask = (id: number, updates: Partial<Task>) => {
-        // Find the task and store original state
-        const index = tasks.value.findIndex(t => t.id === id)
-        if (index === -1) return
-
-        const originalTask = { ...tasks.value[index] }
-
-        // Optimistic update: apply changes immediately
-        tasks.value[index] = { ...tasks.value[index], ...updates }
-
-        // Sync to backend in background
-        taskApi.updateTask(id, updates)
-            .catch(err => {
-                error.value = err instanceof Error ? err.message : 'Failed to update task'
-                console.error('Error updating task:', err)
-                // Revert to original state on error
-                const currentIndex = tasks.value.findIndex(t => t.id === id)
-                if (currentIndex !== -1) {
-                    tasks.value[currentIndex] = originalTask
-                }
-            })
-    }
-
-    const deleteTask = (id: number) => {
-        // Store original state for potential revert
-        const originalTask = tasks.value.find(t => t.id === id)
-
-        // Optimistic update: remove immediately
-        tasks.value = tasks.value.filter(t => t.id !== id)
-
-        // Sync to backend in background
-        taskApi.deleteTask(id)
-            .catch(err => {
-                error.value = err instanceof Error ? err.message : 'Failed to delete task'
-                console.error('Error deleting task:', err)
-                // Revert: add task back on error
-                if (originalTask) {
-                    tasks.value.push(originalTask)
-                }
-            })
-    }
-
-    const scheduleTask = (id: number, startTime: number, duration?: number) => {
-        const updates: Partial<Task> = { startTime }
-        if (duration !== undefined) {
-            updates.duration = duration
-        }
-        updateTask(id, updates)
-    }
-
-    const unscheduleTask = (id: number) => {
-        updateTask(id, { startTime: null })
-    }
-
-    const convertToTodo = (id: number) => {
-        updateTask(id, { startTime: null, isShortcut: false })
-    }
-
-    const convertToShortcut = (id: number) => {
-        const original = getTaskById.value(id)
-        if (!original) return
-
-        // Create a new shortcut template from the task
-        const { id: _, ...taskData } = original
-        createTask({
-            ...taskData,
-            startTime: null,
-            isShortcut: true,
-            completed: false
-        })
-
-        // Remove the original calendar task
-        deleteTask(id)
-    }
-
-    const reorderTask = (id: number, targetIndex: number, listType: 'todo' | 'shortcut') => {
-        const list = listType === 'todo' ? todoTasks.value : shortcutTasks.value
-        const otherTasks = list.filter(t => t.id !== id)
-
-        let newOrder: number
-        if (otherTasks.length === 0) {
-            newOrder = 10
-        } else if (targetIndex <= 0) {
-            newOrder = (otherTasks[0].order ?? 0) - 10
-        } else if (targetIndex >= otherTasks.length) {
-            newOrder = (otherTasks[otherTasks.length - 1].order ?? 0) + 10
+    // --- Sync Logic ---
+    watch(() => userStore.user, (newUser) => {
+        if (newUser) {
+            setupSync()
         } else {
-            const prev = otherTasks[targetIndex - 1].order ?? 0
-            const next = otherTasks[targetIndex].order ?? 0
+            clearState()
+        }
+    }, { immediate: true })
 
-            if (prev === next) {
-                // Should not happen with normalized data, but as a fallback
-                newOrder = prev + 0.5
-            } else {
-                newOrder = (prev + next) / 2
+    function clearState() {
+        calendarTasksState.value = []
+        todoTasksState.value = []
+        shortcutsTasksState.value = []
+        tasks.value = []
+        unsubs.forEach(u => u())
+        unsubs = []
+    }
+
+    function setupSync() {
+        clearState()
+        loading.value = true
+
+        // 1. Calendar (Today)
+        unsubs.push(firebaseService.subscribeToDate(currentDate.value, (newTasks) => {
+            calendarTasksState.value = newTasks
+            updateMergedState()
+        }))
+
+        // 2. To-Do
+        unsubs.push(firebaseService.subscribeToList('todo', (newTasks) => {
+            todoTasksState.value = newTasks
+            updateMergedState()
+        }))
+
+        // 3. Shortcuts
+        unsubs.push(firebaseService.subscribeToList('shortcuts', (newTasks) => {
+            shortcutsTasksState.value = newTasks
+            updateMergedState()
+        }))
+
+        loading.value = false
+    }
+
+    function updateMergedState() {
+        tasks.value = [...calendarTasksState.value, ...todoTasksState.value, ...shortcutsTasksState.value]
+    }
+
+    // --- Creation Actions ---
+
+    const createTodo = async (taskData: Omit<Task, 'id'>) => {
+        try {
+            const list = todoTasks.value
+            const maxOrder = list.length > 0 ? Math.max(...list.map(t => t.order || 0)) : 0
+
+            const defaults = {
+                text: 'New To-Do',
+                category: 'Default',
+                completed: false,
+                startTime: null,
+                duration: 60,
+                isShortcut: false,
+                order: maxOrder + 10000,
+                date: undefined // Not relevant for todo
             }
+
+            const finalTaskData = { ...defaults, ...taskData }
+            return await firebaseService.createTaskInPath('todo', finalTaskData)
+        } catch (err) {
+            console.error(err)
+            error.value = 'Failed to create todo'
+        }
+    }
+
+    const createShortcut = async (taskData: Omit<Task, 'id'>) => {
+        try {
+            const list = shortcutTasks.value
+            const maxOrder = list.length > 0 ? Math.max(...list.map(t => t.order || 0)) : 0
+
+            const defaults = {
+                text: 'New Shortcut',
+                category: 'Default',
+                completed: false,
+                startTime: null,
+                duration: 60,
+                isShortcut: true,
+                order: maxOrder + 10000,
+                date: undefined
+            }
+
+            const finalTaskData = { ...defaults, ...taskData }
+            return await firebaseService.createTaskInPath('shortcuts', finalTaskData)
+        } catch (err) {
+            console.error(err)
+            error.value = 'Failed to create shortcut'
+        }
+    }
+
+    const createScheduledTask = async (taskData: Omit<Task, 'id'>) => {
+        try {
+            const defaults = {
+                text: 'New Event',
+                category: 'Default',
+                completed: false,
+                startTime: 9,
+                duration: 60,
+                isShortcut: false,
+                order: 0,
+                date: currentDate.value
+            }
+
+            const finalTaskData = { ...defaults, ...taskData }
+            return await firebaseService.createTaskInPath(`calendar/${currentDate.value}`, finalTaskData)
+        } catch (err) {
+            console.error(err)
+            error.value = 'Failed to create scheduled task'
+        }
+    }
+
+    // --- Update Actions (In-Place) ---
+
+    // Update properties of a To-Do item (text, category, order, completed)
+    const updateTodo = async (id: string | number, updates: Partial<Task>) => {
+        // Safety: Ensure we don't accidentally move it via generic properties
+        // Verify it exists in todo list? We can, but firebase would just fail if path is wrong.
+        if (updates.startTime !== undefined && updates.startTime !== null) {
+            console.warn('Use moveTodoToCalendar to change startTime')
+            return
+        }
+        await firebaseService.updateTaskInPath('todo', id, updates)
+    }
+
+    const updateShortcut = async (id: string | number, updates: Partial<Task>) => {
+        await firebaseService.updateTaskInPath('shortcuts', id, updates)
+    }
+
+    const updateScheduledTask = async (id: string | number, date: string, updates: Partial<Task>) => {
+        // Safety: If date changes, we need a move.
+        if (updates.date && updates.date !== date) {
+            console.warn('Use moveScheduledTaskToDate to change date')
+            return
+        }
+        if (updates.startTime === null) {
+            console.warn('Use moveCalendarToTodo to unschedule')
+            return
         }
 
-        updateTask(id, { order: newOrder })
+        await firebaseService.updateTaskInPath(`calendar/${date}`, id, updates)
+    }
+
+    // --- Move Actions (Atomic Transfer) ---
+
+    const moveTodoToCalendar = async (id: string | number, date: string, startTime: number, duration: number) => {
+        const task = todoTasksState.value.find(t => t.id === id)
+        if (!task) {
+            console.error('Task not found in todo list')
+            return
+        }
+
+        // Logic: Delete from 'todo', create in 'calendar/date'
+        const updates = { startTime, duration, date, isShortcut: false }
+        await firebaseService.moveTask('todo', `calendar/${date}`, task, updates)
+    }
+
+    const moveCalendarToTodo = async (id: string | number, date: string) => {
+        const task = calendarTasksState.value.find(t => t.id === id)
+        if (!task) {
+            console.error('Task not found in calendar')
+            return
+        }
+
+        // Calculate temporary order for destination list (will be adjusted by reorder)
+        const maxOrder = todoTasks.value.length > 0 ? Math.max(...todoTasks.value.map(t => t.order || 0)) : 0
+        const tempOrder = maxOrder + 10000
+
+        const updates = { startTime: null, date: null, isShortcut: false, order: tempOrder } as any
+        await firebaseService.moveTask(`calendar/${date}`, 'todo', task, updates)
+    }
+
+    // Convert (Move) To-Do -> Shortcut
+    const moveTodoToShortcut = async (id: string | number) => {
+        const task = todoTasksState.value.find(t => t.id === id)
+        if (!task) return
+
+        // Calculate temporary order for destination list (will be adjusted by reorder)
+        const maxOrder = shortcutTasks.value.length > 0 ? Math.max(...shortcutTasks.value.map(t => t.order || 0)) : 0
+        const tempOrder = maxOrder + 10000
+
+        const updates = { startTime: null, date: null, isShortcut: true, completed: false, order: tempOrder } as any
+        await firebaseService.moveTask('todo', 'shortcuts', task, updates)
+    }
+
+    // Convert (Move) Calendar -> Shortcut
+    const moveCalendarToShortcut = async (id: string | number, date: string) => {
+        const task = calendarTasksState.value.find(t => t.id === id)
+        if (!task) return
+
+        // Calculate temporary order for destination list (will be adjusted by reorder)
+        const maxOrder = shortcutTasks.value.length > 0 ? Math.max(...shortcutTasks.value.map(t => t.order || 0)) : 0
+        const tempOrder = maxOrder + 10000
+
+        const updates = { startTime: null, date: null, isShortcut: true, completed: false, order: tempOrder } as any
+        await firebaseService.moveTask(`calendar/${date}`, 'shortcuts', task, updates)
+    }
+
+    // --- Copy Actions (Templates) ---
+
+    const copyShortcutToTodo = async (id: string | number) => {
+        const shortcut = shortcutsTasksState.value.find(t => t.id === id)
+        if (!shortcut) return
+
+        const { id: _, ...data } = shortcut
+        return await createTodo({ ...data, isShortcut: false, startTime: null, date: null })
+    }
+
+    const copyShortcutToCalendar = async (id: string | number, date: string, startTime: number, duration: number) => {
+        const shortcut = shortcutsTasksState.value.find(t => t.id === id)
+        if (!shortcut) return
+
+        const { id: _, ...data } = shortcut
+        // We use createTaskInPath directly instead of createTodo to go straight to calendar
+        return await firebaseService.createTaskInPath(`calendar/${date}`, {
+            ...data,
+            isShortcut: false,
+            date,
+            startTime,
+            duration
+        })
+    }
+
+    // --- Delete Actions ---
+
+    const deleteTodo = async (id: string | number) => {
+        await firebaseService.deleteTaskFromPath('todo', id)
+    }
+
+    const deleteShortcut = async (id: string | number) => {
+        await firebaseService.deleteTaskFromPath('shortcuts', id)
+    }
+
+    const deleteScheduledTask = async (id: string | number, date: string) => {
+        await firebaseService.deleteTaskFromPath(`calendar/${date}`, id)
+    }
+
+    // --- Legacy / Helper for Reordering (Optional, generic reorder is tricky with explicit paths) ---
+    // We can implement specific reorders
+    const calculateNewOrder = (list: Task[], taskId: string | number, targetIndex: number): number => {
+        // Removing the task we are moving to check neighbors accurately
+        const filtered = list.filter(t => t.id !== taskId)
+
+
+
+        if (targetIndex === 0) {
+            // Moving to top
+            if (filtered.length === 0) return 10000
+            return (filtered[0].order || 0) / 2
+        } else if (targetIndex >= filtered.length) {
+            // Moving to bottom
+            const last = filtered[filtered.length - 1]
+            return (last.order || 0) + 10000
+        } else {
+            // Moving between two items
+            const prev = filtered[targetIndex - 1]
+            const next = filtered[targetIndex]
+            return ((prev.order || 0) + (next.order || 0)) / 2
+        }
+    }
+
+    // Explicit reorder that takes a target INDEX (not order value)
+    const reorderTodo = (id: string | number, targetIndex: number) => {
+        const newOrder = calculateNewOrder(todoTasks.value, id, targetIndex)
+        updateTodo(id, { order: newOrder })
+    }
+    const reorderShortcut = (id: string | number, targetIndex: number) => {
+        const newOrder = calculateNewOrder(shortcutTasks.value, id, targetIndex)
+        updateShortcut(id, { order: newOrder })
     }
 
     return {
@@ -197,20 +323,36 @@ export const useTasksStore = defineStore('tasks', () => {
         categoryColors,
         loading,
         error,
+        currentDate, // Export to allow changing the "viewed" date
+
         // Getters
         scheduledTasks,
         todoTasks,
         shortcutTasks,
         getTaskById,
+
         // Actions
-        loadTasks,
-        createTask,
-        updateTask,
-        deleteTask,
-        scheduleTask,
-        unscheduleTask,
-        convertToTodo,
-        convertToShortcut,
-        reorderTask
+        createTodo,
+        createShortcut,
+        createScheduledTask,
+
+        updateTodo,
+        updateShortcut,
+        updateScheduledTask,
+
+        moveTodoToCalendar,
+        moveCalendarToTodo,
+        moveTodoToShortcut,
+        moveCalendarToShortcut,
+
+        copyShortcutToTodo,
+        copyShortcutToCalendar,
+
+        deleteTodo,
+        deleteShortcut,
+        deleteScheduledTask,
+
+        reorderTodo,
+        reorderShortcut
     }
 })

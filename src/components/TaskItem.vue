@@ -11,15 +11,16 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'task-mousedown', payload: { originalEvent: MouseEvent, taskId: number }): void
+  (e: 'task-mousedown', payload: { originalEvent: MouseEvent, taskId: string | number }): void
 }>()
 
 const tasksStore = useTasksStore()
 
 const formatDuration = (minutes: number) => {
-  if (minutes < 60) return `${minutes}m`
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
+  const safeMinutes = isNaN(minutes) ? 60 : minutes
+  if (safeMinutes < 60) return `${safeMinutes}m`
+  const h = Math.floor(safeMinutes / 60)
+  const m = safeMinutes % 60
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
@@ -60,7 +61,7 @@ const onMouseDown = (e: MouseEvent) => {
         </span>
       </div>
       <div class="meta">
-        <span class="time-badge" v-if="task.startTime !== null">
+        <span class="time-badge" v-if="task.startTime !== null && task.startTime !== undefined">
            {{ Math.floor(task.startTime) }}:{{ (Math.round((task.startTime % 1) * 60)).toString().padStart(2, '0') }}
         </span>
         <span class="duration-badge">
@@ -135,6 +136,7 @@ const onMouseDown = (e: MouseEvent) => {
   height: 100%;
   flex-shrink: 0;
   background: var(--category-color);
+  border-radius: 6px 0 0 6px;
 }
 
 .content {

@@ -14,23 +14,17 @@ export function useExternalDrag(dayViewRef: any) {
         }
     }
 
-    const handleExternalTaskDropped = (payload: { taskId: number, startTime: number, duration?: number }) => {
+    const handleExternalTaskDropped = (payload: { taskId: string | number, startTime: number, duration?: number }) => {
         if (!activeExternalTask.value) return
 
         const { source, task } = activeExternalTask.value
 
-        // 1. Create task in calendar (id will be auto-generated)
-        const { id, ...taskData } = task
-        tasksStore.createTask({
-            ...taskData,
-            startTime: payload.startTime, // Use the drop position from DayView
-            duration: payload.duration || task.duration || 60,
-            isShortcut: false // Remove shortcut flag when scheduling
-        })
-
-        // 2. If it was a ToDo, remove from pile
         if (source === 'todo') {
-            tasksStore.deleteTask(task.id)
+            // Unlink from todo and move to calendar
+            tasksStore.moveTodoToCalendar(task.id, tasksStore.currentDate, payload.startTime, payload.duration || task.duration || 60)
+        } else {
+            // Shortcut -> Calendar (Copy)
+            tasksStore.copyShortcutToCalendar(task.id, tasksStore.currentDate, payload.startTime, payload.duration || task.duration || 60)
         }
 
         activeExternalTask.value = null
@@ -42,7 +36,11 @@ export function useExternalDrag(dayViewRef: any) {
         const { task } = activeExternalTask.value
 
         // Remove from pile (To-Do or Shortcut)
-        tasksStore.deleteTask(task.id)
+        if (activeExternalTask.value.source === 'todo') {
+            tasksStore.deleteTodo(task.id)
+        } else {
+            tasksStore.deleteShortcut(task.id)
+        }
 
         activeExternalTask.value = null
     }

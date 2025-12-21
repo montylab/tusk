@@ -9,7 +9,7 @@ interface LayoutConfig {
 
 export function useTaskLayout(
     tasks: Task[] | Ref<Task[]> | (() => Task[]),
-    activeTaskId: Ref<number | null>,
+    activeTaskId: Ref<string | number | null>,
     currentSnapTime: Ref<number | null>,
     currentDuration: Ref<number | null>,
     config: LayoutConfig
@@ -118,7 +118,7 @@ export function useTaskLayout(
                     isOverlapping: isClusterOverlapping && !isSelfDragging,
                     style: {
                         top: `${(task.displayStart - config.startHour) * config.hourHeight}px`,
-                        height: `${(task.displayDuration / 60) * config.hourHeight}px`,
+                        height: `${(task.displayDuration / 60) * config.hourHeight - 1}px`, // we remove 1px to avoid double lines
                         left: `${colIndex * width}%`,
                         width: `${width}%`,
                         position: 'absolute' as const,

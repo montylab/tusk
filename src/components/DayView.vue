@@ -20,8 +20,8 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:is-over-trash', payload: boolean): void
-  (e: 'external-task-dropped', payload: { taskId: number, startTime: number, duration?: number }): void
-  (e: 'task-dropped-on-sidebar', payload: { taskId: number, event: MouseEvent }): void
+  (e: 'external-task-dropped', payload: { taskId: string | number, startTime: number, duration?: number }): void
+  (e: 'task-dropped-on-sidebar', payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut' }): void
   (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
   (e: 'delete-external-task', payload: {}): void
 }>()
@@ -31,27 +31,27 @@ const tasksStore = useTasksStore()
 
 // Internal task operation handlers
 const handleCreateTask = (payload: { text: string, startTime: number, category: string }) => {
-  tasksStore.createTask({
+  tasksStore.createScheduledTask({
     ...payload,
     completed: false,
     duration: 60
   })
 }
 
-const handleScheduleTask = (payload: { taskId: number, startTime: number, duration?: number }) => {
-  tasksStore.scheduleTask(payload.taskId, payload.startTime, payload.duration)
+const handleScheduleTask = (payload: { taskId: string | number, startTime: number, duration?: number }) => {
+    tasksStore.updateScheduledTask(payload.taskId, tasksStore.currentDate, { startTime: payload.startTime, duration: payload.duration })
 }
 
-const handleDuplicateTask = (payload: { originalTaskId: number }) => {
+const handleDuplicateTask = (payload: { originalTaskId: string | number }) => {
   const original = tasksStore.getTaskById(payload.originalTaskId)
   if (original) {
     const { id, ...taskData } = original
-    tasksStore.createTask(taskData)
+    tasksStore.createScheduledTask(taskData)
   }
 }
 
-const handleDeleteTask = (payload: { taskId: number }) => {
-  tasksStore.deleteTask(payload.taskId)
+const handleDeleteTask = (payload: { taskId: string | number }) => {
+  tasksStore.deleteScheduledTask(payload.taskId, tasksStore.currentDate)
 }
 
 const hours = Array.from({ length: props.endHour - props.startHour }, (_, i) => i + props.startHour)
@@ -124,7 +124,7 @@ const onWindowMouseUp = () => {
 
 type OperationMode = 'none' | 'drag' | 'resize-top' | 'resize-bottom'
 
-const handleStartOperation = (e: MouseEvent, taskId: number, opMode: OperationMode) => {
+const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: OperationMode) => {
     if (opMode === 'drag') {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
         dragOffsetX.value = e.clientX - rect.left
@@ -177,13 +177,13 @@ defineExpose({
 
 const currentTime = ref(new Date())
 let timer: any = null
-const taskStatuses = ref<Record<number, 'past' | 'future' | 'on-air' | null>>({})
+const taskStatuses = ref<Record<string | number, 'past' | 'future' | 'on-air' | null>>({})
 
 const updateTaskStatuses = () => {
     const now = currentTime.value
     const currentTotalHours = now.getHours() + now.getMinutes() / 60
     
-    const newStatuses: Record<number, 'past' | 'future' | 'on-air' | null> = {}
+    const newStatuses: Record<string | number, 'past' | 'future' | 'on-air' | null> = {}
     props.tasks.forEach(task => {
         if (task.startTime === null) {
             newStatuses[task.id] = null
@@ -198,6 +198,7 @@ const updateTaskStatuses = () => {
         else newStatuses[task.id] = 'on-air'
     })
     taskStatuses.value = newStatuses
+    console.log(taskStatuses.value)
 }
 
 onMounted(() => {
@@ -213,6 +214,8 @@ onMounted(() => {
 onUnmounted(() => {
   if (timer) clearInterval(timer)
 })
+
+watch(() => props.tasks, updateTaskStatuses)
 
 const timeIndicatorTop = computed(() => {
   const now = currentTime.value

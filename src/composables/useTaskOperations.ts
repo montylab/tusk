@@ -13,11 +13,11 @@ interface OperationConfig {
     getScrollTop?: () => number
     activeExternalTask?: () => Task | null
     // Handler callbacks
-    onTaskDropped?: (payload: { taskId: number, startTime: number, duration: number }) => void
+    onTaskDropped?: (payload: { taskId: string | number, startTime: number, duration: number }) => void
     onCreateTask?: (payload: { text: string, startTime: number, category: string }) => void
-    onDuplicateTask?: (payload: { originalTaskId: number }) => void
-    onDeleteTask?: (payload: { taskId: number }) => void
-    onExternalTaskDropped?: (payload: { taskId: number, startTime: number, duration: number }) => void
+    onDuplicateTask?: (payload: { originalTaskId: string | number }) => void
+    onDeleteTask?: (payload: { taskId: string | number }) => void
+    onExternalTaskDropped?: (payload: { taskId: string | number, startTime: number, duration: number }) => void
     onExternalTaskDroppedOnSidebar?: (payload: { event: MouseEvent }) => void
 }
 
@@ -31,7 +31,7 @@ export function useTaskOperations(
         return t || []
     })
     const mode = ref<OperationMode>('none')
-    const activeTaskId = ref<number | null>(null)
+    const activeTaskId = ref<string | number | null>(null)
     const { isOverTrash, isOverTodo, isOverShortcut, updateCollision, resetCollisions } = useDragState()
 
     // Initial state for op
@@ -43,7 +43,7 @@ export function useTaskOperations(
     const currentSnapTime = ref<number | null>(null)
     const currentDuration = ref<number | null>(null)
 
-    const startOperation = (e: MouseEvent, taskId: number, opMode: OperationMode) => {
+    const startOperation = (e: MouseEvent, taskId: string | number, opMode: OperationMode) => {
         e.preventDefault()
         e.stopPropagation()
 
@@ -185,7 +185,8 @@ export function useTaskOperations(
                     if (mode.value === 'drag' && finalOverTrash) {
                         config.onDeleteTask?.({ taskId: activeTaskId.value })
                     } else if (mode.value === 'drag' && (isOverTodo.value || isOverShortcut.value)) {
-                        emit('task-dropped-on-sidebar', { taskId: activeTaskId.value, event: e })
+                        const target = isOverTodo.value ? 'todo' : 'shortcut'
+                        emit('task-dropped-on-sidebar', { taskId: activeTaskId.value, event: e, target })
                     } else if (finalStart !== initialStart.value || finalDuration !== initialDuration.value) {
                         // Persist any change (drag position or resize)
                         config.onTaskDropped?.({
@@ -214,7 +215,7 @@ export function useTaskOperations(
         } finally {
             mode.value = 'none'
             activeTaskId.value = null
-            currentSnapTime.value = null
+            //currentSnapTime.value = null
             currentDuration.value = null
             resetCollisions()
 

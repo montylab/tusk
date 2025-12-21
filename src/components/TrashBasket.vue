@@ -20,10 +20,19 @@ const updateBounds = () => {
 onMounted(() => {
   updateBounds()
   window.addEventListener('resize', updateBounds)
+  
+  if (basketRef.value) {
+    const resizeObserver = new ResizeObserver(() => updateBounds())
+    resizeObserver.observe(basketRef.value)
+    ;(basketRef.value as any).__resizeObserver = resizeObserver
+  }
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateBounds)
+  if (basketRef.value && (basketRef.value as any).__resizeObserver) {
+    (basketRef.value as any).__resizeObserver.disconnect()
+  }
 })
 
 defineExpose({
