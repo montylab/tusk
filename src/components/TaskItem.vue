@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Task } from '../types'
-import { useTasksStore } from '../stores/tasks'
+import { useCategoriesStore } from '../stores/categories'
 
 const props = defineProps<{
   task: Task
@@ -14,7 +14,7 @@ const emit = defineEmits<{
   (e: 'task-mousedown', payload: { originalEvent: MouseEvent, taskId: string | number }): void
 }>()
 
-const tasksStore = useTasksStore()
+const categoriesStore = useCategoriesStore()
 
 const formatDuration = (minutes: number) => {
   const safeMinutes = isNaN(minutes) ? 60 : minutes
@@ -27,7 +27,8 @@ const formatDuration = (minutes: number) => {
 const isCompact = computed(() => props.task.duration <= 30)
 
 const itemStyle = computed(() => {
-  const color = props.task.color || tasksStore.categoryColors[props.task.category] || tasksStore.categoryColors.Default
+  const categoryObj = categoriesStore.categoriesArray.find(c => c.name === props.task.category)
+  const color = props.task.color || categoryObj?.color || 'var(--color-default)'
   return { '--category-color': color }
 })
 

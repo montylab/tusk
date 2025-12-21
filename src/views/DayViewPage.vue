@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia'
 import DayView from '../components/DayView.vue'
 import TrashBasket from '../components/TrashBasket.vue'
 import TaskPile from '../components/TaskPile.vue'
+import CreateTaskPopup from '../components/CreateTaskPopup.vue' // Added import
 import { useTasksStore } from '../stores/tasks'
 import { useExternalDrag } from '../composables/useExternalDrag'
 import { useDragState } from '../composables/useDragState'
@@ -108,6 +109,38 @@ const handleExternalTaskDeletedWrapper = () => {
   todoInsertionIndex.value = null
   shortcutInsertionIndex.value = null
 }
+
+// Popup visibility state
+const showCreateTaskPopup = ref(false)
+const initialStartTime = ref<number | null>(null)
+
+// Handler for when a slot is clicked or "Create Task" button is pressed
+const handleOpenCreatePopup = (payload?: { startTime: number }) => {
+  initialStartTime.value = payload?.startTime ?? null
+  showCreateTaskPopup.value = true
+}
+
+// Handler for when the popup emits a create event
+  const handleTaskCreate = (payload: { text: string; category: string; color: string; startTime?: number | null; duration?: number }) => {
+    // Use the store action to create a scheduled task with all required fields
+    tasksStore.createScheduledTask({
+      text: payload.text,
+      category: payload.category,
+      completed: false,
+      startTime: payload.startTime ?? null,
+      duration: payload.duration ?? 60,
+      date: tasksStore.currentDate,
+      isShortcut: false,
+      order: 0,
+      color: payload.color
+    } as any)
+    showCreateTaskPopup.value = false
+  }
+
+// Optional: handler for closing the popup without creating
+const handlePopupClose = () => {
+  showCreateTaskPopup.value = false
+}
 </script>
 
 <template>
@@ -120,17 +153,27 @@ const handleExternalTaskDeletedWrapper = () => {
     </aside>
     
     <main class="main-content">
-      <DayView 
-        ref="dayViewRef"
-        :tasks="scheduledTasks" 
-        :start-hour="8"
-        :end-hour="24"
-        :active-external-task="activeExternalTask?.task || null"
-        @update:is-over-trash="isOverTrash = $event"
-        @external-task-dropped="handleExternalTaskDropped"
-        @delete-external-task="handleExternalTaskDeletedWrapper"
-        @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
-        @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop"
+        <button class="create-btn" @click="handleOpenCreatePopup()" style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">Create Task</button>
+        <DayView 
+          ref="dayViewRef"
+          :tasks="scheduledTasks" 
+          :start-hour="8"
+          :end-hour="24"
+          :active-external-task="activeExternalTask?.task || null"
+          @update:is-over-trash="isOverTrash = $event"
+          @external-task-dropped="handleExternalTaskDropped"
+          @delete-external-task="handleExternalTaskDeletedWrapper"
+          @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
+          @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop"
+          @create-task="handleOpenCreatePopup"
+        />
+
+      <CreateTaskPopup
+        :show="showCreateTaskPopup"
+        :initial-start-time="initialStartTime"
+        @close="handlePopupClose"
+        @create="handleTaskCreate"
+        task-type="scheduled"
       />
     </main>
 

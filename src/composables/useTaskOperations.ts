@@ -1,6 +1,5 @@
 import { ref, onUnmounted, computed, unref, type Ref } from 'vue'
 import type { Task } from '../types'
-import { getRandomCategory } from '../utils'
 import { useDragState } from './useDragState'
 
 type OperationMode = 'none' | 'drag' | 'resize-top' | 'resize-bottom'
@@ -228,14 +227,7 @@ export function useTaskOperations(
     const handleSlotClick = (hour: number, quarter: number) => {
         if (mode.value !== 'none') return
         const startTime = hour + (quarter * 0.25)
-        const text = prompt("Enter task title:")
-        if (text) {
-            config.onCreateTask?.({
-                text,
-                startTime,
-                category: getRandomCategory()
-            })
-        }
+        emit('create-task', { startTime })
     }
 
     onUnmounted(() => {

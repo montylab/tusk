@@ -1,5 +1,5 @@
 import { db, auth } from '../firebase'
-import { ref, onValue, push, update, remove, set, get, child } from 'firebase/database'
+import { ref, onValue, push, update, remove, set } from 'firebase/database'
 import type { Task } from '../types'
 
 // Helper to get user ref
@@ -85,4 +85,40 @@ export const moveTask = async (
 
     console.log('firebaseService.moveTask', { fromPath, toPath, taskId: task.id, userUpdates })
     await update(userRootRef, userUpdates);
+};
+// --- Categories ---
+
+export const subscribeToCategories = (callback: (categories: any[]) => void) => {
+    const root = getUserRoot();
+    const categoriesRef = ref(db, `${root}/categories`);
+    return onValue(categoriesRef, (snapshot) => {
+        const data = snapshot.val();
+        const categories: any[] = [];
+        if (data) {
+            Object.keys(data).forEach(key => {
+                categories.push({ ...data[key], id: key });
+            });
+        }
+        callback(categories);
+    });
+};
+
+export const createCategory = async (category: Omit<any, 'id'>): Promise<any> => {
+    const root = getUserRoot();
+    const categoriesRef = ref(db, `${root}/categories`);
+    const newCategoryRef = push(categoriesRef);
+    await set(newCategoryRef, category);
+    return { ...category, id: newCategoryRef.key! };
+};
+
+export const updateCategory = async (categoryId: string, updates: Partial<any>): Promise<void> => {
+    const root = getUserRoot();
+    const categoryRef = ref(db, `${root}/categories/${categoryId}`);
+    await update(categoryRef, updates);
+};
+
+export const deleteCategory = async (categoryId: string): Promise<void> => {
+    const root = getUserRoot();
+    const categoryRef = ref(db, `${root}/categories/${categoryId}`);
+    await remove(categoryRef);
 };

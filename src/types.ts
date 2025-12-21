@@ -10,3 +10,9 @@ export interface Task {
     order?: number; // Sorting order in piles
     color?: string; // Hex
 }
+export interface Category {
+    id: string;
+    name: string;
+    color: string;
+    order: number;
+}

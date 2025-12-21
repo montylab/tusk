@@ -2,7 +2,7 @@
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useTasksStore } from '../stores/tasks'
+import { useCategoriesStore } from '../stores/categories'
 
 const props = defineProps<{
   title: string
@@ -19,7 +19,7 @@ const emit = defineEmits<{
   (e: 'update:insertion-index', index: number | null): void
 }>()
 
-const tasksStore = useTasksStore()
+const categoriesStore = useCategoriesStore()
 const pileRef = ref<HTMLElement | null>(null)
 const contentRef = ref<HTMLElement | null>(null)
 
@@ -149,7 +149,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
             :class="{ 'is-active-drag': task.id === activeTaskId }"
             :style="[
               getChaoticStyle(task),
-              { '--category-color': task.color || tasksStore.categoryColors[task.category] || tasksStore.categoryColors.Default }
+              { '--category-color': task.color || categoriesStore.categoriesArray.find(c => c.name === task.category)?.color || 'var(--color-default)' }
             ]"
             @mousedown="handleMouseDown($event, task)"
           >

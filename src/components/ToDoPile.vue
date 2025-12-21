@@ -3,9 +3,11 @@ import { storeToRefs } from 'pinia'
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
 import { useTasksStore } from '../stores/tasks'
+import { useCategoriesStore } from '../stores/categories'
 import { ref, watch } from 'vue'
 
 const tasksStore = useTasksStore()
+const categoriesStore = useCategoriesStore()
 const { todoTasks } = storeToRefs(tasksStore)
 
 const props = defineProps<{
@@ -28,21 +30,21 @@ watch(pileRef, (el) => {
   }
 }, { immediate: true })
 
-const categoryColors: Record<string, string> = {
-  Work: '#4facfe',
-  Personal: '#43e97b',
-  Urgent: '#ff4b1f',
-  Learning: '#f093fb',
-  Default: '#666'
-}
-
 const getCategoryColor = (category: string) => {
-  return categoryColors[category] || categoryColors.Default
+  return categoriesStore.categoriesArray.find(c => c.name === category)?.color || 'var(--color-default)'
 }
 
-const getChaoticStyle = (id: number) => {
-  // Use id as a seed for stable "chaos"
-  const seed = (id * 1337) % 100
+const getChaoticStyle = (id: string | number) => {
+  const getSeed = (val: string | number) => {
+    if (typeof val === 'number') return val
+    let hash = 0
+    for (let i = 0; i < val.length; i++) {
+        hash = ((hash << 5) - hash) + val.charCodeAt(i)
+        hash |= 0
+    }
+    return Math.abs(hash)
+  }
+  const seed = (getSeed(id) * 1337) % 100
   const rotation = (seed % 7) - 3 // -3 to 3 degrees
   const xOffset = (seed % 4) * 3 - 6 // -6 to 6px
   
@@ -261,7 +263,5 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
   transform: scale(0.8) translateY(20px);
 }
 
-.task-list-move {
-  /* transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); */
-}
+
 </style>

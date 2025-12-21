@@ -4,9 +4,24 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 
+// PrimeVue imports
+import PrimeVue from 'primevue/config'
+import AutoComplete from 'primevue/autocomplete'
+
+import Aura from '@primeuix/themes/aura';
+
 const app = createApp(App)
 const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+app.use(PrimeVue, {
+    theme: {
+        preset: Aura
+    }
+});
+
+// Register global components if needed
+app.component('AutoComplete', AutoComplete)
+
 app.mount('#app')

@@ -24,6 +24,7 @@ const emit = defineEmits<{
   (e: 'task-dropped-on-sidebar', payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut' }): void
   (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
   (e: 'delete-external-task', payload: {}): void
+  (e: 'create-task', payload: { startTime: number }): void
 }>()
 
 // Store access for task operations
@@ -35,7 +36,7 @@ const handleCreateTask = (payload: { text: string, startTime: number, category: 
     ...payload,
     completed: false,
     duration: 60
-  })
+  } as any)
 }
 
 const handleScheduleTask = (payload: { taskId: string | number, startTime: number, duration?: number }) => {
@@ -46,7 +47,7 @@ const handleDuplicateTask = (payload: { originalTaskId: string | number }) => {
   const original = tasksStore.getTaskById(payload.originalTaskId)
   if (original) {
     const { id, ...taskData } = original
-    tasksStore.createScheduledTask(taskData)
+    tasksStore.createScheduledTask(taskData as any)
   }
 }
 
@@ -117,36 +118,28 @@ const onWindowMouseMove = (e: MouseEvent) => {
     mouseY.value = e.clientY
 }
 
-const onWindowMouseUp = () => {
-    window.removeEventListener('mousemove', onWindowMouseMove)
-    window.removeEventListener('mouseup', onWindowMouseUp)
-}
+
 
 type OperationMode = 'none' | 'drag' | 'resize-top' | 'resize-bottom'
 
 const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: OperationMode) => {
-    if (opMode === 'drag') {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-        dragOffsetX.value = e.clientX - rect.left
-        mouseX.value = e.clientX
-        mouseY.value = e.clientY
-        window.addEventListener('mousemove', onWindowMouseMove)
-        window.addEventListener('mouseup', onWindowMouseUp)
-    }
+    updateContainerRect()
+    updateScroll()
+    
+    // Calculate drag offset
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    dragOffsetX.value = e.clientX - rect.left
+    
     startOperation(e, taskId, opMode)
 }
 
 const handleExternalDrag = (e: MouseEvent, task: Task) => {
-    // For external tasks, calculate offset relative to the item being clicked
     updateContainerRect()
-    const target = e.currentTarget as HTMLElement
-    const rect = target.getBoundingClientRect()
-    dragOffsetX.value = e.clientX - rect.left
+    updateScroll()
     
-    mouseX.value = e.clientX
-    mouseY.value = e.clientY
-    window.addEventListener('mousemove', onWindowMouseMove)
-    window.addEventListener('mouseup', onWindowMouseUp)
+    // For external drag, pick a reasonable offset (e.g. center)
+    dragOffsetX.value = 100 
+    
     startExternalDragOp(e, task)
 }
 
@@ -162,15 +155,14 @@ const { layoutTasks } = useTaskLayout(
     () => props.tasks, 
     activeTaskId, 
     currentSnapTime, 
-    currentDuration, 
+    currentDuration,
     { 
         startHour: props.startHour, 
         endHour: props.endHour,
-        hourHeight: 80
+        hourHeight: 80 
     }
 )
 
-// 3. Coordinate External Drag
 defineExpose({
     startExternalDrag: handleExternalDrag // Expose the new handler
 })
@@ -181,27 +173,26 @@ const taskStatuses = ref<Record<string | number, 'past' | 'future' | 'on-air' | 
 
 const updateTaskStatuses = () => {
     const now = currentTime.value
-    const currentTotalHours = now.getHours() + now.getMinutes() / 60
+    const currentTotalMinutes = now.getHours() * 60 + now.getMinutes()
     
-    const newStatuses: Record<string | number, 'past' | 'future' | 'on-air' | null> = {}
     props.tasks.forEach(task => {
-        if (task.startTime === null) {
-            newStatuses[task.id] = null
-            return
+        if (task.startTime === null) return
+        
+        const taskStartMinutes = task.startTime * 60
+        const taskEndMinutes = taskStartMinutes + task.duration
+        
+        if (currentTotalMinutes < taskStartMinutes) {
+            taskStatuses.value[task.id] = 'future'
+        } else if (currentTotalMinutes >= taskStartMinutes && currentTotalMinutes < taskEndMinutes) {
+            taskStatuses.value[task.id] = 'on-air'
+        } else {
+            taskStatuses.value[task.id] = 'past'
         }
-        
-        const taskStart = task.startTime
-        const taskEnd = task.startTime + (task.duration / 60)
-        
-        if (currentTotalHours < taskStart) newStatuses[task.id] = 'future'
-        else if (currentTotalHours >= taskEnd) newStatuses[task.id] = 'past'
-        else newStatuses[task.id] = 'on-air'
     })
-    taskStatuses.value = newStatuses
-    console.log(taskStatuses.value)
 }
 
 onMounted(() => {
+    updateContainerRect()
     updateTaskStatuses()
     setTimeout(() => {
         timer = setInterval(() => {
@@ -209,13 +200,16 @@ onMounted(() => {
             updateTaskStatuses()
         }, 60000)      
     }, (60-currentTime.value.getSeconds()) * 1000)
+
+    window.addEventListener('mousemove', onWindowMouseMove)
+    window.addEventListener('resize', updateContainerRect)
 })
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer)
+    if (timer) clearInterval(timer)
+    window.removeEventListener('mousemove', onWindowMouseMove)
+    window.removeEventListener('resize', updateContainerRect)
 })
-
-watch(() => props.tasks, updateTaskStatuses)
 
 const timeIndicatorTop = computed(() => {
   const now = currentTime.value
@@ -229,51 +223,42 @@ const timeIndicatorTop = computed(() => {
 })
 
 const getTeleportStyle = (task: any) => {
-    const isInternalDrag = activeTaskId.value !== null && mode.value === 'drag' && task.id === activeTaskId.value;
-    const isExternalDrag = activeTaskId.value === null && mode.value === 'drag' && props.activeExternalTask && task.id === props.activeExternalTask.id;
+    if (task.id !== activeTaskId.value && activeTaskId.value !== null) return {}
+    if (activeTaskId.value === null && mode.value !== 'drag') return {}
 
-    if (!isInternalDrag && !isExternalDrag) {
-        return {};
+    // Calculate position for the dragging element
+    // We want it to follow the mouse but snap to the grid if possible
+    
+    let top = 0
+    let left = 0
+    let width = '200px'
+    
+    if (currentSnapTime.value !== null) {
+        // Snapped position
+        top = (currentSnapTime.value - props.startHour) * 80
+        if (containerRect.value) {
+            top += containerRect.value.top - scrollTop.value
+            left = containerRect.value.left + 8 // Some padding
+            width = `${containerRect.value.width - 16}px`
+        }
+    } else {
+        // Free float (near mouse)
+        top = mouseY.value - 20
+        left = mouseX.value - dragOffsetX.value
+        width = '240px'
     }
-
-    const freeLeft = mouseX.value - dragOffsetX.value;
-    const freeTop = mouseY.value - 20;
-
-    if (isExternalDrag) {
-        // External tasks always follow mouse freely (ghost handled snapped position)
-        return {
-            position: 'fixed' as const,
-            top: freeTop + 'px',
-            left: freeLeft + 'px',
-            width: '180px',
-            zIndex: 9999,
-            pointerEvents: 'none' as const,
-            opacity: 0.7,
-            transition: 'none'
-        };
-    }
-
-    // Internal Drag Snapping (uses task.style from layout engine)
-    if (!containerRect.value || !task.style) return {};
-
-    const snappedLeft = containerRect.value.left + (parseFloat(task.style.left) / 100 * containerRect.value.width);
-    const pixelWidth = (parseFloat(task.style.width) / 100 * containerRect.value.width);
-    const threshold = 60;
-    const isInsideSnapRange = Math.abs(freeLeft - snappedLeft) < threshold;
-    const finalLeft = isInsideSnapRange ? snappedLeft : freeLeft;
-    const finalTop = parseFloat(task.style.top) + containerRect.value.top - scrollTop.value;
 
     return {
         position: 'fixed' as const,
-        top: finalTop + 'px',
-        left: finalLeft + 'px',
-        width: pixelWidth + 'px',
+        top: `${top}px`,
+        left: `${left}px`,
+        width: width,
         zIndex: 9999,
         pointerEvents: 'none' as const,
-        opacity: 0.5,
-        transition: isInsideSnapRange ? 'left 0.1s ease-out' : 'none'
-    };
-};
+        transform: 'scale(1.02)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+    }
+}
 </script>
 
 <template>
@@ -282,18 +267,20 @@ const getTeleportStyle = (task: any) => {
       <h2>Today's Schedule</h2>
       <p class="instruction">Drag to move/wheel-resize. Drag edges to resize.</p>
     </div>
+    
     <div class="calendar-layout">
         <div class="calendar-scroll-area" ref="scrollAreaRef" @scroll="updateScroll">
-        <div class="calendar-content">
-            <!-- Background Grid Layer -->
-            <div class="grid-layer">
-                 <div 
-                    v-for="hour in hours" 
-                    :key="hour" 
-                    class="hour-row"
-                >
-                    <div class="time-label">{{ hour }}:00</div>
-                    <div class="hour-content">
+            <div class="calendar-grid">
+                <!-- Time Labels -->
+                <div class="time-labels">
+                    <div v-for="hour in hours" :key="hour" class="time-label">
+                        {{ hour.toString().padStart(2, '0') }}:00
+                    </div>
+                </div>
+                
+                <!-- Grid Content -->
+                <div class="grid-content">
+                    <div v-for="hour in hours" :key="hour" class="hour-row">
                         <div
                             v-for="q in 4" 
                             :key="q-1"
@@ -343,7 +330,7 @@ const getTeleportStyle = (task: any) => {
                                 width: 'calc(100% - 8px)',
                                 zIndex: 5,
                                 opacity: 0.3,
-                                pointerEvents: 'none',
+                                pointerEvents: 'none' as const,
                                 padding: '0 4px',
                                 background: 'rgba(255,255,255,0.1)',
                                 borderRadius: '6px'
@@ -379,7 +366,6 @@ const getTeleportStyle = (task: any) => {
         </div>
     </div>
   </div>
-</div>
 </template>
 
 <style scoped>
@@ -398,89 +384,91 @@ const getTeleportStyle = (task: any) => {
   flex-direction: column;
   border: 1px solid var(--border-color);
   backdrop-filter: blur(10px);
-  width: 100%;
-  user-select: none;
 }
 
 .header {
-    margin-bottom: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+  margin-bottom: 2rem;
+  text-align: left;
 }
 
 .header h2 {
-  font-size: 1.8rem;
-  color: var(--primary);
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .instruction {
     color: var(--text-muted);
     font-size: 0.9rem;
+    margin-top: 0.5rem;
 }
 
 .calendar-scroll-area {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  position: relative;
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 8px;
-}
-
-.calendar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
     position: relative;
-    /* Height will define scroll. Grid items define height. */
+    padding-right: 10px;
 }
 
-/* Grid Layer */
-.grid-layer {
-    width: 100%;
+.calendar-grid {
+    display: flex;
+    position: relative;
 }
 
-.hour-row {
-  display: flex;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  height: 80px; 
-  box-sizing: border-box;
+.time-labels {
+    width: 60px;
+    flex-shrink: 0;
 }
 
 .time-label {
-  width: 60px;
-  padding: 0.5rem;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  text-align: right;
-  border-right: 1px solid rgba(255,255,255,0.3);
-  flex-shrink: 0;
+    height: 80px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 0;
+    border-top: 1px solid transparent;
 }
 
-.hour-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.grid-content {
+    flex: 1;
+    position: relative;
+    border-left: 1px solid var(--border-color);
+}
+
+.hour-row {
+    height: 80px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
 }
 
 .quarter-slot {
-  flex: 1; 
-  border-bottom: 1px dotted rgba(255,255,255,0.05);
-  cursor: cell;
+    flex: 1;
+    border-bottom: 1px dashed rgba(255,255,255,0.03);
+    cursor: cell;
+    transition: background 0.2s;
 }
+
 .quarter-slot:last-child {
     border-bottom: none;
 }
+
 .quarter-slot:hover {
-    background: rgba(255,255,255,0.02);
+    background: rgba(255,255,255,0.03);
 }
 
-/* Tasks Layer */
 .tasks-layer {
     position: absolute;
     top: 0;
-    left: 60px; /* Offset for time label */
+    left: 60px; /* offset for labels */
     right: 0;
     bottom: 0;
-    pointer-events: none; /* Let clicks pass to grid if no task */
+    pointer-events: none;
 }
 
 .tasks-container {
@@ -491,86 +479,46 @@ const getTeleportStyle = (task: any) => {
 
 .task-wrapper-absolute {
     position: absolute;
-    width: 100%;
-    z-index: 10;
-    padding: 0 4px;
-    box-sizing: border-box;
-    transition: transform 0.1s ease, width 0.1s ease, left 0.1s ease;
     pointer-events: auto;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+    user-select: none;
 }
 
 .task-wrapper-absolute.is-dragging {
-    opacity: 0.5;
-    transition: none;
+    opacity: 0.8;
+    z-index: 1000;
 }
 
-/* Handles */
 .resize-handle {
     position: absolute;
     left: 0;
     right: 0;
-    height: 8px;
+    height: 6px;
     cursor: ns-resize;
-    z-index: 20;
+    z-index: 10;
 }
-.resize-handle:hover {
-    background: rgba(255,255,255,0.2);
-}
-.resize-handle.top { top: -4px; }
-.resize-handle.bottom { bottom: -4px; }
 
-/* Current Time Indicator */
+.resize-handle.top { top: -3px; }
+.resize-handle.bottom { bottom: -3px; }
+
 .current-time-line {
     position: absolute;
-    left: -60px; /* Extend to time label area */
+    left: 0;
     right: 0;
     height: 2px;
-    background: #ff4b1f; /* Vibrant red */
+    background: var(--color-urgent);
     z-index: 100;
     pointer-events: none;
-    box-shadow: 0 0 8px rgba(255, 75, 31, 0.4);
-}
-
-.current-time-line::after {
-    content: '';
-    position: absolute;
-    left: 60px;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, #ff4b1f, transparent);
-    top: 0;
+    box-shadow: 0 0 10px var(--color-urgent);
 }
 
 .time-dot {
     position: absolute;
-    left: 56px;
-    top: 50%;
-    transform: translateY(-50%);
+    left: -4px;
+    top: -4px;
     width: 10px;
     height: 10px;
-    background: #ff4b1f;
     border-radius: 50%;
-    border: 2px solid var(--bg-card);
-    box-shadow: 0 0 10px rgba(255, 75, 31, 0.8);
-    z-index: 101;
-}
-
-.time-dot::before {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: -5px;
-    right: -5px;
-    bottom: -5px;
-    border-radius: 50%;
-    background: rgba(255, 75, 31, 0.2);
-    animation: ripple 2s infinite ease-out;
-}
-
-@keyframes ripple {
-    0% { transform: scale(0.5); opacity: 1; }
-    100% { transform: scale(2.5); opacity: 0; }
+    background: var(--color-urgent);
 }
 </style>
-```
