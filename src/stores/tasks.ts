@@ -203,55 +203,65 @@ export const useTasksStore = defineStore('tasks', () => {
         await firebaseService.moveTask('todo', `calendar/${date}`, task, updates)
     }
 
-    const moveCalendarToTodo = async (id: string | number, date: string) => {
+    const moveCalendarToTodo = async (id: string | number, date: string, order?: number) => {
         const task = calendarTasksState.value.find(t => t.id === id)
         if (!task) {
             console.error('Task not found in calendar')
             return
         }
 
-        // Calculate temporary order for destination list (will be adjusted by reorder)
-        const maxOrder = todoTasks.value.length > 0 ? Math.max(...todoTasks.value.map(t => t.order || 0)) : 0
-        const tempOrder = maxOrder + 10000
+        // Use provided order or calculate temporary order
+        const finalOrder = order !== undefined ? order : (
+            todoTasks.value.length > 0 ? Math.max(...todoTasks.value.map(t => t.order || 0)) + 10000 : 10000
+        )
 
-        const updates = { startTime: null, date: null, isShortcut: false, order: tempOrder } as any
+        const updates = { startTime: null, date: null, isShortcut: false, order: finalOrder } as any
         await firebaseService.moveTask(`calendar/${date}`, 'todo', task, updates)
     }
 
     // Convert (Move) To-Do -> Shortcut
-    const moveTodoToShortcut = async (id: string | number) => {
+    const moveTodoToShortcut = async (id: string | number, order?: number) => {
         const task = todoTasksState.value.find(t => t.id === id)
         if (!task) return
 
-        // Calculate temporary order for destination list (will be adjusted by reorder)
-        const maxOrder = shortcutTasks.value.length > 0 ? Math.max(...shortcutTasks.value.map(t => t.order || 0)) : 0
-        const tempOrder = maxOrder + 10000
+        // Use provided order or calculate temporary order
+        const finalOrder = order !== undefined ? order : (
+            shortcutTasks.value.length > 0 ? Math.max(...shortcutTasks.value.map(t => t.order || 0)) + 10000 : 10000
+        )
 
-        const updates = { startTime: null, date: null, isShortcut: true, completed: false, order: tempOrder } as any
+        const updates = { startTime: null, date: null, isShortcut: true, completed: false, order: finalOrder } as any
         await firebaseService.moveTask('todo', 'shortcuts', task, updates)
     }
 
     // Convert (Move) Calendar -> Shortcut
-    const moveCalendarToShortcut = async (id: string | number, date: string) => {
+    const moveCalendarToShortcut = async (id: string | number, date: string, order?: number) => {
         const task = calendarTasksState.value.find(t => t.id === id)
         if (!task) return
 
-        // Calculate temporary order for destination list (will be adjusted by reorder)
-        const maxOrder = shortcutTasks.value.length > 0 ? Math.max(...shortcutTasks.value.map(t => t.order || 0)) : 0
-        const tempOrder = maxOrder + 10000
+        // Use provided order or calculate temporary order
+        const finalOrder = order !== undefined ? order : (
+            shortcutTasks.value.length > 0 ? Math.max(...shortcutTasks.value.map(t => t.order || 0)) + 10000 : 10000
+        )
 
-        const updates = { startTime: null, date: null, isShortcut: true, completed: false, order: tempOrder } as any
+        const updates = { startTime: null, date: null, isShortcut: true, completed: false, order: finalOrder } as any
         await firebaseService.moveTask(`calendar/${date}`, 'shortcuts', task, updates)
     }
 
     // --- Copy Actions (Templates) ---
 
-    const copyShortcutToTodo = async (id: string | number) => {
+    const copyShortcutToTodo = async (id: string | number, order?: number) => {
         const shortcut = shortcutsTasksState.value.find(t => t.id === id)
         if (!shortcut) return
 
         const { id: _, ...data } = shortcut
-        return await createTodo({ ...data, isShortcut: false, startTime: null, date: null })
+        const taskData = { ...data, isShortcut: false, startTime: null, date: null }
+
+        // If order is provided, use it directly instead of letting createTodo calculate
+        if (order !== undefined) {
+            return await firebaseService.createTaskInPath('todo', { ...taskData, order })
+        }
+
+        return await createTodo(taskData)
     }
 
     const copyShortcutToCalendar = async (id: string | number, date: string, startTime: number, duration: number) => {
@@ -285,24 +295,21 @@ export const useTasksStore = defineStore('tasks', () => {
 
     // --- Legacy / Helper for Reordering (Optional, generic reorder is tricky with explicit paths) ---
     // We can implement specific reorders
-    const calculateNewOrder = (list: Task[], taskId: string | number, targetIndex: number): number => {
-        // Removing the task we are moving to check neighbors accurately
-        const filtered = list.filter(t => t.id !== taskId)
-
-
+    const calculateNewOrder = (list: Task[], taskId: string | number | null, targetIndex: number): number => {
+        const sortedList = list.sort((a, b) => (a.order || 0) - (b.order || 0))
 
         if (targetIndex === 0) {
             // Moving to top
-            if (filtered.length === 0) return 10000
-            return (filtered[0].order || 0) / 2
-        } else if (targetIndex >= filtered.length) {
+            if (sortedList.length === 0) return 10000
+            return (sortedList[0].order || 0) / 2
+        } else if (targetIndex >= sortedList.length) {
             // Moving to bottom
-            const last = filtered[filtered.length - 1]
+            const last = sortedList[sortedList.length - 1]
             return (last.order || 0) + 10000
         } else {
             // Moving between two items
-            const prev = filtered[targetIndex - 1]
-            const next = filtered[targetIndex]
+            const prev = sortedList[targetIndex - 1]
+            const next = sortedList[targetIndex]
             return ((prev.order || 0) + (next.order || 0)) / 2
         }
     }
@@ -353,6 +360,9 @@ export const useTasksStore = defineStore('tasks', () => {
         deleteScheduledTask,
 
         reorderTodo,
-        reorderShortcut
+        reorderShortcut,
+
+        // Helpers
+        calculateNewOrder
     }
 })

@@ -41,15 +41,19 @@ const {
 
 const handleCalendarTaskDropped = (payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut' }) => {
   if (payload.target === 'todo') {
-    tasksStore.moveCalendarToTodo(payload.taskId, tasksStore.currentDate)
-    if (todoInsertionIndex.value !== null) {
-      tasksStore.reorderTodo(payload.taskId, todoInsertionIndex.value)
-    }
+    // Calculate final order if insertion index is specified
+    const finalOrder = todoInsertionIndex.value !== null 
+      ? tasksStore.calculateNewOrder(tasksStore.todoTasks, null, todoInsertionIndex.value)
+      : undefined
+    
+    tasksStore.moveCalendarToTodo(payload.taskId, tasksStore.currentDate, finalOrder)
   } else if (payload.target === 'shortcut') {
-    tasksStore.moveCalendarToShortcut(payload.taskId, tasksStore.currentDate)
-    if (shortcutInsertionIndex.value !== null) {
-      tasksStore.reorderShortcut(payload.taskId, shortcutInsertionIndex.value)
-    }
+    // Calculate final order if insertion index is specified
+    const finalOrder = shortcutInsertionIndex.value !== null
+      ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, null, shortcutInsertionIndex.value)
+      : undefined
+    
+    tasksStore.moveCalendarToShortcut(payload.taskId, tasksStore.currentDate, finalOrder)
   }
   
   // Cleanup indices
@@ -62,42 +66,38 @@ const handleExternalTaskSidebarDrop = async () => {
   
   const { source, task } = activeExternalTask.value
   
-  // 2. Handle the transfer
+  // Handle the transfer
   if (isOverTodo.value) {
     if (source === 'shortcut') {
-      // Shortcut -> To-Do (Clone as new task)
-      const newTask: any = await tasksStore.copyShortcutToTodo(task.id)
-      if (newTask && todoInsertionIndex.value !== null) {
-        tasksStore.reorderTodo(newTask.id, todoInsertionIndex.value)
+      // Shortcut -> To-Do (Copy as new task)
+      const finalOrder = todoInsertionIndex.value !== null
+        ? tasksStore.calculateNewOrder(tasksStore.todoTasks, null, todoInsertionIndex.value)
+        : undefined
+      
+      await tasksStore.copyShortcutToTodo(task.id, finalOrder)
+    } else if (source === 'todo') {
+      // Internal To-Do reorder
+      if (todoInsertionIndex.value !== null) {
+        tasksStore.reorderTodo(task.id, todoInsertionIndex.value)
       }
-    } else if (source === 'todo' && todoInsertionIndex.value !== null) {
-      // Internal To-Do reorder: find original index and adjust target
-      const oldIndex = tasksStore.todoTasks.findIndex(t => t.id === task.id)
-      let targetIndex = todoInsertionIndex.value
-      if (oldIndex !== -1 && targetIndex > oldIndex) {
-        targetIndex -= 1
-      }
-      tasksStore.reorderTodo(task.id, targetIndex)
     }
   } else if (isOverShortcut.value) {
     if (source === 'todo') {
       // To-Do -> Shortcut (Move/Convert)
-      await tasksStore.moveTodoToShortcut(task.id)
+      const finalOrder = shortcutInsertionIndex.value !== null
+        ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, null, shortcutInsertionIndex.value)
+        : undefined
+      
+      await tasksStore.moveTodoToShortcut(task.id, finalOrder)
+    } else if (source === 'shortcut') {
+      // Internal Shortcut reorder
       if (shortcutInsertionIndex.value !== null) {
         tasksStore.reorderShortcut(task.id, shortcutInsertionIndex.value)
       }
-    } else if (source === 'shortcut' && shortcutInsertionIndex.value !== null) {
-      // Internal Shortcut reorder: find original index and adjust target
-      const oldIndex = tasksStore.shortcutTasks.findIndex(t => t.id === task.id)
-      let targetIndex = shortcutInsertionIndex.value
-      if (oldIndex !== -1 && targetIndex > oldIndex) {
-        targetIndex -= 1
-      }
-      tasksStore.reorderShortcut(task.id, targetIndex)
     }
   }
   
-  // 3. Clear the active drag state and indices
+  // Clear the active drag state and indices
   activeExternalTask.value = null
   todoInsertionIndex.value = null
   shortcutInsertionIndex.value = null
@@ -187,10 +187,6 @@ const handleExternalTaskDeletedWrapper = () => {
 </template>
 
 <style scoped>
-#app {
-  width: 100%;
-}
-
 .app-layout {
   display: flex;
   width: 100%;
