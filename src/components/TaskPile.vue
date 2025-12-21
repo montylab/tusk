@@ -212,7 +212,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 
 .pile-content {
   flex: 1;
-  /* overflow: auto; */
+  overflow-y: auto;
   padding: 10px;
   position: relative;
 }

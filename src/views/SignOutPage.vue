@@ -1,43 +1,47 @@
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { useUserStore } from './stores/user'
-import AppHeader from './components/AppHeader.vue'
+import { onMounted } from 'vue'
+import { useUserStore } from '../stores/user'
+import { useRouter } from 'vue-router'
 
 const userStore = useUserStore()
-const { user, loading: authLoading } = storeToRefs(userStore)
+const router = useRouter()
+
+onMounted(async () => {
+  await userStore.logout()
+  router.push({ name: 'signin' })
+})
 </script>
 
 <template>
-  <div class="app-layout">
-    <div v-if="authLoading" class="loading-overlay">
+  <div class="signout-page">
+    <div class="signout-content">
       <div class="loader"></div>
-      <p>Checking authentication...</p>
+      <p>Signing out...</p>
     </div>
-
-    <template v-else>
-      <AppHeader v-if="user" />
-      <router-view />
-    </template>
   </div>
 </template>
 
 <style scoped>
-.app-layout {
-  display: flex;
-  flex-direction: column;
+.signout-page {
   width: 100%;
   height: 100vh;
-  background: var(--bg-dark);
-  overflow: hidden;
-}
-
-.loading-overlay {
-  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
+  background: var(--bg-dark);
+}
+
+.signout-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.signout-content p {
+  color: var(--text-muted);
 }
 
 .loader {
@@ -47,7 +51,6 @@ const { user, loading: authLoading } = storeToRefs(userStore)
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
 }
 
 @keyframes spin {
