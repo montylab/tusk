@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+    setup
+    lang="ts"
+>
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
 import { useTaskOperations } from '../composables/useTaskOperations'
@@ -275,19 +278,28 @@ const getTeleportStyle = (task: any) => {
         </div>
 
         <div class="calendar-layout">
-            <div class="calendar-scroll-area" ref="scrollAreaRef" @scroll="updateScroll">
+            <div class="calendar-scroll-area"
+                 ref="scrollAreaRef"
+                 @scroll="updateScroll">
                 <div class="calendar-grid">
                     <!-- Time Labels -->
                     <div class="time-labels">
-                        <div v-for="hour in hours" :key="hour" class="time-label">
+                        <div v-for="hour in hours"
+                             :key="hour"
+                             class="time-label">
                             {{ hour.toString().padStart(2, '0') }}:00
                         </div>
                     </div>
 
                     <!-- Grid Content -->
                     <div class="grid-content">
-                        <div v-for="hour in hours" :key="hour" class="hour-row">
-                            <div v-for="q in 4" :key="q - 1" class="quarter-slot" @click="handleSlotClick(hour, q - 1)">
+                        <div v-for="hour in hours"
+                             :key="hour"
+                             class="hour-row">
+                            <div v-for="q in 4"
+                                 :key="q - 1"
+                                 class="quarter-slot"
+                                 @click="handleSlotClick(hour, q - 1)">
                             </div>
                         </div>
                     </div>
@@ -296,56 +308,67 @@ const getTeleportStyle = (task: any) => {
                 <!-- Tasks Layer -->
                 <div class="tasks-layer">
                     <!-- Spacing to align with grid content (width 60px label + padding) -->
-                    <div class="tasks-container" ref="tasksContainerRef">
-                        <template v-for="task in layoutTasks" :key="task.id">
+                    <div class="tasks-container"
+                         ref="tasksContainerRef">
+                        <template v-for="task in layoutTasks"
+                                  :key="task.id">
                             <!-- Teleport active dragging task to body to avoid clipping -->
-                            <Teleport to="body" :disabled="task.id !== activeTaskId || mode !== 'drag'">
+                            <Teleport to="body"
+                                      :disabled="task.id !== activeTaskId || mode !== 'drag'">
                                 <div class="task-wrapper-absolute"
-                                    :class="{ 'is-dragging': task.id === activeTaskId && mode === 'drag' }"
-                                    :style="[task.style, getTeleportStyle(task)]"
-                                    @mousedown="handleStartOperation($event, task.id, 'drag')">
+                                     :class="{ 'is-dragging': task.id === activeTaskId && mode === 'drag' }"
+                                     :style="[task.style, getTeleportStyle(task)]"
+                                     @mousedown="handleStartOperation($event, task.id, 'drag')">
                                     <!-- Top Handle -->
-                                    <div v-if="task.id !== activeTaskId || mode !== 'drag'" class="resize-handle top"
-                                        @mousedown.stop="handleStartOperation($event, task.id, 'resize-top')"></div>
+                                    <div v-if="task.id !== activeTaskId || mode !== 'drag'"
+                                         class="resize-handle top"
+                                         @mousedown.stop="handleStartOperation($event, task.id, 'resize-top')"></div>
 
-                                    <TaskItem :task="task" :is-dragging="task.id === activeTaskId && mode === 'drag'"
-                                        :is-shaking="task.isOverlapping" :status="taskStatuses[task.id]" />
+                                    <TaskItem :task="task"
+                                              :is-dragging="task.id === activeTaskId && mode === 'drag'"
+                                              :is-shaking="task.isOverlapping"
+                                              :status="taskStatuses[task.id]" />
 
                                     <!-- Bottom Handle -->
-                                    <div v-if="task.id !== activeTaskId || mode !== 'drag'" class="resize-handle bottom"
-                                        @mousedown.stop="handleStartOperation($event, task.id, 'resize-bottom')"></div>
+                                    <div v-if="task.id !== activeTaskId || mode !== 'drag'"
+                                         class="resize-handle bottom"
+                                         @mousedown.stop="handleStartOperation($event, task.id, 'resize-bottom')"></div>
                                 </div>
                             </Teleport>
                         </template>
 
                         <template v-if="activeExternalTask && currentSnapTime !== null">
-                            <div class="task-wrapper-absolute ghost-external" :style="{
-                                top: `${(currentSnapTime - startHour) * 80}px`,
-                                height: `${((currentDuration || activeExternalTask.duration) / 60) * 80}px`,
-                                left: '0%',
-                                width: 'calc(100% - 8px)',
-                                zIndex: 5,
-                                opacity: 0.3,
-                                pointerEvents: 'none' as const,
-                                padding: '0 4px',
-                                background: 'rgba(255,255,255,0.1)',
-                                borderRadius: '6px'
-                            }">
+                            <div class="task-wrapper-absolute ghost-external"
+                                 :style="{
+                                    top: `${(currentSnapTime - startHour) * 80}px`,
+                                    height: `${((currentDuration || activeExternalTask.duration) / 60) * 80}px`,
+                                    left: '0%',
+                                    width: 'calc(100% - 8px)',
+                                    zIndex: 5,
+                                    opacity: 0.3,
+                                    pointerEvents: 'none' as const,
+                                    padding: '0 4px',
+                                    background: 'rgba(255,255,255,0.1)',
+                                    borderRadius: '6px'
+                                }">
                                 <TaskItem :task="activeExternalTask" />
                             </div>
                         </template>
 
                         <!-- Floating Item for External Drag (Teleport to Body) -->
-                        <Teleport to="body" v-if="activeExternalTask && activeTaskId === null && mode === 'drag'">
+                        <Teleport to="body"
+                                  v-if="activeExternalTask && activeTaskId === null && mode === 'drag'">
                             <div class="task-wrapper-absolute is-dragging"
-                                :style="getTeleportStyle(activeExternalTask)">
-                                <TaskItem :task="activeExternalTask" :is-dragging="true" />
+                                 :style="getTeleportStyle(activeExternalTask)">
+                                <TaskItem :task="activeExternalTask"
+                                          :is-dragging="true" />
                             </div>
                         </Teleport>
 
                         <!-- Current Time Indicator -->
-                        <div v-if="timeIndicatorTop >= 0" class="current-time-line"
-                            :style="{ top: `${timeIndicatorTop}px` }">
+                        <div v-if="timeIndicatorTop >= 0"
+                             class="current-time-line"
+                             :style="{ top: `${timeIndicatorTop}px` }">
                             <div class="time-dot"></div>
                         </div>
                     </div>

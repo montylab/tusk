@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+    setup
+    lang="ts"
+>
 import { ref, watch, computed } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
 
@@ -81,8 +84,13 @@ watch(nameInput, (newValue) => {
 
 const colorInput = ref(props.color)
 watch(() => props.color, (newValue) => {
-    colorInput.value = newValue
-})
+    if (!props.color) {
+        colorInput.value = generateColorForCategory()
+        emit('update:color', colorInput.value)
+    } else {
+        colorInput.value = newValue
+    }
+}, { immediate: true })
 watch(colorInput, (newValue) => {
     if (!newValue) {
         emit('update:color', '')
@@ -115,25 +123,37 @@ const handlePickerClick = () => {
 
 <template>
     <div class="category-input-wrapper">
-        <AutoComplete v-model="nameInput" :suggestions="filteredSuggestions" option-label="name"
-            @complete="searchCategory" @item-select="onCategorySelect" placeholder="Type to search or create..."
-            dropdown input-class="form-input" panel-class="p-autocomplete-panel-custom"
-            class="p-autocomplete-root-custom">
+        <AutoComplete v-model="nameInput"
+                      :suggestions="filteredSuggestions"
+                      option-label="name"
+                      @complete="searchCategory"
+                      @item-select="onCategorySelect"
+                      placeholder="Type to search or create..."
+                      dropdown
+                      input-class="form-input"
+                      panel-class="p-autocomplete-panel-custom"
+                      class="p-autocomplete-root-custom">
             <template #option="slotProps">
                 <div class="autocomplete-option">
                     <div>
                         {{ slotProps.option.name }}
                     </div>
-                    <div v-if="!isNewCategory" class="option-color-preview"
-                        :style="{ background: slotProps.option.color }"></div>
+                    <div v-if="!isNewCategory"
+                         class="option-color-preview"
+                         :style="{ background: slotProps.option.color }"></div>
                 </div>
             </template>
         </AutoComplete>
 
-        <div class="color-picker-container" @click="handlePickerClick">
-            <ColorPicker v-model="colorInput" :disabled="!isNewCategory" class="color-preview" size="large" />
+        <div class="color-picker-container"
+             @click="handlePickerClick">
+            <ColorPicker v-model="colorInput"
+                         :disabled="!isNewCategory"
+                         class="color-preview"
+                         size="large" />
             <Transition name="hint-fade">
-                <div v-if="showHint" class="picker-hint">
+                <div v-if="showHint"
+                     class="picker-hint">
                     Only new categories can choose color
                 </div>
             </Transition>

@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+  setup
+  lang="ts"
+>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
 import CategorySelector from './CategorySelector.vue'
@@ -46,7 +49,7 @@ const handleSubmit = async () => {
     text: taskText.value.trim(),
     description: taskDescription.value.trim(),
     category: finalCategoryName,
-    color: finalColor,
+    color: finalColor, // we do no store color here, since this field only for uncategorized tasks
     startTime: props.taskType === 'scheduled' ? (startTime.value ?? 9) : null,
     duration: Math.round(duration.value * 60),
     date: taskDate.value
@@ -101,56 +104,81 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="popup">
-      <div v-if="show" class="popup-overlay" @mousedown.self="handleClose">
+      <div v-if="show"
+           class="popup-overlay"
+           @mousedown.self="handleClose">
         <div class="popup-container">
           <div class="popup-header">
             <h2>Create New Task</h2>
-            <button class="close-btn" @click="handleClose">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="close-btn"
+                    @click="handleClose">
+              <svg width="20"
+                   height="20"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2">
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          <form @submit.prevent="handleSubmit" class="popup-form">
+          <form @submit.prevent="handleSubmit"
+                class="popup-form">
             <!-- Task Name -->
             <div class="form-group">
               <label for="task-text">Task Name</label>
-              <input id="task-text" ref="taskTextInput" v-model="taskText" type="text" placeholder="Enter task name..."
-                class="form-input" required />
+              <input id="task-text"
+                     ref="taskTextInput"
+                     v-model="taskText"
+                     type="text"
+                     placeholder="Enter task name..."
+                     class="form-input"
+                     required />
             </div>
 
             <!-- Category with Autocomplete -->
             <div class="form-group">
               <label for="category">Category</label>
-              <CategorySelector v-model:name="categoryInput" v-model:color="selectedColor" />
+              <CategorySelector v-model:name="categoryInput"
+                                v-model:color="selectedColor" />
             </div>
 
             <!-- Duration -->
             <div class="form-group">
               <label for="duration">Duration (HH:mm)</label>
-              <TaskDateTimePicker v-model:time="duration" view="time-only" />
+              <TaskDateTimePicker v-model:time="duration"
+                                  view="time-only" />
             </div>
 
             <!-- Date & Time (for scheduled tasks) -->
-            <div v-if="taskType === 'scheduled'" class="form-group">
+            <div v-if="taskType === 'scheduled'"
+                 class="form-group">
               <label>Date & Time</label>
-              <TaskDateTimePicker v-model:date="taskDate" v-model:time="startTime" />
+              <TaskDateTimePicker v-model:date="taskDate"
+                                  v-model:time="startTime" />
             </div>
 
             <!-- Task Description -->
             <div class="form-group">
               <label for="task-description">Description</label>
-              <textarea id="task-description" v-model="taskDescription" placeholder="Add details..." class="form-input"
-                rows="3" style="resize: vertical; min-height: 80px;"></textarea>
+              <textarea id="task-description"
+                        v-model="taskDescription"
+                        placeholder="Add details..."
+                        class="form-input"
+                        rows="3"
+                        style="resize: vertical; min-height: 80px;"></textarea>
             </div>
 
             <!-- Actions -->
             <div class="form-actions">
-              <button type="button" class="btn btn-secondary" @click="handleClose">
+              <button type="button"
+                      class="btn btn-secondary"
+                      @click="handleClose">
                 Cancel
               </button>
-              <button type="submit" class="btn btn-primary">
+              <button type="submit"
+                      class="btn btn-primary">
                 Create Task
               </button>
             </div>

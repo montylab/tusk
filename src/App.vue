@@ -16,7 +16,9 @@ const { user, loading: authLoading } = storeToRefs(userStore)
 
     <template v-else>
       <AppHeader v-if="user" />
-      <router-view />
+      <main class="app-main">
+        <router-view />
+      </main>
     </template>
   </div>
 </template>
@@ -29,6 +31,13 @@ const { user, loading: authLoading } = storeToRefs(userStore)
   height: 100vh;
   background: var(--bg-dark);
   overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .loading-overlay {
@@ -51,7 +60,12 @@ const { user, loading: authLoading } = storeToRefs(userStore)
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

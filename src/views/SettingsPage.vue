@@ -1,12 +1,22 @@
 <script setup lang="ts">
-// Settings page placeholder
+import CategoriesManager from '../components/CategoriesManager.vue'
 </script>
 
 <template>
   <div class="settings-page">
-    <div class="settings-content">
-      <h1>Settings</h1>
-      <p class="note">Settings configuration will be implemented here</p>
+    <div class="settings-content-wrapper">
+      <header class="page-header">
+        <h1>Settings</h1>
+        <p>Manage your application preferences and data</p>
+      </header>
+
+      <div class="settings-container">
+        <section class="settings-section">
+          <CategoriesManager />
+        </section>
+
+        <!-- Future settings sections can go here -->
+      </div>
     </div>
   </div>
 </template>
@@ -15,30 +25,56 @@
 .settings-page {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
+  overflow-y: auto;
+  color: var(--text-main);
 }
 
-.settings-content {
-  max-width: 600px;
-  width: 100%;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+.settings-content-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
 }
 
-.settings-content h1 {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  color: var(--text-light);
+.page-header {
+  margin-bottom: 3rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 2rem;
 }
 
-.note {
+.page-header h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.page-header p {
   color: var(--text-muted);
-  font-style: italic;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
+}
+
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.settings-section {
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
