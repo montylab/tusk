@@ -141,7 +141,8 @@ export const useTasksStore = defineStore('tasks', () => {
                 duration: 60,
                 isShortcut: false,
                 order: 0,
-                date: currentDate.value
+                date: currentDate.value,
+                color: null
             }
 
             const finalTaskData = { ...defaults, ...taskData }

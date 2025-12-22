@@ -117,12 +117,19 @@ export function useTaskOperations(
                 } else {
                     currentSnapTime.value = null
                 }
-            } else {
+            } else if (containerRect) {
                 // Internal drag: relative movement
                 const rawNewTime = initialStart.value + deltaHours
                 let snapped = Math.round(rawNewTime * 4) / 4
                 snapped = Math.max(config.startHour, Math.min(config.endHour - (currentDuration.value! / 60), snapped))
-                currentSnapTime.value = snapped
+
+                // Only snap if we are horizontally over the calendar or close to it
+                const isOverCalendar = e.clientX >= containerRect.left && e.clientX <= containerRect.right
+                if (isOverCalendar) {
+                    currentSnapTime.value = snapped
+                } else {
+                    currentSnapTime.value = null
+                }
             }
         }
         else if (mode.value === 'resize-bottom') {

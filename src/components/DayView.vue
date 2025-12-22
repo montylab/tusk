@@ -101,12 +101,14 @@ const scrollTop = ref(0)
 const scrollLeft = ref(0)
 const mouseX = ref(0)
 const mouseY = ref(0)
-const dragOffsetX = ref(0)
+const dragOffsetXPercent = ref(0)
+const dragOffsetY = ref(0)
 
 const updateScroll = () => {
     if (scrollAreaRef.value) {
         scrollTop.value = scrollAreaRef.value.scrollTop
         scrollLeft.value = scrollAreaRef.value.scrollLeft
+        updateContainerRect()
     }
 }
 
@@ -129,9 +131,14 @@ const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: Op
     updateContainerRect()
     updateScroll()
 
-    // Calculate drag offset
+    // Initialize mouse coordinates for immediate teleport rendering
+    mouseX.value = e.clientX
+    mouseY.value = e.clientY
+
+    // Calculate drag offset as percentage of width
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    dragOffsetX.value = e.clientX - rect.left
+    dragOffsetXPercent.value = (e.clientX - rect.left) / rect.width
+    dragOffsetY.value = e.clientY - rect.top
 
     startOperation(e, taskId, opMode)
 }
@@ -140,8 +147,13 @@ const handleExternalDrag = (e: MouseEvent, task: Task) => {
     updateContainerRect()
     updateScroll()
 
-    // For external drag, pick a reasonable offset (e.g. center)
-    dragOffsetX.value = 100
+    // Initialize mouse coordinates
+    mouseX.value = e.clientX
+    mouseY.value = e.clientY
+
+    // For external drag, pick a reasonable offset (center)
+    dragOffsetXPercent.value = 0.5
+    dragOffsetY.value = 20
 
     startExternalDragOp(e, task)
 }
@@ -234,39 +246,48 @@ const getTeleportStyle = (task: any) => {
     if (activeTaskId.value === null && task !== props.activeExternalTask) return {}
 
     const isExternal = activeTaskId.value === null
-
-    let top = 0
-    let left = 0
-    let width = '200px'
     const duration = currentDuration.value || task.duration || 60
     const height = (duration / 60) * 80
 
     if (currentSnapTime.value !== null && !isExternal) {
         // Snapped position (internal tasks only)
-        top = (currentSnapTime.value - props.startHour) * 80
+        const topViewport = ((currentSnapTime.value - props.startHour) * 80) + (containerRect.value?.top || 0)
+
         if (containerRect.value) {
-            top += containerRect.value.top - scrollTop.value
-            left = containerRect.value.left + 8
-            width = `${containerRect.value.width - 16}px`
+            // Calculate current width in pixels to keep offset consistent
+            const currentWidthPx = containerRect.value.width * (parseFloat(task.style.width) / 100)
+
+            return {
+                ...task.style,
+                position: 'fixed' as const,
+                top: `${topViewport}px`,
+                left: `calc(${containerRect.value.left}px + ${task.style.left})`,
+                width: `${currentWidthPx}px`,
+                height: `${height}px`,
+                zIndex: 9999,
+                pointerEvents: 'none' as const,
+                transform: 'scale(1.02)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+            }
         }
     } else {
         // Free float (near mouse) - always for external or when not snapped
-        top = mouseY.value - 20
-        left = mouseX.value - dragOffsetX.value
-        width = '240px'
-    }
+        const floatWidth = 240
+        const currentOffsetX = dragOffsetXPercent.value * floatWidth
 
-    return {
-        position: 'fixed' as const,
-        top: `${top}px`,
-        left: `${left}px`,
-        width: width,
-        height: `${height}px`,
-        zIndex: 9999,
-        pointerEvents: 'none' as const,
-        transform: 'scale(1.02)',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+        return {
+            position: 'fixed' as const,
+            top: `${mouseY.value - dragOffsetY.value}px`,
+            left: `${mouseX.value - currentOffsetX}px`,
+            width: `${floatWidth}px`,
+            height: `${height}px`,
+            zIndex: 9999,
+            pointerEvents: 'none' as const,
+            transform: 'scale(1.02)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+        }
     }
+    return {}
 }
 </script>
 

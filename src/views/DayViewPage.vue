@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+  setup
+  lang="ts"
+>
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
@@ -133,7 +136,7 @@ const handleTaskCreate = (payload: { text: string; description: string; category
     date: tasksStore.currentDate,
     isShortcut: false,
     order: 0,
-    color: payload.color
+    color: payload.color || null
   } as any)
   showCreateTaskPopup.value = false
 }
@@ -147,33 +150,54 @@ const handlePopupClose = () => {
 <template>
   <div class="page-layout">
     <aside class="sidebar left">
-      <TrashBasket :active="isOverTrash" @update:bounds="trashBounds = $event" />
+      <TrashBasket :active="isOverTrash"
+                   @update:bounds="trashBounds = $event" />
     </aside>
 
     <main class="main-content">
-      <button class="create-btn" @click="handleOpenCreatePopup()"
-        style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">Create
+      <button class="create-btn"
+              @click="handleOpenCreatePopup()"
+              style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">Create
         Task</button>
-      <DayView ref="dayViewRef" :tasks="scheduledTasks" :start-hour="8" :end-hour="24"
-        :active-external-task="activeExternalTask?.task || null" @update:is-over-trash="isOverTrash = $event"
-        @external-task-dropped="handleExternalTaskDropped" @delete-external-task="handleExternalTaskDeletedWrapper"
-        @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
-        @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop" @create-task="handleOpenCreatePopup" />
+      <DayView ref="dayViewRef"
+               :tasks="scheduledTasks"
+               :start-hour="8"
+               :end-hour="24"
+               :active-external-task="activeExternalTask?.task || null"
+               @update:is-over-trash="isOverTrash = $event"
+               @external-task-dropped="handleExternalTaskDropped"
+               @delete-external-task="handleExternalTaskDeletedWrapper"
+               @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
+               @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop"
+               @create-task="handleOpenCreatePopup" />
 
-      <CreateTaskPopup :show="showCreateTaskPopup" :initial-start-time="initialStartTime" @close="handlePopupClose"
-        @create="handleTaskCreate" task-type="scheduled" />
+      <CreateTaskPopup :show="showCreateTaskPopup"
+                       :initial-start-time="initialStartTime"
+                       @close="handlePopupClose"
+                       @create="handleTaskCreate"
+                       task-type="scheduled" />
     </main>
 
     <aside class="sidebar right">
       <div class="pile-container">
-        <TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" :is-highlighted="isOverShortcut"
-          :active-task-id="activeExternalTask?.task.id" :insertion-index="shortcutInsertionIndex"
-          @update:bounds="shortcutBounds = $event" @update:insertion-index="shortcutInsertionIndex = $event"
-          @drag-start="handleExternalDragStart('shortcut', $event.task, $event.event)" />
-        <TaskPile title="To Do" :tasks="todoTasks" list-type="todo" :is-highlighted="isOverTodo"
-          :active-task-id="activeExternalTask?.task.id" :insertion-index="todoInsertionIndex"
-          @update:bounds="todoBounds = $event" @update:insertion-index="todoInsertionIndex = $event"
-          @drag-start="handleExternalDragStart('todo', $event.task, $event.event)" />
+        <TaskPile title="Shortcuts"
+                  :tasks="shortcutTasks"
+                  list-type="shortcut"
+                  :is-highlighted="isOverShortcut"
+                  :active-task-id="activeExternalTask?.task.id"
+                  :insertion-index="shortcutInsertionIndex"
+                  @update:bounds="shortcutBounds = $event"
+                  @update:insertion-index="shortcutInsertionIndex = $event"
+                  @drag-start="handleExternalDragStart('shortcut', $event.task, $event.event)" />
+        <TaskPile title="To Do"
+                  :tasks="todoTasks"
+                  list-type="todo"
+                  :is-highlighted="isOverTodo"
+                  :active-task-id="activeExternalTask?.task.id"
+                  :insertion-index="todoInsertionIndex"
+                  @update:bounds="todoBounds = $event"
+                  @update:insertion-index="todoInsertionIndex = $event"
+                  @drag-start="handleExternalDragStart('todo', $event.task, $event.event)" />
       </div>
     </aside>
   </div>

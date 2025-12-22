@@ -16,7 +16,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'create', payload: { text: string, description: string, category: string, color: string, startTime?: number | null, duration?: number, date?: string | null }): void
+  (e: 'create', payload: { text: string, description: string, category: string, startTime?: number | null, duration?: number, date?: string | null }): void
 }>()
 
 const categoriesStore = useCategoriesStore()
@@ -49,7 +49,7 @@ const handleSubmit = async () => {
     text: taskText.value.trim(),
     description: taskDescription.value.trim(),
     category: finalCategoryName,
-    color: finalColor, // we do no store color here, since this field only for uncategorized tasks
+    //color: finalColor, we do no store color here, since this field only for uncategorized tasks
     startTime: props.taskType === 'scheduled' ? (startTime.value ?? 9) : null,
     duration: Math.round(duration.value * 60),
     date: taskDate.value
