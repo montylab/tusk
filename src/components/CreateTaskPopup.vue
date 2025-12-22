@@ -22,7 +22,7 @@ const categoriesStore = useCategoriesStore()
 const taskText = ref('')
 const categoryInput = ref('')
 const selectedColor = ref('')
-const duration = ref(60)
+const duration = ref(1.0) // Store as decimal hours (1.0 = 60 mins)
 const getTodayString = () => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -46,7 +46,7 @@ const handleSubmit = async () => {
     category: finalCategoryName,
     color: finalColor,
     startTime: props.taskType === 'scheduled' ? (startTime.value ?? 9) : null,
-    duration: duration.value,
+    duration: Math.round(duration.value * 60),
     date: taskDate.value
   })
 
@@ -57,7 +57,7 @@ const resetForm = () => {
   taskText.value = ''
   categoryInput.value = ''
   selectedColor.value = ''
-  duration.value = 60
+  duration.value = 1.0
   startTime.value = props.initialStartTime ?? null
   taskDate.value = props.initialDate ?? getTodayString()
 }
@@ -109,8 +109,8 @@ watch(() => props.show, (newVal) => {
 
             <!-- Duration -->
             <div class="form-group">
-              <label for="duration">Duration (minutes)</label>
-              <input id="duration" v-model.number="duration" type="number" min="15" step="15" class="form-input" />
+              <label for="duration">Duration (HH:mm)</label>
+              <TaskDateTimePicker v-model:time="duration" view="time-only" />
             </div>
 
             <!-- Date & Time (for scheduled tasks) -->
