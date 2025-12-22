@@ -227,7 +227,7 @@ const timeIndicatorTop = computed(() => {
 
 const getTeleportStyle = (task: any) => {
     if (task.id !== activeTaskId.value && activeTaskId.value !== null) return {}
-    if (activeTaskId.value === null && mode.value !== 'drag') return {}
+    if (activeTaskId.value === null && (mode.value !== 'drag' || task !== props.activeExternalTask)) return {}
 
     // Calculate position for the dragging element
     // We want it to follow the mouse but snap to the grid if possible
