@@ -2,16 +2,17 @@
     setup
     lang="ts"
 >
+import DayColumn from './DayColumn.vue'
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
 import { useTaskOperations } from '../composables/useTaskOperations'
-import { useTaskLayout } from '../composables/useTaskLayout'
 import { useTasksStore } from '../stores/tasks'
 import { useDragState } from '../composables/useDragState'
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed, toRef } from 'vue'
 
 const props = withDefaults(defineProps<{
-    tasks: Task[]
+    dates: string[]
+    tasksByDate: Record<string, Task[]>
     startHour?: number
     endHour?: number
     activeExternalTask?: Task | null
@@ -23,19 +24,21 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
     (e: 'update:is-over-trash', payload: boolean): void
-    (e: 'external-task-dropped', payload: { taskId: string | number, startTime: number, duration?: number }): void
-    (e: 'task-dropped-on-sidebar', payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut' }): void
+    (e: 'external-task-dropped', payload: { taskId: string | number, startTime: number, duration?: number, date: string }): void
+    (e: 'task-dropped-on-sidebar', payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut', date: string }): void
     (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
     (e: 'delete-external-task', payload: {}): void
-    (e: 'create-task', payload: { startTime: number }): void
+    (e: 'create-task', payload: { startTime: number, date: string }): void
     (e: 'edit', task: Task): void
+    (e: 'add-day'): void
 }>()
 
 // Store access for task operations
 const tasksStore = useTasksStore()
+const headerOffset = ref(0)
 
 // Internal task operation handlers
-const handleCreateTask = (payload: { text: string, startTime: number, category: string }) => {
+const handleCreateTask = (payload: { text: string, startTime: number, category: string, date: string }) => {
     tasksStore.createScheduledTask({
         ...payload,
         completed: false,
@@ -43,8 +46,22 @@ const handleCreateTask = (payload: { text: string, startTime: number, category: 
     } as any)
 }
 
-const handleScheduleTask = (payload: { taskId: string | number, startTime: number, duration?: number }) => {
-    tasksStore.updateScheduledTask(payload.taskId, tasksStore.currentDate, { startTime: payload.startTime, duration: payload.duration })
+const handleScheduleTask = (payload: { taskId: string | number, startTime: number, duration: number, date: string }) => {
+    // Check if the task is moving to a different date
+    const originalTask = allTasks.value.find(t => t.id === payload.taskId)
+
+    if (originalTask && originalTask.date && originalTask.date !== payload.date) {
+        // Cross-day move
+        tasksStore.moveScheduledTask(
+            payload.taskId,
+            originalTask.date,
+            payload.date,
+            { startTime: payload.startTime, duration: payload.duration }
+        )
+    } else {
+        // Same-day update
+        tasksStore.updateScheduledTask(payload.taskId, payload.date, { startTime: payload.startTime, duration: payload.duration })
+    }
 }
 
 const handleDuplicateTask = (payload: { originalTaskId: string | number }) => {
@@ -55,28 +72,32 @@ const handleDuplicateTask = (payload: { originalTaskId: string | number }) => {
     }
 }
 
-const handleDeleteTask = (payload: { taskId: string | number }) => {
-    tasksStore.deleteScheduledTask(payload.taskId, tasksStore.currentDate)
+const handleDeleteTask = (payload: { taskId: string | number, date: string }) => {
+    tasksStore.deleteScheduledTask(payload.taskId, payload.date)
 }
 
 const hours = Array.from({ length: props.endHour - props.startHour }, (_, i) => i + props.startHour)
+
+const allTasks = computed(() => Object.values(props.tasksByDate).flat())
 
 const {
     mode,
     activeTaskId,
     currentSnapTime,
+    currentSnapDate,
     currentDuration,
     startOperation,
     startExternalDrag: startExternalDragOp,
     handleSlotClick
 } = useTaskOperations(
-    () => props.tasks,
+    allTasks,
     emit as any,
     {
         startHour: props.startHour,
         endHour: props.endHour,
         hourHeight: 80,
-        getContainerRect: () => containerRect.value,
+        dates: toRef(props, 'dates'),
+        getContainerRect: () => tasksContainerRef.value?.getBoundingClientRect() || null,
         getScrollTop: () => scrollTop.value,
         activeExternalTask: () => props.activeExternalTask,
         // Wire up internal handlers
@@ -85,7 +106,8 @@ const {
         onDuplicateTask: handleDuplicateTask,
         onDeleteTask: handleDeleteTask,
         onExternalTaskDropped: (payload) => emit('external-task-dropped', payload),
-        onExternalTaskDroppedOnSidebar: (payload: { event: MouseEvent }) => emit('external-task-dropped-on-sidebar', payload)
+        onExternalTaskDroppedOnSidebar: (payload: { event: MouseEvent }) => emit('external-task-dropped-on-sidebar', payload),
+        topOffset: headerOffset
     }
 )
 
@@ -116,6 +138,11 @@ const updateScroll = () => {
 const updateContainerRect = () => {
     if (tasksContainerRef.value) {
         containerRect.value = tasksContainerRef.value.getBoundingClientRect()
+        // Measure header height dynamically
+        const headerEl = tasksContainerRef.value.querySelector('.column-header')
+        if (headerEl) {
+            headerOffset.value = headerEl.clientHeight
+        }
     }
 }
 
@@ -128,7 +155,7 @@ const onWindowMouseMove = (e: MouseEvent) => {
 
 type OperationMode = 'none' | 'drag' | 'resize-top' | 'resize-bottom'
 
-const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: OperationMode) => {
+const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: OperationMode, initialRect?: DOMRect) => {
     updateContainerRect()
     updateScroll()
 
@@ -136,8 +163,10 @@ const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: Op
     mouseX.value = e.clientX
     mouseY.value = e.clientY
 
+    // Use initialRect if provided (more reliable), otherwise fallback to currentTarget
+    const rect = initialRect || (e.currentTarget as HTMLElement).getBoundingClientRect()
+
     // Calculate drag offset as percentage of width
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     dragOffsetXPercent.value = (e.clientX - rect.left) / rect.width
     dragOffsetY.value = e.clientY - rect.top
 
@@ -166,18 +195,7 @@ watch(activeTaskId, (id) => {
     }
 })
 
-// 2. Layout Logic
-const { layoutTasks } = useTaskLayout(
-    () => props.tasks,
-    activeTaskId,
-    currentSnapTime,
-    currentDuration,
-    {
-        startHour: props.startHour,
-        endHour: props.endHour,
-        hourHeight: 80
-    }
-)
+// 2. Layout Logic (Now handled by DayColumn components)
 
 defineExpose({
     startExternalDrag: handleExternalDrag // Expose the new handler
@@ -191,7 +209,7 @@ const updateTaskStatuses = () => {
     const now = currentTime.value
     const currentTotalMinutes = now.getHours() * 60 + now.getMinutes()
 
-    props.tasks.forEach(task => {
+    allTasks.value.forEach(task => {
         if (task.startTime === null) return
 
         const taskStartMinutes = task.startTime * 60
@@ -207,11 +225,11 @@ const updateTaskStatuses = () => {
     })
 }
 
-watch(() => props.tasks, updateTaskStatuses, { immediate: true })
+watch(() => props.tasksByDate, updateTaskStatuses, { immediate: true, deep: true })
 
 
 onMounted(() => {
-    updateContainerRect()
+    //updateContainerRect()
     updateTaskStatuses()
     setTimeout(() => {
         timer = setInterval(() => {
@@ -241,6 +259,23 @@ const timeIndicatorTop = computed(() => {
     return (currentTotalHours - props.startHour) * 80
 })
 
+const getDayName = (dateStr: string) => {
+    const d = new Date(dateStr)
+    const today = new Date().toISOString().split('T')[0]
+    if (dateStr === today) return 'Today'
+    return d.toLocaleDateString('en-US', { weekday: 'long' })
+}
+
+const getNextDateLabel = computed(() => {
+    if (!props.dates.length) return ''
+    const lastDate = new Date(props.dates[props.dates.length - 1])
+    const nextDate = new Date(lastDate)
+    nextDate.setDate(lastDate.getDate() + 1)
+    const nextDateStr = nextDate.toISOString().split('T')[0]
+
+    return getDayName(nextDateStr) + ' (' + nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ')'
+})
+
 const getTeleportStyle = (task: any) => {
     if (mode.value !== 'drag') return {}
     if (task.id !== activeTaskId.value && activeTaskId.value !== null) return {}
@@ -250,20 +285,31 @@ const getTeleportStyle = (task: any) => {
     const duration = currentDuration.value || task.duration || 60
     const height = (duration / 60) * 80
 
-    if (currentSnapTime.value !== null && !isExternal) {
-        // Snapped position (internal tasks only)
-        const topViewport = ((currentSnapTime.value - props.startHour) * 80) + (containerRect.value?.top || 0)
+    // For multi-column, teleporting to body means we need to calculate 
+    // the global left position based on the column index.
+    const containerRect = tasksContainerRef.value?.getBoundingClientRect()
+    if (!containerRect) return {}
 
-        if (containerRect.value) {
-            // Calculate current width in pixels to keep offset consistent
-            const currentWidthPx = containerRect.value.width * (parseFloat(task.style.width) / 100)
+    // Find actual column width by querying the first column element
+    // This avoids the issue where "Add Day Zone" skews the division
+    const firstColumn = tasksContainerRef.value?.querySelector('.day-column-outer')
+    const colWidth = firstColumn ? firstColumn.getBoundingClientRect().width : (containerRect.width / props.dates.length)
+    //debugger
 
+    // We snap the teleported ghost to the column it's currently over
+    let colIndex = 0
+    if (currentSnapDate.value) {
+        colIndex = props.dates.indexOf(currentSnapDate.value)
+    } else {
+        // If not over a day, stick to the original day if internal, or centered on mouse if external
+        if (isExternal) {
+            // Free float near mouse
+            const floatWidth = Math.min(colWidth, 240)
             return {
-                ...task.style,
                 position: 'fixed' as const,
-                top: `${topViewport}px`,
-                left: `calc(${containerRect.value.left}px + ${task.style.left})`,
-                width: `${currentWidthPx}px`,
+                top: `${mouseY.value - dragOffsetY.value}px`,
+                left: `${mouseX.value - (dragOffsetXPercent.value * floatWidth)}px`,
+                width: `${floatWidth}px`,
                 height: `${height}px`,
                 zIndex: 9999,
                 pointerEvents: 'none' as const,
@@ -271,40 +317,51 @@ const getTeleportStyle = (task: any) => {
                 boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
             }
         }
-    } else {
-        // Free float (near mouse) - always for external or when not snapped
-        const floatWidth = 240
-        const currentOffsetX = dragOffsetXPercent.value * floatWidth
+        colIndex = props.dates.indexOf(task.date)
+    }
+
+    if (currentSnapTime.value !== null) {
+        // Vertical Snap
+        const topViewport = ((currentSnapTime.value - props.startHour) * 80) + (containerRect.top || 0) + headerOffset.value
+        const leftViewport = containerRect.left + (colIndex * colWidth)
 
         return {
             position: 'fixed' as const,
+            top: `${topViewport}px`,
+            left: `${leftViewport}px`,
+            width: `${colWidth}px`, // padding
+            height: `${height}px`,
+            zIndex: 9999,
+            pointerEvents: 'none' as const,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+        }
+    } else {
+        // Free float (near mouse)
+        const floatWidth = Math.min(colWidth, 240)
+        return {
+            position: 'fixed' as const,
             top: `${mouseY.value - dragOffsetY.value}px`,
-            left: `${mouseX.value - currentOffsetX}px`,
+            left: `${mouseX.value - (dragOffsetXPercent.value * floatWidth)}px`,
             width: `${floatWidth}px`,
             height: `${height}px`,
             zIndex: 9999,
             pointerEvents: 'none' as const,
             transform: 'scale(1.02)',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            opacity: 0.9
         }
     }
-    return {}
 }
 </script>
 
 <template>
     <div class="day-view-container">
-        <div class="header">
-            <h2>Today's Schedule</h2>
-            <p class="instruction">Drag to move/wheel-resize. Drag edges to resize.</p>
-        </div>
-
         <div class="calendar-layout">
             <div class="calendar-scroll-area"
                  ref="scrollAreaRef"
                  @scroll="updateScroll">
                 <div class="calendar-grid">
-                    <!-- Time Labels -->
+                    <!-- Time Labels (Fixed Axis) -->
                     <div class="time-labels">
                         <div v-for="hour in hours"
                              :key="hour"
@@ -313,107 +370,82 @@ const getTeleportStyle = (task: any) => {
                         </div>
                     </div>
 
-                    <!-- Grid Content -->
-                    <div class="grid-content">
-                        <div v-for="hour in hours"
-                             :key="hour"
-                             class="hour-row">
-                            <div v-for="q in 4"
-                                 :key="q - 1"
-                                 class="quarter-slot"
-                                 @click="handleSlotClick(hour, q - 1)">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tasks Layer -->
-                <div class="tasks-layer">
-                    <!-- Spacing to align with grid content (width 60px label + padding) -->
-                    <div class="tasks-container"
+                    <!-- Columnar Content -->
+                    <div class="days-wrapper"
                          ref="tasksContainerRef">
-                        <template v-for="task in layoutTasks"
-                                  :key="task.id">
-                            <!-- Teleport active dragging task to body to avoid clipping -->
-                            <Teleport to="body"
-                                      :disabled="task.id !== activeTaskId || mode !== 'drag'">
-                                <div class="task-wrapper-absolute"
-                                     :class="{ 'is-dragging': task.id === activeTaskId && mode === 'drag' }"
-                                     :style="[task.style, getTeleportStyle(task)]"
-                                     @mousedown="handleStartOperation($event, task.id, 'drag')">
-                                    <!-- Top Handle -->
-                                    <div v-if="task.id !== activeTaskId || mode !== 'drag'"
-                                         class="resize-handle top"
-                                         @mousedown.stop="handleStartOperation($event, task.id, 'resize-top')"></div>
-
-                                    <TaskItem :task="task"
-                                              :is-dragging="task.id === activeTaskId && mode === 'drag'"
-                                              :is-shaking="task.isOverlapping"
-                                              :status="taskStatuses[task.id]"
-                                              @edit="emit('edit', $event)" />
-
-                                    <!-- Bottom Handle -->
-                                    <div v-if="task.id !== activeTaskId || mode !== 'drag'"
-                                         class="resize-handle bottom"
-                                         @mousedown.stop="handleStartOperation($event, task.id, 'resize-bottom')"></div>
-                                </div>
-                            </Teleport>
-                        </template>
-
-                        <template v-if="activeExternalTask && currentSnapTime !== null">
-                            <div class="task-wrapper-absolute ghost-external"
-                                 :style="{
-                                    top: `${(currentSnapTime - startHour) * 80}px`,
-                                    height: `${((currentDuration || activeExternalTask.duration) / 60) * 80}px`,
-                                    left: '0%',
-                                    width: 'calc(100% - 8px)',
-                                    zIndex: 5,
-                                    opacity: 0.3,
-                                    pointerEvents: 'none' as const,
-                                    padding: '0 4px',
-                                    background: 'rgba(255,255,255,0.1)',
-                                    borderRadius: '6px'
-                                }">
-                                <TaskItem :task="activeExternalTask" />
+                        <div v-for="date in dates"
+                             :key="date"
+                             class="day-column-outer">
+                            <div class="column-header">
+                                <span class="day-name">{{ getDayName(date) }}</span>
+                                <span class="date-num">{{ date }}</span>
                             </div>
-                        </template>
 
-                        <!-- Floating Item for External Drag (Teleport to Body) -->
-                        <Teleport to="body"
-                                  v-if="activeExternalTask && activeTaskId === null && mode === 'drag'">
-                            <div class="task-wrapper-absolute is-dragging"
-                                 :style="getTeleportStyle(activeExternalTask)">
-                                <TaskItem :task="activeExternalTask"
-                                          :is-dragging="true" />
+                            <DayColumn :date="date"
+                                       :tasks="tasksByDate[date] || []"
+                                       :start-hour="startHour"
+                                       :end-hour="endHour"
+                                       :active-task-id="activeTaskId"
+                                       :mode="mode"
+                                       :current-snap-time="currentSnapDate === date ? currentSnapTime : null"
+                                       :current-duration="currentDuration"
+                                       :task-statuses="taskStatuses"
+                                       @start-operation="handleStartOperation($event.event, $event.taskId, $event.opMode, $event.initialRect)"
+                                       @slot-click="handleSlotClick($event.startTime, 0 /* not used */, date)"
+                                       @edit="emit('edit', $event)" />
+
+                            <!-- Per-column Current Time Indicator (Visual Sync) -->
+                            <div v-if="timeIndicatorTop >= 0"
+                                 class="current-time-line"
+                                 :style="{ top: `${timeIndicatorTop + 40}px` }">
+                                <div class="time-dot"></div>
                             </div>
-                        </Teleport>
+                        </div>
 
-                        <!-- Current Time Indicator -->
-                        <div v-if="timeIndicatorTop >= 0"
-                             class="current-time-line"
-                             :style="{ top: `${timeIndicatorTop}px` }">
-                            <div class="time-dot"></div>
+                        <!-- Add Day Zone -->
+                        <div class="add-day-zone"
+                             @click="emit('add-day')">
+                            <div class="add-content">
+                                <div class="plus-icon">+</div>
+                                <div class="hover-label">Add {{ getNextDateLabel }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Floating Item for Drags (Teleport to Body) -->
+                <Teleport to="body"
+                          v-if="activeTaskId !== null && mode === 'drag'">
+                    <div v-if="allTasks.find(t => t.id === activeTaskId)"
+                         class="task-wrapper-absolute is-dragging-teleport"
+                         :style="getTeleportStyle(allTasks.find(t => t.id === activeTaskId))">
+                        <TaskItem :task="allTasks.find(t => t.id === activeTaskId)!"
+                                  :is-dragging="true"
+                                  :status="taskStatuses[activeTaskId]" />
+                    </div>
+                </Teleport>
+
+                <!-- Floating Item for External Drag (Teleport to Body) -->
+                <Teleport to="body"
+                          v-if="activeExternalTask && activeTaskId === null && mode === 'drag'">
+                    <div class="task-wrapper-absolute is-dragging-teleport"
+                         :style="getTeleportStyle(activeExternalTask)">
+                        <TaskItem :task="activeExternalTask"
+                                  :is-dragging="true" />
+                    </div>
+                </Teleport>
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-.calendar-layout {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    gap: 0;
-}
-
 .day-view-container {
     background: var(--bg-card);
     border-radius: var(--radius);
     padding: 1.5rem;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     border: 1px solid var(--border-color);
@@ -440,10 +472,17 @@ const getTeleportStyle = (task: any) => {
     margin-top: 0.5rem;
 }
 
+.calendar-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
 .calendar-scroll-area {
     flex: 1;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: auto;
+    /* Handle many days */
     position: relative;
     padding-right: 10px;
 }
@@ -451,11 +490,15 @@ const getTeleportStyle = (task: any) => {
 .calendar-grid {
     display: flex;
     position: relative;
+    min-height: 100%;
+    min-width: fit-content;
 }
 
 .time-labels {
     width: 60px;
     flex-shrink: 0;
+    margin-top: 40px;
+    /* Offset for column headers */
 }
 
 .time-label {
@@ -464,81 +507,97 @@ const getTeleportStyle = (task: any) => {
     color: var(--text-muted);
     display: flex;
     align-items: flex-start;
-    padding-top: 0;
-    border-top: 1px solid transparent;
 }
 
-.grid-content {
+.days-wrapper {
+    display: flex;
     flex: 1;
-    position: relative;
-    border-left: 1px solid var(--border-color);
+    min-width: 0;
 }
 
-.hour-row {
-    height: 80px;
-    border-bottom: 1px solid var(--border-color);
+.day-column-outer {
+    flex: 1;
+    min-width: 150px;
     display: flex;
     flex-direction: column;
-}
-
-.quarter-slot {
-    flex: 1;
-    border-bottom: 1px dashed rgba(255, 255, 255, 0.03);
-    cursor: cell;
-    transition: background 0.2s;
-}
-
-.quarter-slot:last-child {
-    border-bottom: none;
-}
-
-.quarter-slot:hover {
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.tasks-layer {
-    position: absolute;
-    top: 0;
-    left: 60px;
-    /* offset for labels */
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-}
-
-.tasks-container {
     position: relative;
-    width: 100%;
-    height: 100%;
 }
 
-.task-wrapper-absolute {
-    position: absolute;
-    pointer-events: auto;
-    transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
-    user-select: none;
+.column-header {
+    height: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-card);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(4px);
 }
 
-.task-wrapper-absolute.is-dragging {
-    opacity: 0.8;
-    z-index: 1000;
+.day-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
 }
 
-.resize-handle {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 6px;
-    cursor: ns-resize;
-    z-index: 10;
+.date-num {
+    font-size: 0.7rem;
+    color: var(--text-muted);
 }
 
-.resize-handle.top {
-    top: -3px;
+/* Expansion Zone */
+.add-day-zone {
+    width: 40px;
+    border-left: 1px dashed var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    margin-top: 40px;
 }
 
-.resize-handle.bottom {
-    bottom: -3px;
+.add-day-zone:hover {
+    width: 180px;
+    background: rgba(255, 255, 255, 0.05);
+    border-left-style: solid;
+}
+
+.add-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    white-space: nowrap;
+}
+
+.plus-icon {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    transition: transform 0.3s;
+}
+
+.add-day-zone:hover .plus-icon {
+    transform: rotate(90deg) scale(1.2);
+    color: #fff;
+}
+
+.hover-label {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.add-day-zone:hover .hover-label {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .current-time-line {
@@ -560,5 +619,10 @@ const getTeleportStyle = (task: any) => {
     height: 10px;
     border-radius: 50%;
     background: var(--color-urgent);
+}
+
+.is-dragging-teleport {
+    z-index: 9999;
+    pointer-events: none;
 }
 </style>

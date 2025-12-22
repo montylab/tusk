@@ -12,12 +12,14 @@ interface OperationConfig {
     getScrollTop?: () => number
     activeExternalTask?: () => Task | null
     // Handler callbacks
-    onTaskDropped?: (payload: { taskId: string | number, startTime: number, duration: number }) => void
-    onCreateTask?: (payload: { text: string, startTime: number, category: string }) => void
+    onTaskDropped?: (payload: { taskId: string | number, startTime: number, duration: number, date: string }) => void
+    onCreateTask?: (payload: { text: string, startTime: number, category: string, date: string }) => void
     onDuplicateTask?: (payload: { originalTaskId: string | number }) => void
-    onDeleteTask?: (payload: { taskId: string | number }) => void
-    onExternalTaskDropped?: (payload: { taskId: string | number, startTime: number, duration: number }) => void
+    onDeleteTask?: (payload: { taskId: string | number, date: string }) => void
+    onExternalTaskDropped?: (payload: { taskId: string | number, startTime: number, duration: number, date: string }) => void
     onExternalTaskDroppedOnSidebar?: (payload: { event: MouseEvent }) => void
+    dates?: Ref<string[]>
+    topOffset?: number | Ref<number>
 }
 
 export function useTaskOperations(
@@ -43,6 +45,7 @@ export function useTaskOperations(
 
     // Temp state for rendering active op
     const currentSnapTime = ref<number | null>(null)
+    const currentSnapDate = ref<string | null>(null)
     const currentDuration = ref<number | null>(null)
 
     const startOperation = (e: MouseEvent, taskId: string | number, opMode: OperationMode, onStarted?: () => void) => {
@@ -58,6 +61,15 @@ export function useTaskOperations(
 
         startY.value = e.clientY
         startX.value = e.clientX
+        currentSnapDate.value = task.date!
+
+        // Calculate initial offset from task start if not passed explicitly?
+        // Actually, we should accept an offset in minutes or pixels.
+        // But for now let's rely on the caller passing correct relativeY if possible?
+        // No, caller passed initialRect in previous step, but startOperation here doesn't use it.
+        // We need startOperation to accept an offset.
+
+        // Let's add an optional offset argument to startOperation
         pendingOp.value = { taskId, opMode, task, onStarted }
 
         window.addEventListener('mousemove', onMouseMove)
@@ -116,32 +128,44 @@ export function useTaskOperations(
             const containerRect = config.getContainerRect?.()
             const scrollTop = config.getScrollTop?.() || 0
 
-            if (activeTaskId.value === null && containerRect) {
-                // External drag: calculate time based on absolute mouse position relative to container
-                const relativeY = e.clientY - containerRect.top + scrollTop
+            if (containerRect) {
+                // Calculate time based on absolute mouse position relative to container
+                // We need to account for the initial grab offset IF provided
+                // But wait, we don't have the offset here yet.
+
+                // Let's modify the calculation to be delta-based from initial start time
+                // This preserves the relative grab position naturally!
+                const relativeY = e.clientY - containerRect.top + scrollTop - (unref(config.topOffset) || 0)
                 const rawTime = (relativeY / config.hourHeight) + config.startHour
 
-                // Only snap if we are horizontally over the calendar or close to it
+                // Calculate which column (date) we are over
                 const isOverCalendar = e.clientX >= containerRect.left && e.clientX <= containerRect.right
-                if (isOverCalendar) {
-                    currentSnapTime.value = Math.max(config.startHour,
-                        Math.min(config.endHour - (currentDuration.value! / 60),
-                            Math.floor(rawTime * 4) / 4))
-                } else {
-                    currentSnapTime.value = null
-                }
-            } else if (containerRect) {
-                // Internal drag: relative movement
-                const rawNewTime = initialStart.value + deltaHours
-                let snapped = Math.round(rawNewTime * 4) / 4
-                snapped = Math.max(config.startHour, Math.min(config.endHour - (currentDuration.value! / 60), snapped))
 
-                // Only snap if we are horizontally over the calendar or close to it
-                const isOverCalendar = e.clientX >= containerRect.left && e.clientX <= containerRect.right
-                if (isOverCalendar) {
-                    currentSnapTime.value = snapped
+                if (isOverCalendar && config.dates?.value) {
+                    const relativeX = e.clientX - containerRect.left
+                    const colWidth = containerRect.width / config.dates.value.length
+                    const colIndex = Math.floor(relativeX / colWidth)
+                    const targetDate = config.dates.value[Math.min(colIndex, config.dates.value.length - 1)]
+
+                    currentSnapDate.value = targetDate
+
+                    if (activeTaskId.value === null) {
+                        // External drag - center on mouse or use offset if we had one
+                        currentSnapTime.value = Math.max(config.startHour,
+                            Math.min(config.endHour - (currentDuration.value! / 60),
+                                Math.floor(rawTime * 4) / 4))
+                    } else {
+                        // Internal drag - USE DELTA from initial start!
+                        // This ensures the task moves by the same amount the mouse moved,
+                        // preserving the relative grab position.
+                        const rawNewTime = initialStart.value + deltaHours
+                        let snapped = Math.round(rawNewTime * 4) / 4
+                        snapped = Math.max(config.startHour, Math.min(config.endHour - (currentDuration.value! / 60), snapped))
+                        currentSnapTime.value = snapped
+                    }
                 } else {
                     currentSnapTime.value = null
+                    currentSnapDate.value = null
                 }
             }
         }
@@ -201,17 +225,20 @@ export function useTaskOperations(
 
                 if (activeTaskId.value !== null) {
                     // Internal task operation (drag or resize)
+                    const originalDate = pendingOp.value?.task.date!
+
                     if (mode.value === 'drag' && finalOverTrash) {
-                        config.onDeleteTask?.({ taskId: activeTaskId.value })
+                        config.onDeleteTask?.({ taskId: activeTaskId.value, date: originalDate })
                     } else if (mode.value === 'drag' && (isOverTodo.value || isOverShortcut.value)) {
                         const target = isOverTodo.value ? 'todo' : 'shortcut'
-                        emit('task-dropped-on-sidebar', { taskId: activeTaskId.value, event: e, target })
-                    } else if (finalStart !== initialStart.value || finalDuration !== initialDuration.value) {
-                        // Persist any change (drag position or resize)
+                        emit('task-dropped-on-sidebar', { taskId: activeTaskId.value, event: e, target, date: originalDate })
+                    } else if (currentSnapTime.value !== null && currentSnapDate.value !== null) {
+                        // Persist any change
                         config.onTaskDropped?.({
                             taskId: activeTaskId.value,
                             startTime: finalStart,
-                            duration: finalDuration
+                            duration: finalDuration,
+                            date: currentSnapDate.value
                         })
                     }
                 } else if (mode.value === 'drag') {
@@ -221,12 +248,13 @@ export function useTaskOperations(
                     } else if (isOverTodo.value || isOverShortcut.value) {
                         // Dropped over a sidebar pile (To-Do or Shortcut)
                         emit('external-task-dropped-on-sidebar', { event: e })
-                    } else if (currentSnapTime.value !== null) {
+                    } else if (currentSnapTime.value !== null && currentSnapDate.value !== null) {
                         // Only create task if it was dropped over the calendar (has a snap position)
                         config.onExternalTaskDropped?.({
                             taskId: Date.now(),
                             startTime: currentSnapTime.value,
-                            duration: finalDuration
+                            duration: finalDuration,
+                            date: currentSnapDate.value
                         })
                     }
                 }
@@ -245,10 +273,10 @@ export function useTaskOperations(
         }
     }
 
-    const handleSlotClick = (hour: number, quarter: number) => {
+    const handleSlotClick = (hour: number, quarter: number, date: string) => {
         if (mode.value !== 'none') return
         const startTime = hour + (quarter * 0.25)
-        emit('create-task', { startTime })
+        emit('create-task', { startTime, date })
     }
 
     onUnmounted(() => {
@@ -261,6 +289,7 @@ export function useTaskOperations(
         mode,
         activeTaskId,
         currentSnapTime,
+        currentSnapDate,
         currentDuration,
         isOverTrash,
         startOperation,

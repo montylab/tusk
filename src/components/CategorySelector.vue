@@ -102,7 +102,7 @@ watch(colorInput, (newValue) => {
 
 const isNewCategory = computed(() => {
     //if (!nameInput.value || typeof nameInput.value !== 'string') return false
-    const query = nameInput.value.trim().toLowerCase()
+    const query = nameInput.value?.trim().toLowerCase()
     if (!query) return false
     return !categoriesStore.categoriesArray.some(cat => cat.name.toLowerCase() === query)
 })

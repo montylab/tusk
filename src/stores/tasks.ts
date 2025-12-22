@@ -11,17 +11,18 @@ export const useTasksStore = defineStore('tasks', () => {
     const tasks = ref<Task[]>([]) // Merged view for read-only access
 
     // Internal separate states
-    const calendarTasksState = ref<Task[]>([])
+    const calendarTasksState = ref<Record<string, Task[]>>({})
     const todoTasksState = ref<Task[]>([])
     const shortcutsTasksState = ref<Task[]>([])
 
-    const currentDate = ref(new Date().toISOString().split('T')[0])
+    const currentDates = ref<string[]>([new Date().toISOString().split('T')[0]])
 
 
     const loading = ref(false)
     const error = ref<string | null>(null)
 
     let unsubs: (() => void)[] = []
+    const calendarUnsubs = new Map<string, () => void>()
 
     // --- Getters ---
     const scheduledTasks = computed(() => calendarTasksState.value)
@@ -29,8 +30,12 @@ export const useTasksStore = defineStore('tasks', () => {
     const shortcutTasks = computed(() => shortcutsTasksState.value.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
 
     const getTaskById = computed(() => (id: string | number) => {
-        return calendarTasksState.value.find(t => t.id === id) ||
-            todoTasksState.value.find(t => t.id === id) ||
+        // Search in all dates
+        for (const dateTasks of Object.values(calendarTasksState.value)) {
+            const found = dateTasks.find(t => t.id === id)
+            if (found) return found
+        }
+        return todoTasksState.value.find(t => t.id === id) ||
             shortcutsTasksState.value.find(t => t.id === id)
     })
 
@@ -44,23 +49,22 @@ export const useTasksStore = defineStore('tasks', () => {
     }, { immediate: true })
 
     function clearState() {
-        calendarTasksState.value = []
+        calendarTasksState.value = {}
         todoTasksState.value = []
         shortcutsTasksState.value = []
         tasks.value = []
         unsubs.forEach(u => u())
         unsubs = []
+        calendarUnsubs.clear()
     }
+
 
     function setupSync() {
         clearState()
         loading.value = true
 
-        // 1. Calendar (Today)
-        unsubs.push(firebaseService.subscribeToDate(currentDate.value, (newTasks) => {
-            calendarTasksState.value = newTasks
-            updateMergedState()
-        }))
+        // 1. Calendar (Initial Dates)
+        currentDates.value.forEach(date => subscribeToCalendarDate(date))
 
         // 2. To-Do
         unsubs.push(firebaseService.subscribeToList('todo', (newTasks) => {
@@ -77,8 +81,34 @@ export const useTasksStore = defineStore('tasks', () => {
         loading.value = false
     }
 
+    function subscribeToCalendarDate(date: string) {
+        if (calendarUnsubs.has(date)) return
+
+        const unsub = firebaseService.subscribeToDate(date, (newTasks) => {
+            calendarTasksState.value = {
+                ...calendarTasksState.value,
+                [date]: newTasks
+            }
+            updateMergedState()
+        })
+        calendarUnsubs.set(date, unsub)
+    }
+
+    function unsubscribeFromCalendarDate(date: string) {
+        const unsub = calendarUnsubs.get(date)
+        if (unsub) {
+            unsub()
+            calendarUnsubs.delete(date)
+            const newState = { ...calendarTasksState.value }
+            delete newState[date]
+            calendarTasksState.value = newState
+            updateMergedState()
+        }
+    }
+
     function updateMergedState() {
-        tasks.value = [...calendarTasksState.value, ...todoTasksState.value, ...shortcutsTasksState.value]
+        const allCalendarTasks = Object.values(calendarTasksState.value).flat()
+        tasks.value = [...allCalendarTasks, ...todoTasksState.value, ...shortcutsTasksState.value]
     }
 
     // --- Creation Actions ---
@@ -141,12 +171,13 @@ export const useTasksStore = defineStore('tasks', () => {
                 duration: 60,
                 isShortcut: false,
                 order: 0,
-                date: currentDate.value,
+                date: taskData.date || currentDates.value[0],
                 color: null
             }
 
             const finalTaskData = { ...defaults, ...taskData }
-            return await firebaseService.createTaskInPath(`calendar/${currentDate.value}`, finalTaskData)
+            const date = finalTaskData.date
+            return await firebaseService.createTaskInPath(`calendar/${date}`, finalTaskData)
         } catch (err) {
             console.error(err)
             error.value = 'Failed to create scheduled task'
@@ -199,7 +230,7 @@ export const useTasksStore = defineStore('tasks', () => {
     }
 
     const moveCalendarToTodo = async (id: string | number, date: string, order?: number) => {
-        const task = calendarTasksState.value.find(t => t.id === id)
+        const task = calendarTasksState.value[date]?.find(t => t.id === id)
         if (!task) {
             console.error('Task not found in calendar')
             return
@@ -230,7 +261,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
     // Convert (Move) Calendar -> Shortcut
     const moveCalendarToShortcut = async (id: string | number, date: string, order?: number) => {
-        const task = calendarTasksState.value.find(t => t.id === id)
+        const task = calendarTasksState.value[date]?.find(t => t.id === id)
         if (!task) return
 
         // Use provided order or calculate temporary order
@@ -240,6 +271,24 @@ export const useTasksStore = defineStore('tasks', () => {
 
         const updates = { startTime: null, date: null, isShortcut: true, completed: false, order: finalOrder } as any
         await firebaseService.moveTask(`calendar/${date}`, 'shortcuts', task, updates)
+    }
+
+    const moveScheduledTask = async (id: string | number, fromDate: string, toDate: string, updates: Partial<Task>) => {
+        const task = calendarTasksState.value[fromDate]?.find(t => t.id === id)
+        if (!task) {
+            console.error('Task not found in source date')
+            return
+        }
+
+        // Logic: Delete from 'calendar/fromDate', create in 'calendar/toDate'
+        // We must include all existing data plus updates
+        const moveUpdates = {
+            ...updates,
+            date: toDate,
+            isShortcut: false
+        }
+
+        await firebaseService.moveTask(`calendar/${fromDate}`, `calendar/${toDate}`, task, moveUpdates)
     }
 
     // --- Copy Actions (Templates) ---
@@ -290,7 +339,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
     // --- Legacy / Helper for Reordering (Optional, generic reorder is tricky with explicit paths) ---
     // We can implement specific reorders
-    const calculateNewOrder = (list: Task[], taskId: string | number | null, targetIndex: number): number => {
+    const calculateNewOrder = (list: Task[], targetIndex: number): number => {
         const sortedList = list.sort((a, b) => (a.order || 0) - (b.order || 0))
 
         if (targetIndex === 0) {
@@ -311,12 +360,12 @@ export const useTasksStore = defineStore('tasks', () => {
 
     // Explicit reorder that takes a target INDEX (not order value)
     const reorderTodo = (id: string | number, targetIndex: number) => {
-        const newOrder = calculateNewOrder(todoTasks.value, id, targetIndex)
-        updateTodo(id, { order: newOrder })
+        const finalOrder = calculateNewOrder(todoTasks.value, targetIndex)
+        updateTodo(id, { order: finalOrder })
     }
     const reorderShortcut = (id: string | number, targetIndex: number) => {
-        const newOrder = calculateNewOrder(shortcutTasks.value, id, targetIndex)
-        updateShortcut(id, { order: newOrder })
+        const finalOrder = calculateNewOrder(shortcutTasks.value, targetIndex)
+        updateShortcut(id, { order: finalOrder })
     }
 
     return {
@@ -324,7 +373,22 @@ export const useTasksStore = defineStore('tasks', () => {
         tasks,
         loading,
         error,
-        currentDate, // Export to allow changing the "viewed" date
+        currentDates,
+
+        // Actions
+        addDate(date: string) {
+            if (!currentDates.value.includes(date)) {
+                currentDates.value.push(date)
+                subscribeToCalendarDate(date)
+            }
+        },
+        removeDate(date: string) {
+            const index = currentDates.value.indexOf(date)
+            if (index > -1) {
+                currentDates.value.splice(index, 1)
+                unsubscribeFromCalendarDate(date)
+            }
+        },
 
         // Getters
         scheduledTasks,
@@ -352,6 +416,8 @@ export const useTasksStore = defineStore('tasks', () => {
         deleteTodo,
         deleteShortcut,
         deleteScheduledTask,
+
+        moveScheduledTask,
 
         reorderTodo,
         reorderShortcut,

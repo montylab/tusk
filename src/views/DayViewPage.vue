@@ -16,7 +16,7 @@ import type { Task } from '../types'
 
 const route = useRoute()
 const tasksStore = useTasksStore()
-const { scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
+const { currentDates, scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
 
 // Shared drag state
 const {
@@ -45,27 +45,27 @@ const {
 // Watch for date parameter changes
 watch(() => route.params.date, (newDate) => {
   if (newDate && typeof newDate === 'string') {
-    tasksStore.currentDate = newDate
+    tasksStore.currentDates = [newDate]
   } else {
     // Use today's date
     const today = new Date().toISOString().split('T')[0]
-    tasksStore.currentDate = today
+    tasksStore.currentDates = [today]
   }
 }, { immediate: true })
 
-const handleCalendarTaskDropped = (payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut' }) => {
+const handleCalendarTaskDropped = (payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut', date: string }) => {
   if (payload.target === 'todo') {
     const finalOrder = todoInsertionIndex.value !== null
-      ? tasksStore.calculateNewOrder(tasksStore.todoTasks, null, todoInsertionIndex.value)
+      ? tasksStore.calculateNewOrder(tasksStore.todoTasks, todoInsertionIndex.value)
       : undefined
 
-    tasksStore.moveCalendarToTodo(payload.taskId, tasksStore.currentDate, finalOrder)
+    tasksStore.moveCalendarToTodo(payload.taskId, payload.date, finalOrder)
   } else if (payload.target === 'shortcut') {
     const finalOrder = shortcutInsertionIndex.value !== null
-      ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, null, shortcutInsertionIndex.value)
+      ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, shortcutInsertionIndex.value)
       : undefined
 
-    tasksStore.moveCalendarToShortcut(payload.taskId, tasksStore.currentDate, finalOrder)
+    tasksStore.moveCalendarToShortcut(payload.taskId, payload.date, finalOrder)
   }
 
   todoInsertionIndex.value = null
@@ -80,7 +80,7 @@ const handleExternalTaskSidebarDrop = async () => {
   if (isOverTodo.value) {
     if (source === 'shortcut') {
       const finalOrder = todoInsertionIndex.value !== null
-        ? tasksStore.calculateNewOrder(tasksStore.todoTasks, null, todoInsertionIndex.value)
+        ? tasksStore.calculateNewOrder(tasksStore.todoTasks, todoInsertionIndex.value)
         : undefined
 
       await tasksStore.copyShortcutToTodo(task.id, finalOrder)
@@ -92,7 +92,7 @@ const handleExternalTaskSidebarDrop = async () => {
   } else if (isOverShortcut.value) {
     if (source === 'todo') {
       const finalOrder = shortcutInsertionIndex.value !== null
-        ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, null, shortcutInsertionIndex.value)
+        ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, shortcutInsertionIndex.value)
         : undefined
 
       await tasksStore.moveTodoToShortcut(task.id, finalOrder)
@@ -120,10 +120,13 @@ const initialStartTime = ref<number | null>(null)
 const taskToEdit = ref<Task | null>(null)
 const popupTaskType = ref<'scheduled' | 'todo' | 'shortcut'>('scheduled')
 
+const popupTargetDate = ref<string | null>(null)
+
 // Handler for when a slot is clicked or "Create Task" button is pressed
-const handleOpenCreatePopup = (payload?: { startTime: number }) => {
+const handleOpenCreatePopup = (payload?: { startTime: number, date?: string }) => {
   taskToEdit.value = null
   initialStartTime.value = payload?.startTime ?? null
+  popupTargetDate.value = payload?.date ?? tasksStore.currentDates[0]
   popupTaskType.value = 'scheduled'
   showEditorPopup.value = true
 }
@@ -150,7 +153,7 @@ const handleTaskCreate = (payload: { text: string; description: string; category
     completed: false,
     startTime: payload.startTime ?? null,
     duration: payload.duration ?? 60,
-    date: tasksStore.currentDate,
+    date: popupTargetDate.value || tasksStore.currentDates[0],
     isShortcut: false,
     order: 0,
     color: null
@@ -176,6 +179,16 @@ const handleTaskUpdate = (payload: { id: string | number, updates: Partial<Task>
 const handlePopupClose = () => {
   showEditorPopup.value = false
   taskToEdit.value = null
+  popupTargetDate.value = null
+}
+
+const handleAddDay = () => {
+  const lastDateStr = currentDates.value[currentDates.value.length - 1]
+  const lastDate = new Date(lastDateStr)
+  const nextDate = new Date(lastDate)
+  nextDate.setDate(lastDate.getDate() + 1)
+  const nextDateStr = nextDate.toISOString().split('T')[0]
+  tasksStore.addDate(nextDateStr)
 }
 </script>
 
@@ -192,7 +205,8 @@ const handlePopupClose = () => {
               style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">Create
         Task</button>
       <DayView ref="dayViewRef"
-               :tasks="scheduledTasks"
+               :dates="currentDates"
+               :tasks-by-date="scheduledTasks"
                :start-hour="8"
                :end-hour="24"
                :active-external-task="activeExternalTask?.task || null"
@@ -202,7 +216,8 @@ const handlePopupClose = () => {
                @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
                @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop"
                @create-task="handleOpenCreatePopup"
-               @edit="handleEditTask" />
+               @edit="handleEditTask"
+               @add-day="handleAddDay" />
 
       <TaskEditorPopup :show="showEditorPopup"
                        :task="taskToEdit"

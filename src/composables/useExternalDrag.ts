@@ -15,17 +15,17 @@ export function useExternalDrag(dayViewRef: any) {
         }
     }
 
-    const handleExternalTaskDropped = (payload: { taskId: string | number, startTime: number, duration?: number }) => {
+    const handleExternalTaskDropped = (payload: { taskId: string | number, startTime: number, duration?: number, date: string }) => {
         if (!activeExternalTask.value) return
 
         const { source, task } = activeExternalTask.value
 
         if (source === 'todo') {
             // Unlink from todo and move to calendar
-            tasksStore.moveTodoToCalendar(task.id, tasksStore.currentDate, payload.startTime, payload.duration || task.duration || 60)
+            tasksStore.moveTodoToCalendar(task.id, payload.date, payload.startTime, payload.duration || task.duration || 60)
         } else {
             // Shortcut -> Calendar (Copy)
-            tasksStore.copyShortcutToCalendar(task.id, tasksStore.currentDate, payload.startTime, payload.duration || task.duration || 60)
+            tasksStore.copyShortcutToCalendar(task.id, payload.date, payload.startTime, payload.duration || task.duration || 60)
         }
 
         activeExternalTask.value = null
