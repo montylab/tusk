@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
 import CategorySelector from './CategorySelector.vue'
+import TaskDateTimePicker from './TaskDateTimePicker.vue'
 
 const props = defineProps<{
   show: boolean
@@ -12,7 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'create', payload: { text: string, category: string, color: string, startTime?: number | null, duration?: number }): void
+  (e: 'create', payload: { text: string, category: string, color: string, startTime?: number | null, duration?: number, date?: string | null }): void
 }>()
 
 const categoriesStore = useCategoriesStore()
@@ -22,7 +23,13 @@ const taskText = ref('')
 const categoryInput = ref('')
 const selectedColor = ref('')
 const duration = ref(60)
+const getTodayString = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const startTime = ref<number | null>(props.initialStartTime ?? null)
+const taskDate = ref<string | null>(props.initialDate ?? getTodayString())
 
 // Handle form submission
 const handleSubmit = async () => {
@@ -39,7 +46,8 @@ const handleSubmit = async () => {
     category: finalCategoryName,
     color: finalColor,
     startTime: props.taskType === 'scheduled' ? (startTime.value ?? 9) : null,
-    duration: duration.value
+    duration: duration.value,
+    date: taskDate.value
   })
 
   resetForm()
@@ -51,6 +59,7 @@ const resetForm = () => {
   selectedColor.value = ''
   duration.value = 60
   startTime.value = props.initialStartTime ?? null
+  taskDate.value = props.initialDate ?? getTodayString()
 }
 
 const handleClose = () => {
@@ -68,12 +77,6 @@ watch(() => props.show, (newVal) => {
   }
 })
 
-// Format time for display
-const formatTime = (time: number) => {
-  const hours = Math.floor(time)
-  const minutes = Math.round((time % 1) * 60)
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
-}
 </script>
 
 <template>
@@ -110,14 +113,10 @@ const formatTime = (time: number) => {
               <input id="duration" v-model.number="duration" type="number" min="15" step="15" class="form-input" />
             </div>
 
-            <!-- Start Time (for scheduled tasks) -->
+            <!-- Date & Time (for scheduled tasks) -->
             <div v-if="taskType === 'scheduled'" class="form-group">
-              <label for="start-time">Start Time</label>
-              <input id="start-time" v-model.number="startTime" type="number" min="0" max="24" step="0.25"
-                class="form-input" />
-              <span v-if="startTime !== null" class="time-preview">
-                {{ formatTime(startTime) }}
-              </span>
+              <label>Date & Time</label>
+              <TaskDateTimePicker v-model:date="taskDate" v-model:time="startTime" />
             </div>
 
             <!-- Actions -->
