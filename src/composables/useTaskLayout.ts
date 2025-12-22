@@ -38,12 +38,11 @@ export function useTaskLayout(
                 ...t,
                 displayStart,
                 displayDuration,
-                // Layout coordinates (original ones to keep grid stable during drag)
-                // However, we DO want to use the new coordinates for resize so the grid 
-                // adapts to the new space requirement. We only want to freeze for DRAG.
-                layoutStart: (t.id === activeTaskId.value && currentSnapTime.value !== null && currentDuration.value === null) ? startTime : displayStart,
-                layoutDuration: (t.id === activeTaskId.value && currentDuration.value !== null) ? displayDuration : duration,
-                layoutEnd: ((t.id === activeTaskId.value && currentSnapTime.value !== null && currentDuration.value === null) ? startTime : displayStart) + (((t.id === activeTaskId.value && currentDuration.value !== null) ? displayDuration : duration) / 60)
+                // Stability: Use original coordinates for the layout pass while interacting
+                // so the task stays in its original column/cluster.
+                layoutStart: (t.id === activeTaskId.value) ? startTime : displayStart,
+                layoutDuration: (t.id === activeTaskId.value) ? duration : displayDuration,
+                layoutEnd: ((t.id === activeTaskId.value) ? startTime : displayStart) + (((t.id === activeTaskId.value) ? duration : displayDuration) / 60)
             }
         }).sort((a, b) => a.layoutStart - b.layoutStart)
     })

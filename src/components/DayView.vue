@@ -226,26 +226,28 @@ const timeIndicatorTop = computed(() => {
 })
 
 const getTeleportStyle = (task: any) => {
+    if (mode.value !== 'drag') return {}
     if (task.id !== activeTaskId.value && activeTaskId.value !== null) return {}
-    if (activeTaskId.value === null && (mode.value !== 'drag' || task !== props.activeExternalTask)) return {}
+    if (activeTaskId.value === null && task !== props.activeExternalTask) return {}
 
-    // Calculate position for the dragging element
-    // We want it to follow the mouse but snap to the grid if possible
+    const isExternal = activeTaskId.value === null
 
     let top = 0
     let left = 0
     let width = '200px'
+    const duration = currentDuration.value || task.duration || 60
+    const height = (duration / 60) * 80
 
-    if (currentSnapTime.value !== null) {
-        // Snapped position
+    if (currentSnapTime.value !== null && !isExternal) {
+        // Snapped position (internal tasks only)
         top = (currentSnapTime.value - props.startHour) * 80
         if (containerRect.value) {
             top += containerRect.value.top - scrollTop.value
-            left = containerRect.value.left + 8 // Some padding
+            left = containerRect.value.left + 8
             width = `${containerRect.value.width - 16}px`
         }
     } else {
-        // Free float (near mouse)
+        // Free float (near mouse) - always for external or when not snapped
         top = mouseY.value - 20
         left = mouseX.value - dragOffsetX.value
         width = '240px'
@@ -256,6 +258,7 @@ const getTeleportStyle = (task: any) => {
         top: `${top}px`,
         left: `${left}px`,
         width: width,
+        height: `${height}px`,
         zIndex: 9999,
         pointerEvents: 'none' as const,
         transform: 'scale(1.02)',
