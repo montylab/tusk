@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+  setup
+  lang="ts"
+>
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
@@ -33,55 +36,96 @@ const logout = () => {
 <template>
   <header class="app-header">
     <div class="header-left">
-      <!-- Placeholder for future content -->
+      <div class="logo-container"
+           @click="router.push('/')">
+        <svg class="logo-svg"
+             viewBox="0 0 32 32"
+             fill="none"
+             xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 24C12 24 20 22 24 8"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round" />
+          <circle cx="24"
+                  cy="8"
+                  r="2.5"
+                  fill="var(--color-urgent)" />
+          <circle cx="24"
+                  cy="8"
+                  r="5"
+                  fill="var(--color-urgent)"
+                  opacity="0.3" />
+        </svg>
+        <span class="brand-name">Tusk</span>
+      </div>
     </div>
-    
+
     <div class="header-center">
       <div class="view-switcher">
-        <button 
-          :class="['view-btn', { active: currentView === 'day' }]"
-          @click="navigateToView('day')"
-        >
+        <button :class="['view-btn', { active: currentView === 'day' }]"
+                @click="navigateToView('day')">
           Day
         </button>
-        <button 
-          :class="['view-btn', { active: currentView === 'week' }]"
-          @click="navigateToView('week')"
-        >
+        <button :class="['view-btn', { active: currentView === 'week' }]"
+                @click="navigateToView('week')">
           Week
         </button>
-        <button 
-          :class="['view-btn', { active: currentView === 'month' }]"
-          @click="navigateToView('month')"
-        >
+        <button :class="['view-btn', { active: currentView === 'month' }]"
+                @click="navigateToView('month')">
           Month
         </button>
       </div>
     </div>
-    
-    <div class="header-right" v-if="user">
-      <button class="icon-btn" @click="goToSettings" title="Settings">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m-2 2l-4.2 4.2M23 12h-6m-6 0H5m13.2 5.2l-4.2-4.2m-2-2l-4.2-4.2"></path>
+
+    <div class="header-right"
+         v-if="user">
+      <button class="icon-btn"
+              @click="goToSettings"
+              title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="20"
+             height="20"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round">
+          <circle cx="12"
+                  cy="12"
+                  r="3"></circle>
+          <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m-2 2l-4.2 4.2M23 12h-6m-6 0H5m13.2 5.2l-4.2-4.2m-2-2l-4.2-4.2">
+          </path>
         </svg>
       </button>
-      
-      <button class="icon-btn logout-btn" @click="logout" title="Logout">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+      <button class="icon-btn logout-btn"
+              @click="logout"
+              title="Logout">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="20"
+             height="20"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
           <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
+          <line x1="21"
+                y1="12"
+                x2="9"
+                y2="12"></line>
         </svg>
       </button>
-      
-      <img 
-        v-if="user.photoURL" 
-        :src="user.photoURL" 
-        class="user-avatar" 
-        :alt="user.displayName || 'User'"
-      />
-      <div v-else class="user-avatar-placeholder">
+
+      <img v-if="user.photoURL"
+           :src="user.photoURL"
+           class="user-avatar"
+           :alt="user.displayName || 'User'" />
+      <div v-else
+           class="user-avatar-placeholder">
         {{ (user.displayName || user.email || 'U')[0].toUpperCase() }}
       </div>
     </div>
@@ -109,6 +153,34 @@ const logout = () => {
   align-items: center;
 }
 
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.logo-container:hover {
+  opacity: 0.8;
+}
+
+.logo-svg {
+  width: 32px;
+  height: 32px;
+  color: white;
+}
+
+.brand-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.6) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .header-center {
   justify-content: center;
 }
@@ -121,10 +193,10 @@ const logout = () => {
 .view-switcher {
   display: flex;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  /* background: rgba(255, 255, 255, 0.1); */
   padding: 0.25rem;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
+  /* border: 1px solid var(--border-color); */
 }
 
 .view-btn {
@@ -145,7 +217,7 @@ const logout = () => {
 }
 
 .view-btn.active {
-  background: var(--primary-color);
+  background: #FFF2;
   color: white;
 }
 

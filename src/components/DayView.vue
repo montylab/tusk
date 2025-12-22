@@ -508,7 +508,7 @@ const getTeleportStyle = (task: any) => {
 .day-column-outer {
     flex: 1;
     min-width: 200px;
-    max-width: 500px;
+    /* max-width: 500px; */
     width: 20vw;
     display: flex;
     flex-direction: column;
