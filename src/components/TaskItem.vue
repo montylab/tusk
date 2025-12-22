@@ -33,24 +33,19 @@ const itemStyle = computed(() => {
 })
 
 const onMouseDown = (e: MouseEvent) => {
-    emit('task-mousedown', { originalEvent: e, taskId: props.task.id })
+  emit('task-mousedown', { originalEvent: e, taskId: props.task.id })
 }
 </script>
 
 <template>
-  <div 
-    class="task-item" 
-    :class="{ 
-      'shaking': isShaking, 
-      'dragging': isDragging, 
-      'on-air': status === 'on-air',
-      'in-past': status === 'past',
-      'in-future': status === 'future',
-      'is-compact': isCompact
-    }"
-    :style="itemStyle"
-    @mousedown.prevent="onMouseDown"
-  >
+  <div class="task-item" :class="{
+    'shaking': isShaking,
+    'dragging': isDragging,
+    'on-air': status === 'on-air',
+    'in-past': status === 'past',
+    'in-future': status === 'future',
+    'is-compact': isCompact
+  }" :style="itemStyle" @mousedown.prevent="onMouseDown">
 
     <div v-if="status === 'on-air'" class="on-air-tag">ON AIR</div>
     <div class="color-stripe"></div>
@@ -61,9 +56,12 @@ const onMouseDown = (e: MouseEvent) => {
           {{ task.category || 'Uncategorized' }}
         </span>
       </div>
+      <p v-if="task.description && !isCompact" class="description-text">
+        {{ task.description }}
+      </p>
       <div class="meta">
         <span class="time-badge" v-if="task.startTime !== null && task.startTime !== undefined">
-           {{ Math.floor(task.startTime) }}:{{ (Math.round((task.startTime % 1) * 60)).toString().padStart(2, '0') }}
+          {{ Math.floor(task.startTime) }}:{{ (Math.round((task.startTime % 1) * 60)).toString().padStart(2, '0') }}
         </span>
         <span class="duration-badge">
           {{ formatDuration(task.duration) }}
@@ -84,14 +82,14 @@ const onMouseDown = (e: MouseEvent) => {
   border: 1px solid var(--category-color);
   width: 100%;
   height: 100%;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 
 .task-item.on-air {
   background: rgba(255, 255, 255, 0.2);
-  border-width: 2px; 
+  border-width: 2px;
   z-index: 5;
 }
 
@@ -123,9 +121,9 @@ const onMouseDown = (e: MouseEvent) => {
 }
 
 .task-item.dragging {
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    cursor: grabbing;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  cursor: grabbing;
 }
 
 .task-item:active {
@@ -188,6 +186,18 @@ const onMouseDown = (e: MouseEvent) => {
   font-size: 0.75rem;
 }
 
+.description-text {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.2;
+}
+
 .meta {
   display: flex;
   gap: 10px;
@@ -206,25 +216,34 @@ const onMouseDown = (e: MouseEvent) => {
   flex-shrink: 0;
 }
 
-.time-badge, .duration-badge {
+.time-badge,
+.duration-badge {
   font-size: 0.65rem;
   color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
 }
 
-.task-item.on-air .time-badge, 
+.task-item.on-air .time-badge,
 .task-item.on-air .duration-badge {
   color: #fff;
   opacity: 0.9;
 }
 
 @keyframes shake {
-  0% { transform: scaleX(1); }
-  50% { transform: scaleX(1.03);}
-  100% { transform: scaleX(1);}
+  0% {
+    transform: scaleX(1);
+  }
+
+  50% {
+    transform: scaleX(1.03);
+  }
+
+  100% {
+    transform: scaleX(1);
+  }
 }
 
 .shaking {
-    animation: shake .4s infinite ease-in-out;
+  animation: shake .4s infinite ease-in-out;
 }
 </style>

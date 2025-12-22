@@ -8,23 +8,23 @@ import { useDragState } from '../composables/useDragState'
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 
 const props = withDefaults(defineProps<{
-  tasks: Task[]
-  startHour?: number
-  endHour?: number
-  activeExternalTask?: Task | null
+    tasks: Task[]
+    startHour?: number
+    endHour?: number
+    activeExternalTask?: Task | null
 }>(), {
-  startHour: 6,
-  endHour: 22,
-  activeExternalTask: null
+    startHour: 6,
+    endHour: 22,
+    activeExternalTask: null
 })
 
 const emit = defineEmits<{
-  (e: 'update:is-over-trash', payload: boolean): void
-  (e: 'external-task-dropped', payload: { taskId: string | number, startTime: number, duration?: number }): void
-  (e: 'task-dropped-on-sidebar', payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut' }): void
-  (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
-  (e: 'delete-external-task', payload: {}): void
-  (e: 'create-task', payload: { startTime: number }): void
+    (e: 'update:is-over-trash', payload: boolean): void
+    (e: 'external-task-dropped', payload: { taskId: string | number, startTime: number, duration?: number }): void
+    (e: 'task-dropped-on-sidebar', payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut' }): void
+    (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
+    (e: 'delete-external-task', payload: {}): void
+    (e: 'create-task', payload: { startTime: number }): void
 }>()
 
 // Store access for task operations
@@ -32,11 +32,11 @@ const tasksStore = useTasksStore()
 
 // Internal task operation handlers
 const handleCreateTask = (payload: { text: string, startTime: number, category: string }) => {
-  tasksStore.createScheduledTask({
-    ...payload,
-    completed: false,
-    duration: 60
-  } as any)
+    tasksStore.createScheduledTask({
+        ...payload,
+        completed: false,
+        duration: 60
+    } as any)
 }
 
 const handleScheduleTask = (payload: { taskId: string | number, startTime: number, duration?: number }) => {
@@ -44,32 +44,32 @@ const handleScheduleTask = (payload: { taskId: string | number, startTime: numbe
 }
 
 const handleDuplicateTask = (payload: { originalTaskId: string | number }) => {
-  const original = tasksStore.getTaskById(payload.originalTaskId)
-  if (original) {
-    const { id, ...taskData } = original
-    tasksStore.createScheduledTask(taskData as any)
-  }
+    const original = tasksStore.getTaskById(payload.originalTaskId)
+    if (original) {
+        const { id, ...taskData } = original
+        tasksStore.createScheduledTask(taskData as any)
+    }
 }
 
 const handleDeleteTask = (payload: { taskId: string | number }) => {
-  tasksStore.deleteScheduledTask(payload.taskId, tasksStore.currentDate)
+    tasksStore.deleteScheduledTask(payload.taskId, tasksStore.currentDate)
 }
 
 const hours = Array.from({ length: props.endHour - props.startHour }, (_, i) => i + props.startHour)
 
-const { 
-    mode, 
-    activeTaskId, 
-    currentSnapTime, 
+const {
+    mode,
+    activeTaskId,
+    currentSnapTime,
     currentDuration,
-    startOperation, 
-    startExternalDrag: startExternalDragOp, 
-    handleSlotClick 
+    startOperation,
+    startExternalDrag: startExternalDragOp,
+    handleSlotClick
 } = useTaskOperations(
-    () => props.tasks, 
-    emit as any, 
-    { 
-        startHour: props.startHour, 
+    () => props.tasks,
+    emit as any,
+    {
+        startHour: props.startHour,
         endHour: props.endHour,
         hourHeight: 80,
         getContainerRect: () => containerRect.value,
@@ -125,21 +125,21 @@ type OperationMode = 'none' | 'drag' | 'resize-top' | 'resize-bottom'
 const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: OperationMode) => {
     updateContainerRect()
     updateScroll()
-    
+
     // Calculate drag offset
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     dragOffsetX.value = e.clientX - rect.left
-    
+
     startOperation(e, taskId, opMode)
 }
 
 const handleExternalDrag = (e: MouseEvent, task: Task) => {
     updateContainerRect()
     updateScroll()
-    
+
     // For external drag, pick a reasonable offset (e.g. center)
-    dragOffsetX.value = 100 
-    
+    dragOffsetX.value = 100
+
     startExternalDragOp(e, task)
 }
 
@@ -152,14 +152,14 @@ watch(activeTaskId, (id) => {
 
 // 2. Layout Logic
 const { layoutTasks } = useTaskLayout(
-    () => props.tasks, 
-    activeTaskId, 
-    currentSnapTime, 
+    () => props.tasks,
+    activeTaskId,
+    currentSnapTime,
     currentDuration,
-    { 
-        startHour: props.startHour, 
+    {
+        startHour: props.startHour,
         endHour: props.endHour,
-        hourHeight: 80 
+        hourHeight: 80
     }
 )
 
@@ -174,13 +174,13 @@ const taskStatuses = ref<Record<string | number, 'past' | 'future' | 'on-air' | 
 const updateTaskStatuses = () => {
     const now = currentTime.value
     const currentTotalMinutes = now.getHours() * 60 + now.getMinutes()
-    
+
     props.tasks.forEach(task => {
         if (task.startTime === null) return
-        
+
         const taskStartMinutes = task.startTime * 60
         const taskEndMinutes = taskStartMinutes + task.duration
-        
+
         if (currentTotalMinutes < taskStartMinutes) {
             taskStatuses.value[task.id] = 'future'
         } else if (currentTotalMinutes >= taskStartMinutes && currentTotalMinutes < taskEndMinutes) {
@@ -191,6 +191,9 @@ const updateTaskStatuses = () => {
     })
 }
 
+watch(() => props.tasks, updateTaskStatuses, { immediate: true })
+
+
 onMounted(() => {
     updateContainerRect()
     updateTaskStatuses()
@@ -198,8 +201,8 @@ onMounted(() => {
         timer = setInterval(() => {
             currentTime.value = new Date()
             updateTaskStatuses()
-        }, 60000)      
-    }, (60-currentTime.value.getSeconds()) * 1000)
+        }, 60000)
+    }, (60 - currentTime.value.getSeconds()) * 1000)
 
     window.addEventListener('mousemove', onWindowMouseMove)
     window.addEventListener('resize', updateContainerRect)
@@ -212,14 +215,14 @@ onUnmounted(() => {
 })
 
 const timeIndicatorTop = computed(() => {
-  const now = currentTime.value
-  const currentTotalHours = now.getHours() + now.getMinutes() / 60
-  
-  if (currentTotalHours < props.startHour || currentTotalHours > props.endHour) {
-    return -100 // Hide if out of range
-  }
-  
-  return (currentTotalHours - props.startHour) * 80
+    const now = currentTime.value
+    const currentTotalHours = now.getHours() + now.getMinutes() / 60
+
+    if (currentTotalHours < props.startHour || currentTotalHours > props.endHour) {
+        return -100 // Hide if out of range
+    }
+
+    return (currentTotalHours - props.startHour) * 80
 })
 
 const getTeleportStyle = (task: any) => {
@@ -228,11 +231,11 @@ const getTeleportStyle = (task: any) => {
 
     // Calculate position for the dragging element
     // We want it to follow the mouse but snap to the grid if possible
-    
+
     let top = 0
     let left = 0
     let width = '200px'
-    
+
     if (currentSnapTime.value !== null) {
         // Snapped position
         top = (currentSnapTime.value - props.startHour) * 80
@@ -262,68 +265,58 @@ const getTeleportStyle = (task: any) => {
 </script>
 
 <template>
-  <div class="day-view-container">
-    <div class="header">
-      <h2>Today's Schedule</h2>
-      <p class="instruction">Drag to move/wheel-resize. Drag edges to resize.</p>
-    </div>
-    
-    <div class="calendar-layout">
-        <div class="calendar-scroll-area" ref="scrollAreaRef" @scroll="updateScroll">
-            <div class="calendar-grid">
-                <!-- Time Labels -->
-                <div class="time-labels">
-                    <div v-for="hour in hours" :key="hour" class="time-label">
-                        {{ hour.toString().padStart(2, '0') }}:00
-                    </div>
-                </div>
-                
-                <!-- Grid Content -->
-                <div class="grid-content">
-                    <div v-for="hour in hours" :key="hour" class="hour-row">
-                        <div
-                            v-for="q in 4" 
-                            :key="q-1"
-                            class="quarter-slot"
-                            @click="handleSlotClick(hour, q-1)"
-                        ></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Tasks Layer -->
-            <div class="tasks-layer">
-                <!-- Spacing to align with grid content (width 60px label + padding) -->
-                <div class="tasks-container" ref="tasksContainerRef">
-                     <template v-for="task in layoutTasks" :key="task.id">
-                        <!-- Teleport active dragging task to body to avoid clipping -->
-                        <Teleport to="body" :disabled="task.id !== activeTaskId || mode !== 'drag'">
-                            <div 
-                                class="task-wrapper-absolute"
-                                :class="{ 'is-dragging': task.id === activeTaskId && mode === 'drag' }"
-                                :style="[task.style, getTeleportStyle(task)]"
-                                @mousedown="handleStartOperation($event, task.id, 'drag')"
-                            >
-                                <!-- Top Handle -->
-                                <div v-if="task.id !== activeTaskId || mode !== 'drag'" class="resize-handle top" @mousedown.stop="handleStartOperation($event, task.id, 'resize-top')"></div>
-                                
-                                <TaskItem 
-                                    :task="task" 
-                                    :is-dragging="task.id === activeTaskId && mode === 'drag'"
-                                    :is-shaking="task.isOverlapping"
-                                    :status="taskStatuses[task.id]"
-                                />
-                                
-                                <!-- Bottom Handle -->
-                                <div v-if="task.id !== activeTaskId || mode !== 'drag'" class="resize-handle bottom" @mousedown.stop="handleStartOperation($event, task.id, 'resize-bottom')"></div>
-                            </div>
-                        </Teleport>
-                     </template>
+    <div class="day-view-container">
+        <div class="header">
+            <h2>Today's Schedule</h2>
+            <p class="instruction">Drag to move/wheel-resize. Drag edges to resize.</p>
+        </div>
 
-                     <template v-if="activeExternalTask && currentSnapTime !== null">
-                        <div 
-                            class="task-wrapper-absolute ghost-external"
-                            :style="{
+        <div class="calendar-layout">
+            <div class="calendar-scroll-area" ref="scrollAreaRef" @scroll="updateScroll">
+                <div class="calendar-grid">
+                    <!-- Time Labels -->
+                    <div class="time-labels">
+                        <div v-for="hour in hours" :key="hour" class="time-label">
+                            {{ hour.toString().padStart(2, '0') }}:00
+                        </div>
+                    </div>
+
+                    <!-- Grid Content -->
+                    <div class="grid-content">
+                        <div v-for="hour in hours" :key="hour" class="hour-row">
+                            <div v-for="q in 4" :key="q - 1" class="quarter-slot" @click="handleSlotClick(hour, q - 1)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tasks Layer -->
+                <div class="tasks-layer">
+                    <!-- Spacing to align with grid content (width 60px label + padding) -->
+                    <div class="tasks-container" ref="tasksContainerRef">
+                        <template v-for="task in layoutTasks" :key="task.id">
+                            <!-- Teleport active dragging task to body to avoid clipping -->
+                            <Teleport to="body" :disabled="task.id !== activeTaskId || mode !== 'drag'">
+                                <div class="task-wrapper-absolute"
+                                    :class="{ 'is-dragging': task.id === activeTaskId && mode === 'drag' }"
+                                    :style="[task.style, getTeleportStyle(task)]"
+                                    @mousedown="handleStartOperation($event, task.id, 'drag')">
+                                    <!-- Top Handle -->
+                                    <div v-if="task.id !== activeTaskId || mode !== 'drag'" class="resize-handle top"
+                                        @mousedown.stop="handleStartOperation($event, task.id, 'resize-top')"></div>
+
+                                    <TaskItem :task="task" :is-dragging="task.id === activeTaskId && mode === 'drag'"
+                                        :is-shaking="task.isOverlapping" :status="taskStatuses[task.id]" />
+
+                                    <!-- Bottom Handle -->
+                                    <div v-if="task.id !== activeTaskId || mode !== 'drag'" class="resize-handle bottom"
+                                        @mousedown.stop="handleStartOperation($event, task.id, 'resize-bottom')"></div>
+                                </div>
+                            </Teleport>
+                        </template>
+
+                        <template v-if="activeExternalTask && currentSnapTime !== null">
+                            <div class="task-wrapper-absolute ghost-external" :style="{
                                 top: `${(currentSnapTime - startHour) * 80}px`,
                                 height: `${((currentDuration || activeExternalTask.duration) / 60) * 80}px`,
                                 left: '0%',
@@ -334,38 +327,29 @@ const getTeleportStyle = (task: any) => {
                                 padding: '0 4px',
                                 background: 'rgba(255,255,255,0.1)',
                                 borderRadius: '6px'
-                            }"
-                        >
-                            <TaskItem :task="activeExternalTask" />
-                        </div>
-                     </template>
+                            }">
+                                <TaskItem :task="activeExternalTask" />
+                            </div>
+                        </template>
 
-                     <!-- Floating Item for External Drag (Teleport to Body) -->
-                     <Teleport to="body" v-if="activeExternalTask && activeTaskId === null && mode === 'drag'">
-                        <div 
-                            class="task-wrapper-absolute is-dragging"
-                            :style="getTeleportStyle(activeExternalTask)"
-                        >
-                            <TaskItem 
-                                :task="activeExternalTask" 
-                                :is-dragging="true"
-                            />
-                        </div>
-                     </Teleport>
+                        <!-- Floating Item for External Drag (Teleport to Body) -->
+                        <Teleport to="body" v-if="activeExternalTask && activeTaskId === null && mode === 'drag'">
+                            <div class="task-wrapper-absolute is-dragging"
+                                :style="getTeleportStyle(activeExternalTask)">
+                                <TaskItem :task="activeExternalTask" :is-dragging="true" />
+                            </div>
+                        </Teleport>
 
-                     <!-- Current Time Indicator -->
-                     <div 
-                        v-if="timeIndicatorTop >= 0"
-                        class="current-time-line"
-                        :style="{ top: `${timeIndicatorTop}px` }"
-                     >
-                        <div class="time-dot"></div>
-                     </div>
+                        <!-- Current Time Indicator -->
+                        <div v-if="timeIndicatorTop >= 0" class="current-time-line"
+                            :style="{ top: `${timeIndicatorTop}px` }">
+                            <div class="time-dot"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
@@ -375,29 +359,30 @@ const getTeleportStyle = (task: any) => {
     overflow: hidden;
     gap: 0;
 }
+
 .day-view-container {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border-color);
-  backdrop-filter: blur(10px);
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .header {
-  margin-bottom: 2rem;
-  text-align: left;
+    margin-bottom: 2rem;
+    text-align: left;
 }
 
 .header h2 {
-  font-size: 2rem;
-  font-weight: 800;
-  margin: 0;
-  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .instruction {
@@ -449,7 +434,7 @@ const getTeleportStyle = (task: any) => {
 
 .quarter-slot {
     flex: 1;
-    border-bottom: 1px dashed rgba(255,255,255,0.03);
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.03);
     cursor: cell;
     transition: background 0.2s;
 }
@@ -459,13 +444,14 @@ const getTeleportStyle = (task: any) => {
 }
 
 .quarter-slot:hover {
-    background: rgba(255,255,255,0.03);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .tasks-layer {
     position: absolute;
     top: 0;
-    left: 60px; /* offset for labels */
+    left: 60px;
+    /* offset for labels */
     right: 0;
     bottom: 0;
     pointer-events: none;
@@ -498,8 +484,13 @@ const getTeleportStyle = (task: any) => {
     z-index: 10;
 }
 
-.resize-handle.top { top: -3px; }
-.resize-handle.bottom { bottom: -3px; }
+.resize-handle.top {
+    top: -3px;
+}
+
+.resize-handle.bottom {
+    bottom: -3px;
+}
 
 .current-time-line {
     position: absolute;

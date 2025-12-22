@@ -15,13 +15,13 @@ const tasksStore = useTasksStore()
 const { scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
 
 // Shared drag state
-const { 
-  trashBounds, 
-  todoBounds, 
-  shortcutBounds, 
-  isOverTrash, 
-  isOverTodo, 
-  isOverShortcut 
+const {
+  trashBounds,
+  todoBounds,
+  shortcutBounds,
+  isOverTrash,
+  isOverTodo,
+  isOverShortcut
 } = useDragState()
 
 const todoInsertionIndex = ref<number | null>(null)
@@ -51,34 +51,34 @@ watch(() => route.params.date, (newDate) => {
 
 const handleCalendarTaskDropped = (payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut' }) => {
   if (payload.target === 'todo') {
-    const finalOrder = todoInsertionIndex.value !== null 
+    const finalOrder = todoInsertionIndex.value !== null
       ? tasksStore.calculateNewOrder(tasksStore.todoTasks, null, todoInsertionIndex.value)
       : undefined
-    
+
     tasksStore.moveCalendarToTodo(payload.taskId, tasksStore.currentDate, finalOrder)
   } else if (payload.target === 'shortcut') {
     const finalOrder = shortcutInsertionIndex.value !== null
       ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, null, shortcutInsertionIndex.value)
       : undefined
-    
+
     tasksStore.moveCalendarToShortcut(payload.taskId, tasksStore.currentDate, finalOrder)
   }
-  
+
   todoInsertionIndex.value = null
   shortcutInsertionIndex.value = null
 }
 
 const handleExternalTaskSidebarDrop = async () => {
   if (!activeExternalTask.value) return
-  
+
   const { source, task } = activeExternalTask.value
-  
+
   if (isOverTodo.value) {
     if (source === 'shortcut') {
       const finalOrder = todoInsertionIndex.value !== null
         ? tasksStore.calculateNewOrder(tasksStore.todoTasks, null, todoInsertionIndex.value)
         : undefined
-      
+
       await tasksStore.copyShortcutToTodo(task.id, finalOrder)
     } else if (source === 'todo') {
       if (todoInsertionIndex.value !== null) {
@@ -90,7 +90,7 @@ const handleExternalTaskSidebarDrop = async () => {
       const finalOrder = shortcutInsertionIndex.value !== null
         ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, null, shortcutInsertionIndex.value)
         : undefined
-      
+
       await tasksStore.moveTodoToShortcut(task.id, finalOrder)
     } else if (source === 'shortcut') {
       if (shortcutInsertionIndex.value !== null) {
@@ -98,7 +98,7 @@ const handleExternalTaskSidebarDrop = async () => {
       }
     }
   }
-  
+
   activeExternalTask.value = null
   todoInsertionIndex.value = null
   shortcutInsertionIndex.value = null
@@ -121,21 +121,22 @@ const handleOpenCreatePopup = (payload?: { startTime: number }) => {
 }
 
 // Handler for when the popup emits a create event
-  const handleTaskCreate = (payload: { text: string; category: string; color: string; startTime?: number | null; duration?: number }) => {
-    // Use the store action to create a scheduled task with all required fields
-    tasksStore.createScheduledTask({
-      text: payload.text,
-      category: payload.category,
-      completed: false,
-      startTime: payload.startTime ?? null,
-      duration: payload.duration ?? 60,
-      date: tasksStore.currentDate,
-      isShortcut: false,
-      order: 0,
-      color: payload.color
-    } as any)
-    showCreateTaskPopup.value = false
-  }
+const handleTaskCreate = (payload: { text: string; description: string; category: string; color: string; startTime?: number | null; duration?: number }) => {
+  // Use the store action to create a scheduled task with all required fields
+  tasksStore.createScheduledTask({
+    text: payload.text,
+    description: payload.description,
+    category: payload.category,
+    completed: false,
+    startTime: payload.startTime ?? null,
+    duration: payload.duration ?? 60,
+    date: tasksStore.currentDate,
+    isShortcut: false,
+    order: 0,
+    color: payload.color
+  } as any)
+  showCreateTaskPopup.value = false
+}
 
 // Optional: handler for closing the popup without creating
 const handlePopupClose = () => {
@@ -146,61 +147,33 @@ const handlePopupClose = () => {
 <template>
   <div class="page-layout">
     <aside class="sidebar left">
-      <TrashBasket 
-        :active="isOverTrash"
-        @update:bounds="trashBounds = $event"
-      />
+      <TrashBasket :active="isOverTrash" @update:bounds="trashBounds = $event" />
     </aside>
-    
-    <main class="main-content">
-        <button class="create-btn" @click="handleOpenCreatePopup()" style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">Create Task</button>
-        <DayView 
-          ref="dayViewRef"
-          :tasks="scheduledTasks" 
-          :start-hour="8"
-          :end-hour="24"
-          :active-external-task="activeExternalTask?.task || null"
-          @update:is-over-trash="isOverTrash = $event"
-          @external-task-dropped="handleExternalTaskDropped"
-          @delete-external-task="handleExternalTaskDeletedWrapper"
-          @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
-          @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop"
-          @create-task="handleOpenCreatePopup"
-        />
 
-      <CreateTaskPopup
-        :show="showCreateTaskPopup"
-        :initial-start-time="initialStartTime"
-        @close="handlePopupClose"
-        @create="handleTaskCreate"
-        task-type="scheduled"
-      />
+    <main class="main-content">
+      <button class="create-btn" @click="handleOpenCreatePopup()"
+        style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">Create
+        Task</button>
+      <DayView ref="dayViewRef" :tasks="scheduledTasks" :start-hour="8" :end-hour="24"
+        :active-external-task="activeExternalTask?.task || null" @update:is-over-trash="isOverTrash = $event"
+        @external-task-dropped="handleExternalTaskDropped" @delete-external-task="handleExternalTaskDeletedWrapper"
+        @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
+        @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop" @create-task="handleOpenCreatePopup" />
+
+      <CreateTaskPopup :show="showCreateTaskPopup" :initial-start-time="initialStartTime" @close="handlePopupClose"
+        @create="handleTaskCreate" task-type="scheduled" />
     </main>
 
     <aside class="sidebar right">
       <div class="pile-container">
-        <TaskPile 
-          title="Shortcuts"
-          :tasks="shortcutTasks"
-          list-type="shortcut"
-          :is-highlighted="isOverShortcut"
-          :active-task-id="activeExternalTask?.task.id"
-          :insertion-index="shortcutInsertionIndex"
-          @update:bounds="shortcutBounds = $event"
-          @update:insertion-index="shortcutInsertionIndex = $event"
-          @drag-start="handleExternalDragStart('shortcut', $event.task, $event.event)"
-        />
-        <TaskPile 
-          title="To Do"
-          :tasks="todoTasks"
-          list-type="todo"
-          :is-highlighted="isOverTodo"
-          :active-task-id="activeExternalTask?.task.id"
-          :insertion-index="todoInsertionIndex"
-          @update:bounds="todoBounds = $event"
-          @update:insertion-index="todoInsertionIndex = $event"
-          @drag-start="handleExternalDragStart('todo', $event.task, $event.event)"
-        />
+        <TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" :is-highlighted="isOverShortcut"
+          :active-task-id="activeExternalTask?.task.id" :insertion-index="shortcutInsertionIndex"
+          @update:bounds="shortcutBounds = $event" @update:insertion-index="shortcutInsertionIndex = $event"
+          @drag-start="handleExternalDragStart('shortcut', $event.task, $event.event)" />
+        <TaskPile title="To Do" :tasks="todoTasks" list-type="todo" :is-highlighted="isOverTodo"
+          :active-task-id="activeExternalTask?.task.id" :insertion-index="todoInsertionIndex"
+          @update:bounds="todoBounds = $event" @update:insertion-index="todoInsertionIndex = $event"
+          @drag-start="handleExternalDragStart('todo', $event.task, $event.event)" />
       </div>
     </aside>
   </div>
@@ -236,7 +209,7 @@ const handlePopupClose = () => {
   height: 100%;
 }
 
-.pile-container > * {
+.pile-container>* {
   flex: 1;
   min-height: 0;
 }

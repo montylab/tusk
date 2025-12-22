@@ -9,6 +9,7 @@ export interface Task {
     isShortcut?: boolean; // Marks shortcut templates
     order?: number; // Sorting order in piles
     color?: string; // Hex
+    description?: string;
 }
 export interface Category {
     id: string;

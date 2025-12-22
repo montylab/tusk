@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
 import CategorySelector from './CategorySelector.vue'
 import TaskDateTimePicker from './TaskDateTimePicker.vue'
@@ -13,13 +13,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'create', payload: { text: string, category: string, color: string, startTime?: number | null, duration?: number, date?: string | null }): void
+  (e: 'create', payload: { text: string, description: string, category: string, color: string, startTime?: number | null, duration?: number, date?: string | null }): void
 }>()
 
 const categoriesStore = useCategoriesStore()
 
 // Form fields
 const taskText = ref('')
+const taskDescription = ref('')
 const categoryInput = ref('')
 const selectedColor = ref('')
 const duration = ref(1.0) // Store as decimal hours (1.0 = 60 mins)
@@ -43,6 +44,7 @@ const handleSubmit = async () => {
 
   emit('create', {
     text: taskText.value.trim(),
+    description: taskDescription.value.trim(),
     category: finalCategoryName,
     color: finalColor,
     startTime: props.taskType === 'scheduled' ? (startTime.value ?? 9) : null,
@@ -55,10 +57,11 @@ const handleSubmit = async () => {
 
 const resetForm = () => {
   taskText.value = ''
+  taskDescription.value = ''
   categoryInput.value = ''
   selectedColor.value = ''
   duration.value = 1.0
-  startTime.value = props.initialStartTime ?? null
+  startTime.value = props.initialStartTime ?? (props.taskType === 'scheduled' ? 9 : null)
   taskDate.value = props.initialDate ?? getTodayString()
 }
 
@@ -71,10 +74,26 @@ const handleClose = () => {
 const taskTextInput = ref<HTMLInputElement | null>(null)
 watch(() => props.show, (newVal) => {
   if (newVal) {
+    resetForm()
     setTimeout(() => {
       taskTextInput.value?.focus()
     }, 100)
   }
+})
+
+// Handle Escape key to close popup
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && props.show) {
+    handleClose()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
 })
 
 </script>
@@ -82,7 +101,7 @@ watch(() => props.show, (newVal) => {
 <template>
   <Teleport to="body">
     <Transition name="popup">
-      <div v-if="show" class="popup-overlay" @click.self="handleClose">
+      <div v-if="show" class="popup-overlay" @mousedown.self="handleClose">
         <div class="popup-container">
           <div class="popup-header">
             <h2>Create New Task</h2>
@@ -117,6 +136,13 @@ watch(() => props.show, (newVal) => {
             <div v-if="taskType === 'scheduled'" class="form-group">
               <label>Date & Time</label>
               <TaskDateTimePicker v-model:date="taskDate" v-model:time="startTime" />
+            </div>
+
+            <!-- Task Description -->
+            <div class="form-group">
+              <label for="task-description">Description</label>
+              <textarea id="task-description" v-model="taskDescription" placeholder="Add details..." class="form-input"
+                rows="3" style="resize: vertical; min-height: 80px;"></textarea>
             </div>
 
             <!-- Actions -->

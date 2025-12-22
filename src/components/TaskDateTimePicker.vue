@@ -77,6 +77,23 @@ watch(() => props.time, (newVal) => {
 
 const showDate = computed(() => !props.view || props.view === 'date-only')
 const showTime = computed(() => !props.view || props.view === 'time-only')
+
+const handleWheel = (e: WheelEvent) => {
+    if (!e.shiftKey) return
+    e.preventDefault()
+
+    const current = internalTime.value || new Date()
+    if (!internalTime.value) {
+        current.setHours(9, 0, 0, 0)
+    }
+
+    const d = new Date(current)
+    const step = 15 // minutes
+    const direction = e.deltaY > 0 ? -1 : 1 // Up increases, Down decreases
+
+    d.setMinutes(d.getMinutes() + direction * step)
+    internalTime.value = d
+}
 </script>
 
 <template>
@@ -86,7 +103,7 @@ const showTime = computed(() => !props.view || props.view === 'time-only')
                 class="custom-datepicker" />
         </div>
 
-        <div v-if="showTime" class="picker-group">
+        <div v-if="showTime" class="picker-group" @wheel="handleWheel">
             <DatePicker v-model="internalTime" showIcon fluid iconDisplay="input" timeOnly :stepMinute="15"
                 placeholder="Select time" class="custom-datepicker">
                 <template #inputicon="slotProps">
