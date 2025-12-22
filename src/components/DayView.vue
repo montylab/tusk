@@ -4,11 +4,12 @@
 >
 import DayColumn from './DayColumn.vue'
 import TaskItem from './TaskItem.vue'
+import AddDayZone from './AddDayZone.vue'
 import type { Task } from '../types'
 import { useTaskOperations } from '../composables/useTaskOperations'
 import { useTasksStore } from '../stores/tasks'
 import { useDragState } from '../composables/useDragState'
-import { ref, watch, onMounted, onUnmounted, computed, toRef } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed, toRef, nextTick } from 'vue'
 
 const props = withDefaults(defineProps<{
     dates: string[]
@@ -227,6 +228,17 @@ const updateTaskStatuses = () => {
 
 watch(() => props.tasksByDate, updateTaskStatuses, { immediate: true, deep: true })
 
+const onAddDay = async () => {
+    emit('add-day')
+    await nextTick()
+    if (scrollAreaRef.value) {
+        scrollAreaRef.value.scrollTo({
+            left: scrollAreaRef.value.scrollWidth,
+            behavior: 'smooth'
+        })
+    }
+}
+
 
 onMounted(() => {
     //updateContainerRect()
@@ -403,13 +415,9 @@ const getTeleportStyle = (task: any) => {
                         </div>
 
                         <!-- Add Day Zone -->
-                        <div class="add-day-zone"
-                             @click="emit('add-day')">
-                            <div class="add-content">
-                                <div class="plus-icon">+</div>
-                                <div class="hover-label">Add {{ getNextDateLabel }}</div>
-                            </div>
-                        </div>
+                        <AddDayZone :label="getNextDateLabel"
+                                    :is-dragging="activeTaskId !== null || activeExternalTask !== null"
+                                    @add-day="onAddDay" />
                     </div>
                 </div>
 
@@ -450,26 +458,6 @@ const getTeleportStyle = (task: any) => {
     flex-direction: column;
     border: 1px solid var(--border-color);
     backdrop-filter: blur(10px);
-}
-
-.header {
-    margin-bottom: 2rem;
-    text-align: left;
-}
-
-.header h2 {
-    font-size: 2rem;
-    font-weight: 800;
-    margin: 0;
-    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.instruction {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
 }
 
 .calendar-layout {
@@ -513,11 +501,15 @@ const getTeleportStyle = (task: any) => {
     display: flex;
     flex: 1;
     min-width: 0;
+    position: relative;
+    padding-right: 40px;
 }
 
 .day-column-outer {
     flex: 1;
-    min-width: 150px;
+    min-width: 200px;
+    max-width: 500px;
+    width: 20vw;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -546,58 +538,6 @@ const getTeleportStyle = (task: any) => {
 .date-num {
     font-size: 0.7rem;
     color: var(--text-muted);
-}
-
-/* Expansion Zone */
-.add-day-zone {
-    width: 40px;
-    border-left: 1px dashed var(--border-color);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-    margin-top: 40px;
-}
-
-.add-day-zone:hover {
-    width: 180px;
-    background: rgba(255, 255, 255, 0.05);
-    border-left-style: solid;
-}
-
-.add-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    white-space: nowrap;
-}
-
-.plus-icon {
-    font-size: 1.5rem;
-    color: var(--text-muted);
-    transition: transform 0.3s;
-}
-
-.add-day-zone:hover .plus-icon {
-    transform: rotate(90deg) scale(1.2);
-    color: #fff;
-}
-
-.hover-label {
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.3s;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.add-day-zone:hover .hover-label {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .current-time-line {

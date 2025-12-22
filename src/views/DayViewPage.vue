@@ -291,10 +291,17 @@ const handleAddDay = () => {
 }
 
 .main-content {
-  flex: 1;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   padding: 1rem;
   overflow: hidden;
+  min-width: 50vw;
+}
+
+@media (min-width: 1440px) {
+  .main-content {
+    min-width: 70vw;
+  }
 }
 </style>

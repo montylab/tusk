@@ -88,5 +88,5 @@ input {
 /* Firefox Support */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #333 var(--bg-dark);
+  scrollbar-color: #333 transparent;
 }
