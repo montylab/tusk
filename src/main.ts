@@ -7,6 +7,7 @@ import router from './router'
 // PrimeVue imports
 import PrimeVue from 'primevue/config'
 import AutoComplete from 'primevue/autocomplete'
+import ColorPicker from 'primevue/colorpicker'
 
 import Aura from '@primeuix/themes/aura';
 
@@ -23,5 +24,6 @@ app.use(PrimeVue, {
 
 // Register global components if needed
 app.component('AutoComplete', AutoComplete)
+app.component('ColorPicker', ColorPicker)
 
 app.mount('#app')
