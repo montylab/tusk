@@ -55,33 +55,42 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="add-day-zone"
-         @click="emit('add-day')"
-         @mouseenter="startCountdown"
-         @mouseleave="stopCountdown"
-         @mouseup="stopCountdown"
-         :class="{ 'is-counting': isDragging && isHovered && countdown < totalCountdownSeconds }">
+    <div class="zone-occupier">
+        <div class="add-day-zone"
+             @click="emit('add-day')"
+             @mouseenter="startCountdown"
+             @mouseleave="stopCountdown"
+             @mouseup="stopCountdown"
+             :class="{ 'is-counting': isDragging && isHovered && countdown < totalCountdownSeconds }">
 
-        <div class="add-content">
-            <template v-if="isDragging && isHovered">
-                <div class="countdown-number">{{ countdown }}</div>
-                <div class="countdown-label">Hold to add</div>
-            </template>
-            <template v-else>
-                <div class="plus-icon">+</div>
-                <div class="hover-label">Add {{ label }}</div>
-            </template>
-        </div>
+            <div class="add-content">
+                <template v-if="isDragging && isHovered">
+                    <div class="countdown-number">{{ countdown }}</div>
+                    <div class="countdown-label">Hold to add</div>
+                </template>
+                <template v-else>
+                    <div class="plus-icon">+</div>
+                    <div class="hover-label">Add {{ label }}</div>
+                </template>
+            </div>
 
-        <!-- Progress Bar Background/Effect -->
-        <div class="progress-overlay"
-             v-if="isDragging && isHovered"
-             :style="{ height: ((totalCountdownSeconds - countdown) / totalCountdownSeconds * 100) * 1.05 + '%' }">
+            <!-- Progress Bar Background/Effect -->
+            <div class="progress-overlay"
+                 v-if="isDragging && isHovered"
+                 :style="{ height: ((totalCountdownSeconds - countdown) / totalCountdownSeconds * 100) * 1.05 + '%' }">
+            </div>
         </div>
     </div>
 </template>
 
 <style scoped>
+.zone-occupier {
+    /* display: none; */
+    width: 0;
+    position: relative;
+    /* overflow: hidden; */
+}
+
 .add-day-zone {
     width: 40px;
     border-left: 1px dashed var(--border-color);
@@ -90,9 +99,9 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    position: absolute;
+    position: fixed;
     right: 0;
-    top: 40px;
+    top: 0;
     bottom: 0;
     z-index: 50;
     overflow: hidden;

@@ -207,7 +207,7 @@ const handleAddDay = () => {
       <DayView ref="dayViewRef"
                :dates="currentDates"
                :tasks-by-date="scheduledTasks"
-               :start-hour="8"
+               :start-hour="0"
                :end-hour="24"
                :active-external-task="activeExternalTask?.task || null"
                @update:is-over-trash="isOverTrash = $event"

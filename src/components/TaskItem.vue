@@ -69,9 +69,7 @@ const onEditClick = (e: Event) => {
             <i class="pi pi-pencil"></i>
           </button>
         </div>
-        <span class="category-badge">
-          {{ task.category || 'Uncategorized' }}
-        </span>
+        <span class="category-badge">{{ task.category || 'Uncategorized' }}</span>
       </div>
       <p v-if="task.description && !isCompact"
          class="description-text">
@@ -86,6 +84,7 @@ const onEditClick = (e: Event) => {
           {{ formatDuration(task.duration) }}
         </span>
       </div>
+      <span class="category-badge for-compact">{{ task.category || 'Uncategorized' }}</span>
     </div>
   </div>
 </template>
@@ -168,19 +167,33 @@ const onEditClick = (e: Event) => {
   gap: 2px;
 }
 
+.for-compact {
+  display: none;
+}
+
 .is-compact .content {
   flex-direction: row;
   justify-content: flex-start;
 }
 
 .is-compact .meta {
-  margin-left: auto;
-  margin-right: 3px;
+  /* margin-left: auto; */
+  /* margin-right: auto; */
 }
 
 .is-compact .category-badge {
+  display: none;
+}
+
+.is-compact .category-badge.for-compact {
+  display: inline-block;
   border-width: 0 0 0 1px;
   border-radius: 0;
+  margin-right: 3px;
+  margin-left: auto;
+  /* height: 20px; */
+  /* line-height: ; */
+  place-self: center;
 }
 
 

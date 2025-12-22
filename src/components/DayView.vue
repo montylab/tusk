@@ -18,8 +18,8 @@ const props = withDefaults(defineProps<{
     endHour?: number
     activeExternalTask?: Task | null
 }>(), {
-    startHour: 6,
-    endHour: 22,
+    startHour: 0,
+    endHour: 24,
     activeExternalTask: null
 })
 
@@ -502,7 +502,6 @@ const getTeleportStyle = (task: any) => {
     flex: 1;
     min-width: 0;
     position: relative;
-    padding-right: 40px;
 }
 
 .day-column-outer {
@@ -517,6 +516,7 @@ const getTeleportStyle = (task: any) => {
 
 .column-header {
     height: 40px;
+    line-height: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -524,9 +524,13 @@ const getTeleportStyle = (task: any) => {
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     background: var(--bg-card);
     position: sticky;
-    top: 0;
+    inset: 0;
     z-index: 20;
     backdrop-filter: blur(4px);
+
+    /* we should cover timeline */
+    width: 120%;
+    transform: translateX(-100px);
 }
 
 .day-name {
