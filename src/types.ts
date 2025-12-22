@@ -8,7 +8,7 @@ export interface Task {
     date?: string | null; // YYYY-MM-DD for scheduled tasks
     isShortcut?: boolean; // Marks shortcut templates
     order?: number; // Sorting order in piles
-    color?: string; // Hex
+    color?: string | null; // Hex
     description?: string;
 }
 export interface Category {

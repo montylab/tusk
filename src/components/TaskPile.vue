@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+  setup
+  lang="ts"
+>
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
 import { ref, onMounted, onUnmounted } from 'vue'
@@ -17,6 +20,7 @@ const emit = defineEmits<{
   (e: 'drag-start', payload: { event: MouseEvent, task: Task }): void
   (e: 'update:bounds', bounds: DOMRect): void
   (e: 'update:insertion-index', index: number | null): void
+  (e: 'edit', task: Task): void
 }>()
 
 const categoriesStore = useCategoriesStore()
@@ -38,14 +42,14 @@ onMounted(() => {
   // Watch for resizes
   if (pileRef.value) {
     const resizeObserver = new ResizeObserver(() => {
-        updateBounds()
+      updateBounds()
     })
     resizeObserver.observe(pileRef.value)
-    
-    // Cleanup stored on element for unmount
-    ;(pileRef.value as any).__resizeObserver = resizeObserver
+
+      // Cleanup stored on element for unmount
+      ; (pileRef.value as any).__resizeObserver = resizeObserver
   }
-  
+
   // Also watch window resize just in case (e.g. layout shift without element resize)
   window.addEventListener('resize', updateBounds)
   window.addEventListener('mousemove', handleMouseMove)
@@ -64,8 +68,8 @@ const getChaoticStyle = (task: Task) => {
     if (typeof id === 'number') return id
     let hash = 0
     for (let i = 0; i < id.length; i++) {
-        hash = ((hash << 5) - hash) + id.charCodeAt(i)
-        hash |= 0
+      hash = ((hash << 5) - hash) + id.charCodeAt(i)
+      hash |= 0
     }
     return Math.abs(hash)
   }
@@ -73,12 +77,12 @@ const getChaoticStyle = (task: Task) => {
   const seed = (getSeed(task.id) * 1337) % 100
   const rotation = (seed % 7) - 3
   const xOffset = (seed % 4) * 3 - 6
-  
+
   // Dynamic height based on duration
   let height = 68
   if (task.duration <= 15) height = 42
   else if (task.duration <= 30) height = 52
-  
+
   return {
     transform: `rotate(${rotation}deg) translateX(${xOffset}px)`,
     margin: '12px 0',
@@ -95,9 +99,9 @@ const handleMouseMove = (e: MouseEvent) => {
     }
     return
   }
-  
+
   const tasks = Array.from(contentRef.value.querySelectorAll('.task-group:not(.bottom-indicator-group)')) as HTMLElement[]
-  
+
   let newIndex = tasks.length
   for (let i = 0; i < tasks.length; i++) {
     const rect = tasks[i].getBoundingClientRect()
@@ -107,7 +111,7 @@ const handleMouseMove = (e: MouseEvent) => {
       break
     }
   }
-  
+
   if (props.insertionIndex !== newIndex) {
     emit('update:insertion-index', newIndex)
   }
@@ -119,59 +123,47 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 </script>
 
 <template>
-  <div 
-    ref="pileRef"
-    class="task-pile"
-    :class="{ 'is-highlighted': isHighlighted, 'is-shortcuts': listType === 'shortcut' }"
-  >
+  <div ref="pileRef"
+       class="task-pile"
+       :class="{ 'is-highlighted': isHighlighted, 'is-shortcuts': listType === 'shortcut' }">
     <h3 class="pile-title">{{ title }}</h3>
-    <div 
-      ref="contentRef"
-      class="pile-content"
-    >
+    <div ref="contentRef"
+         class="pile-content">
       <TransitionGroup name="task-list">
         <!-- We use a wrapper div for each task to keep the list layout stable -->
-        <div 
-          v-for="(task, index) in tasks" 
-          :key="task.id"
-          class="task-group"
-        >
+        <div v-for="(task, index) in tasks"
+             :key="task.id"
+             class="task-group">
           <!-- Insertion indicator is now ALWAYS present but has 0 height by default -->
-          <div 
-            class="insertion-indicator"
-            :class="{ 'is-visible': insertionIndex === index }"
-          >
+          <div class="insertion-indicator"
+               :class="{ 'is-visible': insertionIndex === index }">
             <div class="line"></div>
           </div>
-          
-          <div 
-            class="pile-task"
-            :class="{ 'is-active-drag': task.id === activeTaskId }"
-            :style="[
-              getChaoticStyle(task),
-              { '--category-color': task.color || categoriesStore.categoriesArray.find(c => c.name === task.category)?.color || 'var(--color-default)' }
-            ]"
-            @mousedown="handleMouseDown($event, task)"
-          >
-            <TaskItem :task="task" />
+
+          <div class="pile-task"
+               :class="{ 'is-active-drag': task.id === activeTaskId }"
+               :style="[
+                getChaoticStyle(task),
+                { '--category-color': task.color || categoriesStore.categoriesArray.find(c => c.name === task.category)?.color || 'var(--color-default)' }
+              ]"
+               @mousedown="handleMouseDown($event, task)">
+            <TaskItem :task="task"
+                      @edit="emit('edit', $event)" />
           </div>
         </div>
-        
+
         <!-- Final indicator at the very bottom -->
-        <div 
-          :key="'bottom-indicator'"
-          class="task-group bottom-indicator-group"
-        >
-          <div 
-            class="insertion-indicator" 
-            :class="{ 'is-visible': insertionIndex === tasks.length }"
-          >
+        <div :key="'bottom-indicator'"
+             class="task-group bottom-indicator-group">
+          <div class="insertion-indicator"
+               :class="{ 'is-visible': insertionIndex === tasks.length }">
             <div class="line"></div>
           </div>
         </div>
       </TransitionGroup>
-      
-      <div v-if="tasks.length === 0 && !isHighlighted" class="empty-state">
+
+      <div v-if="tasks.length === 0 && !isHighlighted"
+           class="empty-state">
         {{ listType === 'todo' ? 'No tasks to do' : 'No shortcuts yet' }}
       </div>
     </div>
@@ -224,7 +216,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
   will-change: transform;
   border-radius: 6px;
   transition: all 0.3s ease;
-  box-shadow: 0 0 2px 1px var(--category-color), 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 0 2px 1px var(--category-color), 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .pile-task.is-active-drag {
@@ -274,7 +266,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 
 /* Bottom group shouldn't move siblings when it appears/disappears */
 .bottom-indicator-group {
-    transition: none;
+  transition: none;
 }
 
 /* Animations */

@@ -8,10 +8,11 @@ import { storeToRefs } from 'pinia'
 import DayView from '../components/DayView.vue'
 import TrashBasket from '../components/TrashBasket.vue'
 import TaskPile from '../components/TaskPile.vue'
-import CreateTaskPopup from '../components/CreateTaskPopup.vue' // Added import
+import TaskEditorPopup from '../components/TaskEditorPopup.vue'
 import { useTasksStore } from '../stores/tasks'
 import { useExternalDrag } from '../composables/useExternalDrag'
 import { useDragState } from '../composables/useDragState'
+import type { Task } from '../types'
 
 const route = useRoute()
 const tasksStore = useTasksStore()
@@ -114,18 +115,34 @@ const handleExternalTaskDeletedWrapper = () => {
 }
 
 // Popup visibility state
-const showCreateTaskPopup = ref(false)
+const showEditorPopup = ref(false)
 const initialStartTime = ref<number | null>(null)
+const taskToEdit = ref<Task | null>(null)
+const popupTaskType = ref<'scheduled' | 'todo' | 'shortcut'>('scheduled')
 
 // Handler for when a slot is clicked or "Create Task" button is pressed
 const handleOpenCreatePopup = (payload?: { startTime: number }) => {
+  taskToEdit.value = null
   initialStartTime.value = payload?.startTime ?? null
-  showCreateTaskPopup.value = true
+  popupTaskType.value = 'scheduled'
+  showEditorPopup.value = true
+}
+
+// Handler for opening the editor for an existing task
+const handleEditTask = (task: Task) => {
+  taskToEdit.value = task
+  if (task.startTime !== null && task.startTime !== undefined) {
+    popupTaskType.value = 'scheduled'
+  } else if (task.isShortcut) {
+    popupTaskType.value = 'shortcut'
+  } else {
+    popupTaskType.value = 'todo'
+  }
+  showEditorPopup.value = true
 }
 
 // Handler for when the popup emits a create event
-const handleTaskCreate = (payload: { text: string; description: string; category: string; color: string; startTime?: number | null; duration?: number }) => {
-  // Use the store action to create a scheduled task with all required fields
+const handleTaskCreate = (payload: { text: string; description: string; category: string; startTime?: number | null; duration?: number }) => {
   tasksStore.createScheduledTask({
     text: payload.text,
     description: payload.description,
@@ -136,14 +153,29 @@ const handleTaskCreate = (payload: { text: string; description: string; category
     date: tasksStore.currentDate,
     isShortcut: false,
     order: 0,
-    color: payload.color || null
+    color: null
   } as any)
-  showCreateTaskPopup.value = false
+  showEditorPopup.value = false
 }
 
-// Optional: handler for closing the popup without creating
+// Handler for when the popup emits an update event
+const handleTaskUpdate = (payload: { id: string | number, updates: Partial<Task> }) => {
+  const task = tasksStore.getTaskById(payload.id)
+  if (!task) return
+
+  if (task.startTime !== null && task.startTime !== undefined) {
+    tasksStore.updateScheduledTask(task.id, task.date!, payload.updates)
+  } else if (task.isShortcut) {
+    tasksStore.updateShortcut(task.id, payload.updates)
+  } else {
+    tasksStore.updateTodo(task.id, payload.updates)
+  }
+  showEditorPopup.value = false
+}
+
 const handlePopupClose = () => {
-  showCreateTaskPopup.value = false
+  showEditorPopup.value = false
+  taskToEdit.value = null
 }
 </script>
 
@@ -169,13 +201,16 @@ const handlePopupClose = () => {
                @delete-external-task="handleExternalTaskDeletedWrapper"
                @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
                @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop"
-               @create-task="handleOpenCreatePopup" />
+               @create-task="handleOpenCreatePopup"
+               @edit="handleEditTask" />
 
-      <CreateTaskPopup :show="showCreateTaskPopup"
+      <TaskEditorPopup :show="showEditorPopup"
+                       :task="taskToEdit"
+                       :task-type="popupTaskType"
                        :initial-start-time="initialStartTime"
                        @close="handlePopupClose"
                        @create="handleTaskCreate"
-                       task-type="scheduled" />
+                       @update="handleTaskUpdate" />
     </main>
 
     <aside class="sidebar right">
@@ -188,7 +223,8 @@ const handlePopupClose = () => {
                   :insertion-index="shortcutInsertionIndex"
                   @update:bounds="shortcutBounds = $event"
                   @update:insertion-index="shortcutInsertionIndex = $event"
-                  @drag-start="handleExternalDragStart('shortcut', $event.task, $event.event)" />
+                  @drag-start="handleExternalDragStart('shortcut', $event.task, $event.event)"
+                  @edit="handleEditTask" />
         <TaskPile title="To Do"
                   :tasks="todoTasks"
                   list-type="todo"
@@ -197,7 +233,8 @@ const handlePopupClose = () => {
                   :insertion-index="todoInsertionIndex"
                   @update:bounds="todoBounds = $event"
                   @update:insertion-index="todoInsertionIndex = $event"
-                  @drag-start="handleExternalDragStart('todo', $event.task, $event.event)" />
+                  @drag-start="handleExternalDragStart('todo', $event.task, $event.event)"
+                  @edit="handleEditTask" />
       </div>
     </aside>
   </div>

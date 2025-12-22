@@ -37,62 +37,75 @@ export function useTaskOperations(
     const initialStart = ref(0)
     const initialDuration = ref(60)
     const startY = ref(0)
+    const startX = ref(0) // Track horizontal to detect movement in any direction
+    const dragThreshold = 5
+    const pendingOp = ref<{ taskId: string | number | null, opMode: OperationMode, task: Task, isExternal?: boolean, onStarted?: () => void } | null>(null)
 
     // Temp state for rendering active op
     const currentSnapTime = ref<number | null>(null)
     const currentDuration = ref<number | null>(null)
 
-    const startOperation = (e: MouseEvent, taskId: string | number, opMode: OperationMode) => {
-        e.preventDefault()
+    const startOperation = (e: MouseEvent, taskId: string | number, opMode: OperationMode, onStarted?: () => void) => {
         e.stopPropagation()
-
         const task = taskList.value.find(t => t.id === taskId)
         if (!task) return
-
-        let targetTaskId = taskId
 
         // Handle Clone & Drag
         if (opMode === 'drag' && e.ctrlKey) {
             config.onDuplicateTask?.({ originalTaskId: taskId })
-            // Note: We can't get the new ID synchronously anymore
-            // The duplicate will appear in the next render
             return
         }
 
-        mode.value = opMode
-        activeTaskId.value = targetTaskId
-        initialStart.value = task.startTime!
-        initialDuration.value = task.duration
         startY.value = e.clientY
-
-        currentSnapTime.value = task.startTime
-        currentDuration.value = task.duration
+        startX.value = e.clientX
+        pendingOp.value = { taskId, opMode, task, onStarted }
 
         window.addEventListener('mousemove', onMouseMove)
         window.addEventListener('mouseup', onMouseUp)
-        if (opMode === 'drag') {
-            window.addEventListener('wheel', onWheel, { passive: false })
-        }
     }
 
     // Logic to initiate an operation from an external source (sidebar)
-    const startExternalDrag = (e: MouseEvent, task: Task) => {
-        mode.value = 'drag'
-        activeTaskId.value = null
-
-        initialStart.value = config.startHour
-        initialDuration.value = task.duration || 60
+    const startExternalDrag = (e: MouseEvent, task: Task, onStarted?: () => void) => {
         startY.value = e.clientY
-
-        currentSnapTime.value = null
-        currentDuration.value = initialDuration.value
+        startX.value = e.clientX
+        pendingOp.value = { taskId: null, opMode: 'drag', task, isExternal: true, onStarted }
 
         window.addEventListener('mousemove', onMouseMove)
         window.addEventListener('mouseup', onMouseUp)
-        window.addEventListener('wheel', onWheel, { passive: false })
     }
 
     const onMouseMove = (e: MouseEvent) => {
+        // Handle pending threshold
+        if (mode.value === 'none' && pendingOp.value) {
+            const dist = Math.sqrt(Math.pow(e.clientX - startX.value, 2) + Math.pow(e.clientY - startY.value, 2))
+            if (dist > dragThreshold) {
+                const { taskId, opMode, task, isExternal, onStarted } = pendingOp.value
+                mode.value = opMode
+                activeTaskId.value = taskId
+
+                if (isExternal) {
+                    initialStart.value = config.startHour
+                    initialDuration.value = task.duration || 60
+                    currentSnapTime.value = null
+                    currentDuration.value = initialDuration.value
+                } else {
+                    initialStart.value = task.startTime!
+                    initialDuration.value = task.duration
+                    currentSnapTime.value = task.startTime
+                    currentDuration.value = task.duration
+                }
+
+                if (opMode === 'drag') {
+                    window.addEventListener('wheel', onWheel, { passive: false })
+                }
+
+                // Notify that the operation has actually started after threshold
+                onStarted?.()
+            } else {
+                return
+            }
+        }
+
         if (mode.value === 'none') return
 
         const hourHeight = config.hourHeight
@@ -221,6 +234,7 @@ export function useTaskOperations(
         } finally {
             mode.value = 'none'
             activeTaskId.value = null
+            pendingOp.value = null
             //currentSnapTime.value = null
             currentDuration.value = null
             resetCollisions()

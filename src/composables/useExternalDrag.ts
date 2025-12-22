@@ -7,10 +7,11 @@ export function useExternalDrag(dayViewRef: any) {
     const activeExternalTask = ref<{ source: 'shortcut' | 'todo', task: Task } | null>(null)
 
     const handleExternalDragStart = (source: 'shortcut' | 'todo', task: Task, event: MouseEvent) => {
-        activeExternalTask.value = { source, task }
-        // Pass the drag event to DayView so it can initiate the ghost logic
+        // Pass a callback to DayView so it only sets activeExternalTask when real drag starts
         if (dayViewRef.value) {
-            dayViewRef.value.startExternalDrag(event, task)
+            dayViewRef.value.startExternalDrag(event, task, () => {
+                activeExternalTask.value = { source, task }
+            })
         }
     }
 

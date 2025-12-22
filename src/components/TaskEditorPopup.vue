@@ -2,8 +2,9 @@
   setup
   lang="ts"
 >
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
+import type { Task } from '../types'
 import CategorySelector from './CategorySelector.vue'
 import TaskDateTimePicker from './TaskDateTimePicker.vue'
 
@@ -12,11 +13,13 @@ const props = defineProps<{
   initialStartTime?: number | null
   initialDate?: string | null
   taskType?: 'todo' | 'shortcut' | 'scheduled'
+  task?: Task | null // Prop for editing
 }>()
 
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'create', payload: { text: string, description: string, category: string, startTime?: number | null, duration?: number, date?: string | null }): void
+  (e: 'update', payload: { id: string | number, updates: Partial<Task> }): void
 }>()
 
 const categoriesStore = useCategoriesStore()
@@ -27,6 +30,7 @@ const taskDescription = ref('')
 const categoryInput = ref('')
 const selectedColor = ref('')
 const duration = ref(1.0) // Store as decimal hours (1.0 = 60 mins)
+
 const getTodayString = () => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -34,6 +38,29 @@ const getTodayString = () => {
 
 const startTime = ref<number | null>(props.initialStartTime ?? null)
 const taskDate = ref<string | null>(props.initialDate ?? getTodayString())
+
+const isEditMode = computed(() => !!props.task)
+
+// Initialize form from props/task
+const resetForm = () => {
+  if (props.task) {
+    taskText.value = props.task.text
+    taskDescription.value = props.task.description || ''
+    categoryInput.value = props.task.category
+    selectedColor.value = props.task.color || ''
+    duration.value = (props.task.duration || 60) / 60
+    startTime.value = props.task.startTime ?? null
+    taskDate.value = props.task.date ?? getTodayString()
+  } else {
+    taskText.value = ''
+    taskDescription.value = ''
+    categoryInput.value = ''
+    selectedColor.value = ''
+    duration.value = 1.0
+    startTime.value = props.initialStartTime ?? (props.taskType === 'scheduled' ? 9 : null)
+    taskDate.value = props.initialDate ?? getTodayString()
+  }
+}
 
 // Handle form submission
 const handleSubmit = async () => {
@@ -45,44 +72,49 @@ const handleSubmit = async () => {
   // Persist category if new
   await categoriesStore.ensureCategoryExists(finalCategoryName, finalColor)
 
-  emit('create', {
-    text: taskText.value.trim(),
-    description: taskDescription.value.trim(),
-    category: finalCategoryName,
-    //color: finalColor, we do no store color here, since this field only for uncategorized tasks
-    startTime: props.taskType === 'scheduled' ? (startTime.value ?? 9) : null,
-    duration: Math.round(duration.value * 60),
-    date: taskDate.value
-  })
+  if (isEditMode.value && props.task) {
+    emit('update', {
+      id: props.task.id,
+      updates: {
+        text: taskText.value.trim(),
+        description: taskDescription.value.trim(),
+        category: finalCategoryName,
+        startTime: startTime.value,
+        duration: Math.round(duration.value * 60),
+        date: taskDate.value
+      }
+    })
+  } else {
+    emit('create', {
+      text: taskText.value.trim(),
+      description: taskDescription.value.trim(),
+      category: finalCategoryName,
+      startTime: props.taskType === 'scheduled' ? (startTime.value ?? 9) : null,
+      duration: Math.round(duration.value * 60),
+      date: taskDate.value
+    })
+  }
 
-  resetForm()
-}
-
-const resetForm = () => {
-  taskText.value = ''
-  taskDescription.value = ''
-  categoryInput.value = ''
-  selectedColor.value = ''
-  duration.value = 1.0
-  startTime.value = props.initialStartTime ?? (props.taskType === 'scheduled' ? 9 : null)
-  taskDate.value = props.initialDate ?? getTodayString()
+  handleClose()
 }
 
 const handleClose = () => {
-  resetForm()
   emit('close')
 }
 
-// Focus task text input when popup opens
-const taskTextInput = ref<HTMLInputElement | null>(null)
-watch(() => props.show, (newVal) => {
-  if (newVal) {
+// Reset form when visibility or task prop changes
+watch([() => props.show, () => props.task], ([newShow], [oldShow]) => {
+  if (newShow) {
     resetForm()
-    setTimeout(() => {
-      taskTextInput.value?.focus()
-    }, 100)
+    if (newShow && !oldShow) {
+      setTimeout(() => {
+        taskTextInput.value?.focus()
+      }, 100)
+    }
   }
-})
+}, { immediate: true })
+
+const taskTextInput = ref<HTMLInputElement | null>(null)
 
 // Handle Escape key to close popup
 const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,7 +141,7 @@ onUnmounted(() => {
            @mousedown.self="handleClose">
         <div class="popup-container">
           <div class="popup-header">
-            <h2>Create New Task</h2>
+            <h2>{{ isEditMode ? 'Edit Task' : 'Create New Task' }}</h2>
             <button class="close-btn"
                     @click="handleClose">
               <svg width="20"
@@ -145,14 +177,15 @@ onUnmounted(() => {
             </div>
 
             <!-- Duration -->
-            <div class="form-group">
+            <div class="form-group"
+                 v-if="taskType !== 'todo' || isEditMode">
               <label for="duration">Duration (HH:mm)</label>
               <TaskDateTimePicker v-model:time="duration"
                                   view="time-only" />
             </div>
 
             <!-- Date & Time (for scheduled tasks) -->
-            <div v-if="taskType === 'scheduled'"
+            <div v-if="taskType === 'scheduled' || (isEditMode && startTime !== null)"
                  class="form-group">
               <label>Date & Time</label>
               <TaskDateTimePicker v-model:date="taskDate"
@@ -179,7 +212,7 @@ onUnmounted(() => {
               </button>
               <button type="submit"
                       class="btn btn-primary">
-                Create Task
+                {{ isEditMode ? 'Save Changes' : 'Create Task' }}
               </button>
             </div>
           </form>

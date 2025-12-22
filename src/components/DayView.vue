@@ -28,6 +28,7 @@ const emit = defineEmits<{
     (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
     (e: 'delete-external-task', payload: {}): void
     (e: 'create-task', payload: { startTime: number }): void
+    (e: 'edit', task: Task): void
 }>()
 
 // Store access for task operations
@@ -143,7 +144,7 @@ const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: Op
     startOperation(e, taskId, opMode)
 }
 
-const handleExternalDrag = (e: MouseEvent, task: Task) => {
+const handleExternalDrag = (e: MouseEvent, task: Task, onStarted?: () => void) => {
     updateContainerRect()
     updateScroll()
 
@@ -155,7 +156,7 @@ const handleExternalDrag = (e: MouseEvent, task: Task) => {
     dragOffsetXPercent.value = 0.5
     dragOffsetY.value = 20
 
-    startExternalDragOp(e, task)
+    startExternalDragOp(e, task, onStarted)
 }
 
 watch(activeTaskId, (id) => {
@@ -348,7 +349,8 @@ const getTeleportStyle = (task: any) => {
                                     <TaskItem :task="task"
                                               :is-dragging="task.id === activeTaskId && mode === 'drag'"
                                               :is-shaking="task.isOverlapping"
-                                              :status="taskStatuses[task.id]" />
+                                              :status="taskStatuses[task.id]"
+                                              @edit="emit('edit', $event)" />
 
                                     <!-- Bottom Handle -->
                                     <div v-if="task.id !== activeTaskId || mode !== 'drag'"

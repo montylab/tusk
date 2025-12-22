@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+  setup
+  lang="ts"
+>
 import { computed } from 'vue'
 import type { Task } from '../types'
 import { useCategoriesStore } from '../stores/categories'
@@ -11,7 +14,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'task-mousedown', payload: { originalEvent: MouseEvent, taskId: string | number }): void
+  (e: 'edit', task: Task): void
 }>()
 
 const categoriesStore = useCategoriesStore()
@@ -32,35 +35,51 @@ const itemStyle = computed(() => {
   return { '--category-color': color }
 })
 
-const onMouseDown = (e: MouseEvent) => {
-  emit('task-mousedown', { originalEvent: e, taskId: props.task.id })
+const onEditClick = (e: Event) => {
+  e.stopPropagation()
+  emit('edit', props.task)
 }
 </script>
 
 <template>
-  <div class="task-item" :class="{
-    'shaking': isShaking,
-    'dragging': isDragging,
-    'on-air': status === 'on-air',
-    'in-past': status === 'past',
-    'in-future': status === 'future',
-    'is-compact': isCompact
-  }" :style="itemStyle" @mousedown.prevent="onMouseDown">
+  <div class="task-item"
+       :class="{
+        'shaking': isShaking,
+        'dragging': isDragging,
+        'on-air': status === 'on-air',
+        'in-past': status === 'past',
+        'in-future': status === 'future',
+        'is-compact': isCompact
+      }"
+       :style="itemStyle"
+       @dblclick="emit('edit', task)">
 
-    <div v-if="status === 'on-air'" class="on-air-tag">ON AIR</div>
+    <div v-if="status === 'on-air'"
+         class="on-air-tag">ON AIR</div>
     <div class="color-stripe"></div>
     <div class="content">
       <div class="main-info">
         <h4 class="title">{{ task.text }}</h4>
+        <div class="header-actions"
+             v-if="!isDragging">
+          <button class="edit-btn"
+                  @mousedown.stop
+                  @click="onEditClick"
+                  title="Edit Task">
+            <i class="pi pi-pencil"></i>
+          </button>
+        </div>
         <span class="category-badge">
           {{ task.category || 'Uncategorized' }}
         </span>
       </div>
-      <p v-if="task.description && !isCompact" class="description-text">
+      <p v-if="task.description && !isCompact"
+         class="description-text">
         {{ task.description }}
       </p>
       <div class="meta">
-        <span class="time-badge" v-if="task.startTime !== null && task.startTime !== undefined">
+        <span class="time-badge"
+              v-if="task.startTime !== null && task.startTime !== undefined">
           {{ Math.floor(task.startTime) }}:{{ (Math.round((task.startTime % 1) * 60)).toString().padStart(2, '0') }}
         </span>
         <span class="duration-badge">
@@ -180,6 +199,42 @@ const onMouseDown = (e: MouseEvent) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.task-item:hover .header-actions {
+  opacity: 1;
+}
+
+.edit-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-btn i {
+  font-size: 0.7rem;
+}
+
+.edit-btn:hover {
+  background: var(--category-color);
+  border-color: #fff;
+  transform: scale(1.1);
 }
 
 .task-item.is-compact .title {
