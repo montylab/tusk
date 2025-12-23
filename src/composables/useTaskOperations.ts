@@ -10,6 +10,7 @@ interface OperationConfig {
     hourHeight: number
     getContainerRect?: () => DOMRect | null
     getScrollTop?: () => number
+    getScrollLeft?: () => number
     activeExternalTask?: () => Task | null
     // Handler callbacks
     onTaskDropped?: (payload: { taskId: string | number, startTime: number, duration: number, date: string }) => void
@@ -125,8 +126,6 @@ export function useTaskOperations(
 
         if (mode.value === 'drag') {
             const containerRect = config.getContainerRect?.()
-            const scrollTop = config.getScrollTop?.() || 0
-
             if (containerRect) {
                 // Calculate time based on absolute mouse position relative to container
                 // We need to account for the initial grab offset IF provided
@@ -134,7 +133,7 @@ export function useTaskOperations(
 
                 // Let's modify the calculation to be delta-based from initial start time
                 // This preserves the relative grab position naturally!
-                const relativeY = e.clientY - containerRect.top + scrollTop - (unref(config.topOffset) || 0)
+                const relativeY = e.clientY - containerRect.top - (unref(config.topOffset) || 0)
                 const rawTime = (relativeY / config.hourHeight) + config.startHour
 
                 // Calculate which column (date) we are over

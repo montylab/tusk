@@ -100,6 +100,7 @@ const {
         dates: toRef(props, 'dates'),
         getContainerRect: () => tasksContainerRef.value?.getBoundingClientRect() || null,
         getScrollTop: () => scrollTop.value,
+        getScrollLeft: () => scrollLeft.value,
         activeExternalTask: () => props.activeExternalTask,
         // Wire up internal handlers
         onTaskDropped: handleScheduleTask,
