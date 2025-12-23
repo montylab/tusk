@@ -204,20 +204,28 @@ const taskStatuses = ref<Record<string | number, 'past' | 'future' | 'on-air' | 
 
 const updateTaskStatuses = () => {
     const now = currentTime.value
+    const todayStr = now.toISOString().split('T')[0]
     const currentTotalMinutes = now.getHours() * 60 + now.getMinutes()
 
     allTasks.value.forEach(task => {
-        if (task.startTime === null) return
+        if (task.startTime === null || !task.date) return
 
-        const taskStartMinutes = task.startTime * 60
-        const taskEndMinutes = taskStartMinutes + task.duration
-
-        if (currentTotalMinutes < taskStartMinutes) {
+        if (task.date > todayStr) {
             taskStatuses.value[task.id] = 'future'
-        } else if (currentTotalMinutes >= taskStartMinutes && currentTotalMinutes < taskEndMinutes) {
-            taskStatuses.value[task.id] = 'on-air'
-        } else {
+        } else if (task.date < todayStr) {
             taskStatuses.value[task.id] = 'past'
+        } else {
+            // Todays task - check time
+            const taskStartMinutes = task.startTime * 60
+            const taskEndMinutes = taskStartMinutes + task.duration
+
+            if (currentTotalMinutes < taskStartMinutes) {
+                taskStatuses.value[task.id] = 'future'
+            } else if (currentTotalMinutes >= taskStartMinutes && currentTotalMinutes < taskEndMinutes) {
+                taskStatuses.value[task.id] = 'on-air'
+            } else {
+                taskStatuses.value[task.id] = 'past'
+            }
         }
     })
 }
