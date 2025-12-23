@@ -20,6 +20,14 @@ const state = reactive<DragState>({
     overZone: null
 })
 
+const check = (e: MouseEvent, bounds: DOMRect | null) => {
+    if (!bounds) return false
+    return e.clientX >= bounds.left &&
+        e.clientX <= bounds.right &&
+        e.clientY >= bounds.top &&
+        e.clientY <= bounds.bottom
+}
+
 export function useDragState() {
     const isOverTrash = computed(() => state.overZone === 'trash')
     const isOverTodo = computed(() => state.overZone === 'todo')
@@ -28,23 +36,15 @@ export function useDragState() {
     const isOverAddButton = computed(() => state.overZone === 'add-button')
 
     const updateCollision = (e: MouseEvent) => {
-        const check = (bounds: DOMRect | null) => {
-            if (!bounds) return false
-            return e.clientX >= bounds.left &&
-                e.clientX <= bounds.right &&
-                e.clientY >= bounds.top &&
-                e.clientY <= bounds.bottom
-        }
-
-        if (check(state.trashBounds)) {
+        if (check(e, state.trashBounds)) {
             state.overZone = 'trash'
-        } else if (check(state.todoBounds)) {
+        } else if (check(e, state.todoBounds)) {
             state.overZone = 'todo'
-        } else if (check(state.shortcutBounds)) {
+        } else if (check(e, state.shortcutBounds)) {
             state.overZone = 'shortcut'
-        } else if (check(state.addButtonBounds)) {
+        } else if (check(e, state.addButtonBounds)) {
             state.overZone = 'add-button'
-        } else if (check(state.calendarBounds)) {
+        } else if (check(e, state.calendarBounds)) {
             state.overZone = 'calendar'
         } else {
             state.overZone = null

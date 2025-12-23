@@ -8,7 +8,6 @@ import AddDayZone from './AddDayZone.vue'
 import type { Task } from '../types'
 import { useTaskOperations } from '../composables/useTaskOperations'
 import { useTasksStore } from '../stores/tasks'
-import { useDragState } from '../composables/useDragState'
 import { ref, watch, onMounted, onUnmounted, computed, toRef, nextTick } from 'vue'
 
 const props = withDefaults(defineProps<{
@@ -89,7 +88,8 @@ const {
     currentDuration,
     startOperation,
     startExternalDrag: startExternalDragOp,
-    handleSlotClick
+    handleSlotClick,
+    isOverCalendar
 } = useTaskOperations(
     allTasks,
     emit as any,
@@ -328,7 +328,7 @@ const getTeleportStyle = (task: any) => {
         colIndex = props.dates.indexOf(task.date)
     }
 
-    if (currentSnapTime.value !== null) {
+    if (currentSnapTime.value !== null && isOverCalendar.value) {
         // Vertical Snap
         const topViewport = ((currentSnapTime.value - props.startHour) * 80) + (containerRect.top || 0) + headerOffset.value
         const leftViewport = containerRect.left + (colIndex * colWidth)
@@ -457,6 +457,7 @@ const getTeleportStyle = (task: any) => {
     flex-direction: column;
     border: 1px solid var(--border-color);
     backdrop-filter: blur(10px);
+    overflow: hidden;
 }
 
 .calendar-layout {

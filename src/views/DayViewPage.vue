@@ -2,7 +2,7 @@
   setup
   lang="ts"
 >
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import DayView from '../components/DayView.vue'
@@ -23,30 +23,12 @@ const {
   todoBounds,
   shortcutBounds,
   calendarBounds,
-  addButtonBounds,
-  overZone,
   isOverTrash,
   isOverTodo,
   isOverShortcut,
-  isOverAddButton
+  overZone
 } = useDragState()
 
-const createBtnRef = ref<HTMLElement | null>(null)
-
-const updateAddButtonBounds = () => {
-  if (createBtnRef.value) {
-    addButtonBounds.value = createBtnRef.value.getBoundingClientRect()
-  }
-}
-
-onMounted(() => {
-  updateAddButtonBounds()
-  window.addEventListener('resize', updateAddButtonBounds)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateAddButtonBounds)
-})
 
 const todoInsertionIndex = ref<number | null>(null)
 const shortcutInsertionIndex = ref<number | null>(null)
@@ -222,7 +204,6 @@ const handleAddDay = () => {
     <main class="main-content">
       <button ref="createBtnRef"
               class="create-btn"
-              :class="{ 'over': isOverAddButton }"
               @click="handleOpenCreatePopup()"
               style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">Create
         Task</button>

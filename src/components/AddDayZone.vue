@@ -2,7 +2,9 @@
     setup
     lang="ts"
 >
-import { ref, onUnmounted, watch } from 'vue'
+import { ref, onUnmounted, watch, onMounted } from 'vue'
+
+import { useDragState } from '../composables/useDragState'
 
 const props = defineProps<{
     label: string
@@ -12,6 +14,37 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'add-day'): void
 }>()
+
+const { addButtonBounds } = useDragState()
+const zoneRef = ref<HTMLElement | null>(null)
+
+const updateBounds = () => {
+    if (zoneRef.value) {
+        addButtonBounds.value = zoneRef.value.getBoundingClientRect()
+    }
+}
+
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+    updateBounds()
+    window.addEventListener('resize', updateBounds)
+
+    if (zoneRef.value) {
+        resizeObserver = new ResizeObserver(() => {
+            updateBounds()
+        })
+        resizeObserver.observe(zoneRef.value)
+    }
+})
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateBounds)
+    if (resizeObserver) {
+        resizeObserver.disconnect()
+    }
+    if (timer) clearInterval(timer)
+})
 
 const isHovered = ref(false)
 const totalCountdownSeconds = 3
@@ -26,6 +59,7 @@ const startCountdown = () => {
     if (!props.isDragging) return
 
     countdown.value = totalCountdownSeconds
+    if (timer) clearInterval(timer) // i know that it's overhead, but prevent any possible double countdown 
     timer = setInterval(() => {
         countdown.value--
         if (countdown.value < 0) {
@@ -49,19 +83,20 @@ watch(() => props.isDragging, (val) => {
     if (!val) stopCountdown()
 })
 
-onUnmounted(() => {
-    if (timer) clearInterval(timer)
-})
 </script>
 
 <template>
     <div class="zone-occupier">
         <div class="add-day-zone"
+             ref="zoneRef"
              @click="emit('add-day')"
              @mouseenter="startCountdown"
              @mouseleave="stopCountdown"
              @mouseup="stopCountdown"
-             :class="{ 'is-counting': isDragging && isHovered && countdown < totalCountdownSeconds }">
+             :class="{
+                'is-counting': isDragging && isHovered && countdown < totalCountdownSeconds,
+                'over': isHovered
+            }">
 
             <div class="add-content">
                 <template v-if="isDragging && isHovered">
@@ -94,7 +129,7 @@ onUnmounted(() => {
 
 .add-day-zone {
     width: 40px;
-    border-left: 1px dashed var(--border-color);
+    border-left: 1px solid var(--border-color);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -109,6 +144,7 @@ onUnmounted(() => {
     background: var(--bg-card);
     backdrop-filter: blur(10px);
     z-index: 999;
+    text-align: center;
 }
 
 .add-day-zone:hover {
@@ -121,7 +157,6 @@ onUnmounted(() => {
     width: 180px !important;
     /* Force expand during countdown */
     background: rgba(var(--color-primary-rgb), 0.1);
-    border-left: 2px solid var(--color-primary);
 }
 
 .add-content {
@@ -141,7 +176,7 @@ onUnmounted(() => {
 }
 
 .add-day-zone:hover .plus-icon {
-    transform: rotate(90deg) scale(1.2);
+    transform: rotate(180deg) scale(5);
     color: #fff;
 }
 
