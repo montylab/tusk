@@ -375,6 +375,9 @@ const getTeleportStyle = (task: any) => {
                 <div class="calendar-grid">
                     <!-- Time Labels (Fixed Axis) -->
                     <div class="time-labels">
+                        <div class="column-header">
+                            <!-- Time -->
+                        </div>
                         <div v-for="hour in hours"
                              :key="hour"
                              class="time-label">
@@ -407,7 +410,7 @@ const getTeleportStyle = (task: any) => {
                                        @edit="emit('edit', $event)" />
 
                             <!-- Per-column Current Time Indicator (Visual Sync) -->
-                            <div v-if="timeIndicatorTop >= 0"
+                            <div v-if="timeIndicatorTop >= 0 && getDayName(date) === 'Today'"
                                  class="current-time-line"
                                  :style="{ top: `${timeIndicatorTop + 40}px` }">
                                 <div class="time-dot"></div>
@@ -451,7 +454,7 @@ const getTeleportStyle = (task: any) => {
 .day-view-container {
     background: var(--bg-card);
     border-radius: var(--radius);
-    padding: 1.5rem;
+    padding-top: .5rem;
     flex: 1;
     min-height: 0;
     display: flex;
@@ -472,7 +475,11 @@ const getTeleportStyle = (task: any) => {
     overflow-x: auto;
     /* Handle many days */
     position: relative;
-    padding-right: 10px;
+    /* padding-right: 10px; */
+}
+
+.calendar-scroll-area::-webkit-scrollbar {
+    scrollbar-color: red;
 }
 
 .calendar-grid {
@@ -485,12 +492,13 @@ const getTeleportStyle = (task: any) => {
 .time-labels {
     width: 60px;
     flex-shrink: 0;
-    margin-top: 40px;
+    /* margin-top: 40px; */
     /* Offset for column headers */
 }
 
 .time-label {
     height: 80px;
+    padding: 0 1rem;
     font-size: 0.8rem;
     color: var(--text-muted);
     display: flex;
@@ -522,15 +530,17 @@ const getTeleportStyle = (task: any) => {
     align-items: center;
     justify-content: center;
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-    background: var(--bg-card);
+    background: color-mix(in srgb, var(--bg-card) 60%, transparent);
     position: sticky;
     inset: 0;
     z-index: 20;
     backdrop-filter: blur(4px);
 
     /* we should cover timeline */
-    width: 120%;
-    transform: translateX(-100px);
+    /* width: 125%; */
+    /* transform: translateX(-10%); */
+    /* z-index: 999; */
+
 }
 
 .day-name {

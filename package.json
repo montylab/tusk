@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "playwright test",
+    "test-ui": "playwright test --ui"
   },
   "dependencies": {
     "@primeuix/themes": "^2.0.2",
@@ -19,6 +21,7 @@
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/node": "^25.0.3",
     "@vitejs/plugin-vue": "^6.0.1",
     "typescript": "^5.9.3",

@@ -86,7 +86,8 @@ onUnmounted(() => {
 <style scoped>
 .zone-occupier {
     /* display: none; */
-    width: 0;
+    width: calc(40px - 10px);
+    /* 10px scroll place */
     position: relative;
     /* overflow: hidden; */
 }
@@ -107,6 +108,7 @@ onUnmounted(() => {
     overflow: hidden;
     background: var(--bg-card);
     backdrop-filter: blur(10px);
+    z-index: 999;
 }
 
 .add-day-zone:hover {

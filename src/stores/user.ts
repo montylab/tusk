@@ -14,6 +14,13 @@ export const useUserStore = defineStore('user', () => {
     const loading = ref(true);
 
     onMounted(() => {
+        // Support mocking for tests
+        if (import.meta.env.DEV && (window as any).__MOCK_USER__) {
+            user.value = (window as any).__MOCK_USER__;
+            loading.value = false;
+            return;
+        }
+
         onAuthStateChanged(auth, (firebaseUser) => {
             user.value = firebaseUser;
             loading.value = false;

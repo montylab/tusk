@@ -30,3 +30,8 @@ app.component('ColorPicker', ColorPicker)
 app.component('DatePicker', DatePicker)
 
 app.mount('#app')
+
+// Expose pinia for testing
+if (import.meta.env.DEV) {
+    (window as any).pinia = pinia
+}
