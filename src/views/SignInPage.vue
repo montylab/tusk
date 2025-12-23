@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+  setup
+  lang="ts"
+>
 import { useUserStore } from '../stores/user'
 import { useRouter } from 'vue-router'
 import { onMounted } from 'vue'
@@ -8,13 +11,15 @@ const router = useRouter()
 
 const handleLogin = async () => {
   await userStore.login()
-  // Router guard will redirect to home after successful login
+  if (userStore.user) {
+    router.push('/')
+  }
 }
 
 // If already logged in, redirect to home
 onMounted(() => {
   if (userStore.user) {
-    router.push({ name: 'home' })
+    router.push('/')
   }
 })
 </script>
@@ -24,8 +29,10 @@ onMounted(() => {
     <div class="login-card">
       <h1>TaskTracker</h1>
       <p>Organize your day with precision</p>
-      <button @click="handleLogin" class="login-btn">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+      <button @click="handleLogin"
+              class="login-btn">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+             alt="Google" />
         Login with Google
       </button>
     </div>
