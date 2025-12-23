@@ -24,7 +24,7 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-    (e: 'update:is-over-trash', payload: boolean): void
+    (e: 'update:calendar-bounds', rect: DOMRect): void
     (e: 'external-task-dropped', payload: { taskId: string | number, startTime: number, duration?: number, date: string }): void
     (e: 'task-dropped-on-sidebar', payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut', date: string }): void
     (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
@@ -112,12 +112,6 @@ const {
     }
 )
 
-const { isOverTrash } = useDragState()
-
-watch(isOverTrash, (val) => {
-    emit('update:is-over-trash', val)
-})
-
 const tasksContainerRef = ref<HTMLElement | null>(null)
 const containerRect = ref<DOMRect | null>(null)
 const scrollAreaRef = ref<HTMLElement | null>(null)
@@ -138,7 +132,9 @@ const updateScroll = () => {
 
 const updateContainerRect = () => {
     if (tasksContainerRef.value) {
-        containerRect.value = tasksContainerRef.value.getBoundingClientRect()
+        const rect = tasksContainerRef.value.getBoundingClientRect()
+        containerRect.value = rect
+        emit('update:calendar-bounds', rect)
         // Measure header height dynamically
         const headerEl = tasksContainerRef.value.querySelector('.column-header')
         if (headerEl) {

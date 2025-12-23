@@ -33,7 +33,7 @@ export function useTaskOperations(
     })
     const mode = ref<OperationMode>('none')
     const activeTaskId = ref<string | number | null>(null)
-    const { isOverTrash, isOverTodo, isOverShortcut, updateCollision, resetCollisions } = useDragState()
+    const { overZone, isOverTrash, isOverTodo, isOverShortcut, isOverCalendar, isOverAddButton, updateCollision, resetCollisions } = useDragState()
 
     // Initial state for op
     const initialStart = ref(0)
@@ -291,7 +291,12 @@ export function useTaskOperations(
         currentSnapTime,
         currentSnapDate,
         currentDuration,
+        overZone,
         isOverTrash,
+        isOverTodo,
+        isOverShortcut,
+        isOverCalendar,
+        isOverAddButton,
         startOperation,
         startExternalDrag,
         resetCollisions,

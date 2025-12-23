@@ -1,24 +1,32 @@
-import { reactive, toRefs } from 'vue'
+import { reactive, toRefs, computed } from 'vue'
+
+export type DragZone = 'trash' | 'todo' | 'shortcut' | 'calendar' | 'add-button' | null
 
 interface DragState {
     trashBounds: DOMRect | null
     todoBounds: DOMRect | null
     shortcutBounds: DOMRect | null
-    isOverTrash: boolean
-    isOverTodo: boolean
-    isOverShortcut: boolean
+    calendarBounds: DOMRect | null
+    addButtonBounds: DOMRect | null
+    overZone: DragZone
 }
 
 const state = reactive<DragState>({
     trashBounds: null,
     todoBounds: null,
     shortcutBounds: null,
-    isOverTrash: false,
-    isOverTodo: false,
-    isOverShortcut: false
+    calendarBounds: null,
+    addButtonBounds: null,
+    overZone: null
 })
 
 export function useDragState() {
+    const isOverTrash = computed(() => state.overZone === 'trash')
+    const isOverTodo = computed(() => state.overZone === 'todo')
+    const isOverShortcut = computed(() => state.overZone === 'shortcut')
+    const isOverCalendar = computed(() => state.overZone === 'calendar')
+    const isOverAddButton = computed(() => state.overZone === 'add-button')
+
     const updateCollision = (e: MouseEvent) => {
         const check = (bounds: DOMRect | null) => {
             if (!bounds) return false
@@ -28,19 +36,32 @@ export function useDragState() {
                 e.clientY <= bounds.bottom
         }
 
-        state.isOverTrash = check(state.trashBounds)
-        state.isOverTodo = check(state.todoBounds)
-        state.isOverShortcut = check(state.shortcutBounds)
+        if (check(state.trashBounds)) {
+            state.overZone = 'trash'
+        } else if (check(state.todoBounds)) {
+            state.overZone = 'todo'
+        } else if (check(state.shortcutBounds)) {
+            state.overZone = 'shortcut'
+        } else if (check(state.addButtonBounds)) {
+            state.overZone = 'add-button'
+        } else if (check(state.calendarBounds)) {
+            state.overZone = 'calendar'
+        } else {
+            state.overZone = null
+        }
     }
 
     const resetCollisions = () => {
-        state.isOverTrash = false
-        state.isOverTodo = false
-        state.isOverShortcut = false
+        state.overZone = null
     }
 
     return {
         ...toRefs(state),
+        isOverTrash,
+        isOverTodo,
+        isOverShortcut,
+        isOverCalendar,
+        isOverAddButton,
         updateCollision,
         resetCollisions
     }

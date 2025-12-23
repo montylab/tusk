@@ -2,7 +2,7 @@
   setup
   lang="ts"
 >
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import DayView from '../components/DayView.vue'
@@ -18,15 +18,35 @@ const route = useRoute()
 const tasksStore = useTasksStore()
 const { currentDates, scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
 
-// Shared drag state
 const {
   trashBounds,
   todoBounds,
   shortcutBounds,
+  calendarBounds,
+  addButtonBounds,
+  overZone,
   isOverTrash,
   isOverTodo,
-  isOverShortcut
+  isOverShortcut,
+  isOverAddButton
 } = useDragState()
+
+const createBtnRef = ref<HTMLElement | null>(null)
+
+const updateAddButtonBounds = () => {
+  if (createBtnRef.value) {
+    addButtonBounds.value = createBtnRef.value.getBoundingClientRect()
+  }
+}
+
+onMounted(() => {
+  updateAddButtonBounds()
+  window.addEventListener('resize', updateAddButtonBounds)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateAddButtonBounds)
+})
 
 const todoInsertionIndex = ref<number | null>(null)
 const shortcutInsertionIndex = ref<number | null>(null)
@@ -200,7 +220,9 @@ const handleAddDay = () => {
     </aside>
 
     <main class="main-content">
-      <button class="create-btn"
+      <button ref="createBtnRef"
+              class="create-btn"
+              :class="{ 'over': isOverAddButton }"
               @click="handleOpenCreatePopup()"
               style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">Create
         Task</button>
@@ -210,7 +232,7 @@ const handleAddDay = () => {
                :start-hour="0"
                :end-hour="24"
                :active-external-task="activeExternalTask?.task || null"
-               @update:is-over-trash="isOverTrash = $event"
+               @update:calendar-bounds="calendarBounds = $event"
                @external-task-dropped="handleExternalTaskDropped"
                @delete-external-task="handleExternalTaskDeletedWrapper"
                @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
@@ -297,6 +319,16 @@ const handleAddDay = () => {
   padding: 1rem;
   overflow: hidden;
   min-width: 50vw;
+}
+
+.create-btn {
+  transition: all 0.2s ease;
+}
+
+.create-btn.over {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+  box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
 }
 
 @media (min-width: 1440px) {
