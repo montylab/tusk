@@ -322,7 +322,8 @@ const getTeleportStyle = (task: any) => {
                 zIndex: 9999,
                 pointerEvents: 'none' as const,
                 transform: 'scale(1.02)',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                maxHeight: '80px'
             }
         }
         colIndex = props.dates.indexOf(task.date)
@@ -575,5 +576,7 @@ const getTeleportStyle = (task: any) => {
 .is-dragging-teleport {
     z-index: 9999;
     pointer-events: none;
+    transition: max-height 0.4s ease;
+    max-height: 800px;
 }
 </style>

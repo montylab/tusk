@@ -56,7 +56,6 @@ export function useTaskOperations(
         // Handle Clone & Drag
         if (opMode === 'drag' && e.ctrlKey) {
             config.onDuplicateTask?.({ originalTaskId: taskId })
-            return
         }
 
         startY.value = e.clientY
