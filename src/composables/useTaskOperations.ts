@@ -42,7 +42,13 @@ export function useTaskOperations(
     const startY = ref(0)
     const startX = ref(0) // Track horizontal to detect movement in any direction
     const dragThreshold = 5
-    const pendingOp = ref<{ taskId: string | number | null, opMode: OperationMode, task: Task, isExternal?: boolean, onStarted?: () => void } | null>(null)
+    const pendingOp = ref<{
+        taskId: string | number | null, opMode: OperationMode, task: Task
+        isExternal?: boolean
+        onStarted?: () => void
+        yOffsetHours?: number
+    }
+        | null>(null)
 
     // Temp state for rendering active op
     const currentSnapTime = ref<number | null>(null)
@@ -77,10 +83,10 @@ export function useTaskOperations(
     }
 
     // Logic to initiate an operation from an external source (sidebar)
-    const startExternalDrag = (e: MouseEvent, task: Task, onStarted?: () => void) => {
+    const startExternalDrag = (e: MouseEvent, task: Task, onStarted?: () => void, yOffsetHours?: number) => {
         startY.value = e.clientY
         startX.value = e.clientX
-        pendingOp.value = { taskId: null, opMode: 'drag', task, isExternal: true, onStarted }
+        pendingOp.value = { taskId: null, opMode: 'drag', task, isExternal: true, onStarted, yOffsetHours }
 
         window.addEventListener('mousemove', onMouseMove)
         window.addEventListener('mouseup', onMouseUp)
@@ -91,16 +97,28 @@ export function useTaskOperations(
         if (mode.value === 'none' && pendingOp.value) {
             const dist = Math.sqrt(Math.pow(e.clientX - startX.value, 2) + Math.pow(e.clientY - startY.value, 2))
             if (dist > dragThreshold) {
-                const { taskId, opMode, task, isExternal, onStarted } = pendingOp.value
+                const { taskId, opMode, task, isExternal, onStarted, yOffsetHours } = pendingOp.value
                 mode.value = opMode
                 activeTaskId.value = taskId
 
                 if (isExternal) {
-                    initialStart.value = config.startHour
+                    const scrollTop = config.getScrollTop?.() || 0
+                    const containerRect = config.getContainerRect?.()
+                    const headerHeight = unref(config.topOffset) || 0
+
+                    if (containerRect) {
+                        const relativeY = e.clientY - containerRect.top + scrollTop - headerHeight
+                        const mouseTime = (relativeY / config.hourHeight) + config.startHour
+                        initialStart.value = mouseTime - (yOffsetHours || 0)
+                    } else {
+                        initialStart.value = config.startHour
+                    }
+
                     initialDuration.value = task.duration || 60
                     currentSnapTime.value = null
                     currentDuration.value = initialDuration.value
-                } else {
+                }
+                else {
                     initialStart.value = task.startTime!
                     initialDuration.value = task.duration
                     currentSnapTime.value = task.startTime
@@ -148,10 +166,11 @@ export function useTaskOperations(
                     currentSnapDate.value = targetDate
 
                     if (activeTaskId.value === null) {
-                        // External drag - center on mouse or use offset if we had one
-                        currentSnapTime.value = Math.max(config.startHour,
-                            Math.min(config.endHour - (currentDuration.value! / 60),
-                                Math.floor(rawTime * 4) / 4))
+                        // External drag - now use same delta logic to preserve grab points
+                        const rawNewTime = initialStart.value + deltaHours
+                        let snapped = Math.round(rawNewTime * 4) / 4
+                        snapped = Math.max(config.startHour, Math.min(config.endHour - (currentDuration.value! / 60), snapped))
+                        currentSnapTime.value = snapped
                     } else {
                         // Internal drag - USE DELTA from initial start!
                         // This ensures the task moves by the same amount the mouse moved,

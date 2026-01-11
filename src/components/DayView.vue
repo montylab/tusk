@@ -179,11 +179,24 @@ const handleExternalDrag = (e: MouseEvent, task: Task, onStarted?: () => void) =
     mouseX.value = e.clientX
     mouseY.value = e.clientY
 
-    // For external drag, pick a reasonable offset (center)
-    dragOffsetXPercent.value = 0.5
-    dragOffsetY.value = 20
+    // Use actual capture relative to the sidebar item
+    const target = e.target as HTMLElement
+    const itemEl = target.closest('.task-item')
+    let yOffsetHours = 0
+    if (itemEl) {
+        const rect = itemEl.getBoundingClientRect()
+        // Proportional X offset (0 to 1)
+        dragOffsetXPercent.value = (e.clientX - rect.left) / rect.width
+        // Fixed Y offset (absolute pixels)
+        dragOffsetY.value = e.clientY - rect.top
+        yOffsetHours = dragOffsetY.value / 80
+    } else {
+        dragOffsetXPercent.value = 0.5
+        dragOffsetY.value = 20
+        yOffsetHours = 20 / 80
+    }
 
-    startExternalDragOp(e, task, onStarted)
+    startExternalDragOp(e, task, onStarted, yOffsetHours)
 }
 
 watch(activeTaskId, (id) => {
@@ -210,31 +223,26 @@ const currentTime = ref(new Date())
 let timer: any = null
 const taskStatuses = ref<Record<string | number, 'past' | 'future' | 'on-air' | null>>({})
 
-const updateTaskStatuses = () => {
-    const now = currentTime.value
+const getTaskStatus = (task: Task | Partial<Task>, now: Date): 'past' | 'future' | 'on-air' | null => {
+    if (task.startTime === null || task.startTime === undefined || !task.date) return null
+
     const todayStr = now.toISOString().split('T')[0]
     const currentTotalMinutes = now.getHours() * 60 + now.getMinutes()
+    const taskStartMinutes = task.startTime * 60
+    const taskEndMinutes = taskStartMinutes + (task.duration || 60)
 
+    if (task.date > todayStr) return 'future'
+    if (task.date < todayStr) return 'past'
+
+    if (currentTotalMinutes < taskStartMinutes) return 'future'
+    if (currentTotalMinutes >= taskStartMinutes && currentTotalMinutes < taskEndMinutes) return 'on-air'
+    return 'past'
+}
+
+const updateTaskStatuses = () => {
+    const now = currentTime.value
     allTasks.value.forEach(task => {
-        if (task.startTime === null || !task.date) return
-
-        if (task.date > todayStr) {
-            taskStatuses.value[task.id] = 'future'
-        } else if (task.date < todayStr) {
-            taskStatuses.value[task.id] = 'past'
-        } else {
-            // Todays task - check time
-            const taskStartMinutes = task.startTime * 60
-            const taskEndMinutes = taskStartMinutes + task.duration
-
-            if (currentTotalMinutes < taskStartMinutes) {
-                taskStatuses.value[task.id] = 'future'
-            } else if (currentTotalMinutes >= taskStartMinutes && currentTotalMinutes < taskEndMinutes) {
-                taskStatuses.value[task.id] = 'on-air'
-            } else {
-                taskStatuses.value[task.id] = 'past'
-            }
-        }
+        taskStatuses.value[task.id] = getTaskStatus(task, now)
     })
 }
 
@@ -344,10 +352,43 @@ const getNextDateLabel = computed(() => {
     return getDayName(nextDateStr) + ' (' + nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ')'
 })
 
+const activeTask = computed(() => {
+    if (activeTaskId.value !== null) {
+        return allTasks.value.find(t => t.id === activeTaskId.value) || null
+    }
+    return props.activeExternalTask
+})
+
+const activeTaskPreview = computed<Task | null>(() => {
+    const baseTask = activeTask.value
+    if (!baseTask) return null
+
+    // Create a copy and merge with current snap/operation state
+    return {
+        ...baseTask,
+        startTime: currentSnapTime.value !== null ? currentSnapTime.value : baseTask.startTime,
+        duration: currentDuration.value !== null ? currentDuration.value : (baseTask.duration || 60),
+        date: currentSnapDate.value || baseTask.date
+    }
+})
+
+const activeTaskStatus = computed(() => {
+    if (!activeTaskPreview.value) return null
+    return getTaskStatus(activeTaskPreview.value, currentTime.value)
+})
+
+const mergedTaskStatuses = computed(() => {
+    if (activeTaskId.value === null || !activeTaskStatus.value) return taskStatuses.value
+    return {
+        ...taskStatuses.value,
+        [activeTaskId.value]: activeTaskStatus.value
+    }
+})
+
 const getTeleportStyle = (task: any) => {
     if (mode.value !== 'drag') return {}
-    if (task.id !== activeTaskId.value && activeTaskId.value !== null) return {}
-    if (activeTaskId.value === null && task !== props.activeExternalTask) return {}
+    const activeId = activeTaskId.value !== null ? activeTaskId.value : props.activeExternalTask?.id
+    if (task.id !== activeId) return {}
 
     const isExternal = activeTaskId.value === null
     const duration = currentDuration.value || task.duration || 60
@@ -406,7 +447,7 @@ const getTeleportStyle = (task: any) => {
         }
     } else {
         // Free float (near mouse)
-        const floatWidth = Math.min(colWidth, 240)
+        const floatWidth = Math.max(colWidth || 200, 240)
         return {
             position: 'fixed' as const,
             top: `${mouseY.value - dragOffsetY.value}px`,
@@ -476,7 +517,7 @@ const getTeleportStyle = (task: any) => {
                                        :mode="mode"
                                        :current-snap-time="currentSnapDate === date ? currentSnapTime : null"
                                        :current-duration="currentDuration"
-                                       :task-statuses="taskStatuses"
+                                       :task-statuses="mergedTaskStatuses"
                                        @start-operation="handleStartOperation($event.event, $event.taskId, $event.opMode, $event.initialRect)"
                                        @slot-click="handleSlotClick($event.startTime, 0 /* not used */, date)"
                                        @edit="emit('edit', $event)" />
@@ -496,25 +537,14 @@ const getTeleportStyle = (task: any) => {
                     </div>
                 </div>
 
-                <!-- Floating Item for Drags (Teleport to Body) -->
+                <!-- Floating Item for Interaction (Teleport to Body) -->
                 <Teleport to="body"
-                          v-if="activeTaskId !== null && mode === 'drag'">
-                    <div v-if="allTasks.find(t => t.id === activeTaskId)"
-                         class="task-wrapper-absolute is-dragging-teleport"
-                         :style="getTeleportStyle(allTasks.find(t => t.id === activeTaskId))">
-                        <TaskItem :task="allTasks.find(t => t.id === activeTaskId)!"
-                                  :is-dragging="true"
-                                  :status="taskStatuses[activeTaskId]" />
-                    </div>
-                </Teleport>
-
-                <!-- Floating Item for External Drag (Teleport to Body) -->
-                <Teleport to="body"
-                          v-if="activeExternalTask && activeTaskId === null && mode === 'drag'">
+                          v-if="activeTaskPreview && mode === 'drag'">
                     <div class="task-wrapper-absolute is-dragging-teleport"
-                         :style="getTeleportStyle(activeExternalTask)">
-                        <TaskItem :task="activeExternalTask"
-                                  :is-dragging="true" />
+                         :style="getTeleportStyle(activeTaskPreview)">
+                        <TaskItem :task="activeTaskPreview"
+                                  :is-dragging="true"
+                                  :status="activeTaskStatus" />
                     </div>
                 </Teleport>
             </div>

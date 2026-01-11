@@ -42,6 +42,17 @@ const taskDate = ref<string | null>(props.initialDate ?? getTodayString())
 
 const isEditMode = computed(() => !!props.task)
 
+const formatTime = (time: number) => {
+  const h = Math.floor(time)
+  const m = Math.round((time % 1) * 60)
+  return `${h}:${m.toString().padStart(2, '0')}`
+}
+
+const projectedEndTime = computed(() => {
+  if (startTime.value === null) return null
+  return startTime.value + duration.value
+})
+
 // Initialize form from props/task
 const resetForm = () => {
   if (props.task) {
@@ -190,10 +201,15 @@ onUnmounted(() => {
                                   view="time-only" />
             </div>
 
-            <!-- Date & Time (for scheduled tasks) -->
             <div v-if="taskType === 'scheduled' || (isEditMode && startTime !== null)"
                  class="form-group">
-              <label>Date & Time</label>
+              <div class="label-with-preview">
+                <label>Date & Time</label>
+                <span v-if="projectedEndTime !== null"
+                      class="end-time-preview">
+                  Ends at {{ formatTime(projectedEndTime) }}
+                </span>
+              </div>
               <TaskDateTimePicker v-model:date="taskDate"
                                   v-model:time="startTime" />
             </div>
@@ -242,6 +258,26 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.label-with-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.label-with-preview label {
+  margin-bottom: 0;
+}
+
+.end-time-preview {
+  font-size: 0.75rem;
+  color: #a78bfa;
+  font-weight: 600;
+  background: rgba(167, 139, 250, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
 .popup-overlay {
   position: fixed;
   top: 0;

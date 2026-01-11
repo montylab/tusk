@@ -38,6 +38,8 @@ export function useTaskLayout(
                 ...t,
                 displayStart,
                 displayDuration,
+                startTime: (t.id === activeTaskId.value) ? displayStart : startTime,
+                duration: (t.id === activeTaskId.value) ? displayDuration : duration,
                 // Stability: Use original coordinates for the layout pass while interacting
                 // so the task stays in its original column/cluster.
                 layoutStart: (t.id === activeTaskId.value) ? startTime : displayStart,

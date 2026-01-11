@@ -19,13 +19,25 @@ const emit = defineEmits<{
 
 const categoriesStore = useCategoriesStore()
 
+const formatTime = (time: number) => {
+  const h = Math.floor(time)
+  const m = Math.round((time % 1) * 60)
+  return `${h}:${m.toString().padStart(2, '0')}`
+}
+
 const formatDuration = (minutes: number) => {
   const safeMinutes = isNaN(minutes) ? 60 : minutes
+  if (safeMinutes <= 0) return '0m'
   if (safeMinutes < 60) return `${safeMinutes}m`
   const h = Math.floor(safeMinutes / 60)
-  const m = safeMinutes % 60
+  const m = Math.round(safeMinutes % 60)
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
+
+const endTime = computed(() => {
+  if (props.task.startTime === null || props.task.startTime === undefined) return null
+  return props.task.startTime + (props.task.duration / 60)
+})
 
 const isCompact = computed(() => props.task.duration <= 30)
 
@@ -84,7 +96,7 @@ const onEditClick = (e: Event) => {
       <div class="meta">
         <span class="time-badge"
               v-if="task.startTime !== null && task.startTime !== undefined">
-          {{ Math.floor(task.startTime) }}:{{ (Math.round((task.startTime % 1) * 60)).toString().padStart(2, '0') }}
+          {{ formatTime(task.startTime) }} - {{ endTime !== null ? formatTime(endTime) : '?' }}
         </span>
         <span class="duration-badge">
           {{ formatDuration(task.duration) }}
