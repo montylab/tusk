@@ -251,6 +251,50 @@ const onAddDay = async () => {
     }
 }
 
+// --- Statistics Calculation ---
+const formatStatsTime = (minutes: number) => {
+    const h = Math.floor(minutes / 60)
+    const m = Math.round(minutes % 60)
+    return `${h}:${m.toString().padStart(2, '0')}h`
+}
+
+const getDayStats = (date: string) => {
+    const tasks = props.tasksByDate[date] || []
+    let total = 0
+    let completed = 0
+    let deepTotal = 0
+    let deepCompleted = 0
+
+    const now = currentTime.value
+    const currentTotalMinutes = now.getHours() * 60 + now.getMinutes()
+
+    tasks.forEach(t => {
+        const status = taskStatuses.value[t.id]
+        total += t.duration
+
+        let taskCompletedMinutes = 0
+        if (status === 'past') {
+            taskCompletedMinutes = t.duration
+        } else if (status === 'on-air' && t.startTime !== null) {
+            const taskStartMinutes = t.startTime * 60
+            taskCompletedMinutes = Math.max(0, Math.min(t.duration, currentTotalMinutes - taskStartMinutes))
+        }
+
+        completed += taskCompletedMinutes
+
+        if (t.isDeepWork) {
+            deepTotal += t.duration
+            deepCompleted += taskCompletedMinutes
+        }
+    })
+
+    return {
+        tasks: `${formatStatsTime(completed)} / ${formatStatsTime(total)}`,
+        deep: `${formatStatsTime(deepCompleted)} / ${formatStatsTime(deepTotal)}`,
+        hasDeep: deepTotal > 0
+    }
+}
+
 
 onMounted(() => {
     //updateContainerRect()
@@ -405,8 +449,23 @@ const getTeleportStyle = (task: any) => {
                              :key="date"
                              class="day-column-outer">
                             <div class="column-header">
-                                <span class="day-name">{{ getDayName(date) }}</span>
-                                <span class="date-num">{{ date }}</span>
+                                <div class="header-left">
+                                    <span class="day-name">{{ getDayName(date) }}</span>
+                                    <span class="date-num">{{ date }}</span>
+                                </div>
+                                <div class="header-right">
+                                    <div class="stat-row"
+                                         title="Tasks Process (Completed / Total)">
+                                        <i class="pi pi-check-circle"></i>
+                                        <span>{{ getDayStats(date).tasks }}</span>
+                                    </div>
+                                    <div v-if="getDayStats(date).hasDeep"
+                                         class="stat-row deep"
+                                         title="Deep Work Progress (Completed / Total)">
+                                        <i class="pi pi-brain"></i>
+                                        <span>{{ getDayStats(date).deep }}</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <DayColumn :date="date"
@@ -425,7 +484,7 @@ const getTeleportStyle = (task: any) => {
                             <!-- Per-column Current Time Indicator (Visual Sync) -->
                             <div v-if="timeIndicatorTop >= 0 && getDayName(date) === 'Today'"
                                  class="current-time-line"
-                                 :style="{ top: `${timeIndicatorTop + 40}px` }">
+                                 :style="{ top: `${timeIndicatorTop + headerOffset}px` }">
                                 <div class="time-dot"></div>
                             </div>
                         </div>
@@ -537,24 +596,60 @@ const getTeleportStyle = (task: any) => {
 }
 
 .column-header {
-    height: 40px;
-    line-height: 16px;
+    height: 70px;
+    padding: 0 0.75rem;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     background: color-mix(in srgb, var(--bg-card) 60%, transparent);
     position: sticky;
     inset: 0;
     z-index: 20;
     backdrop-filter: blur(4px);
+    transition: background 0.2s;
+}
 
-    /* we should cover timeline */
-    /* width: 125%; */
-    /* transform: translateX(-10%); */
-    /* z-index: 999; */
+.column-header:hover {
+    background: color-mix(in srgb, var(--bg-card) 85%, transparent);
+}
 
+.header-left,
+.header-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.header-left {
+    align-items: flex-start;
+}
+
+.header-right {
+    align-items: flex-end;
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.stat-row i {
+    font-size: 0.6rem;
+    opacity: 0.7;
+}
+
+.stat-row.deep {
+    color: #a78bfa;
+    /* Light purple to match brain theme */
+}
+
+.stat-row.deep i {
+    opacity: 1;
 }
 
 .day-name {
