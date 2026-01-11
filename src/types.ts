@@ -10,10 +10,12 @@ export interface Task {
     order?: number; // Sorting order in piles
     color?: string | null; // Hex
     description?: string;
+    isDeepWork?: boolean;
 }
 export interface Category {
     id: string;
     name: string;
     color: string;
     order: number;
+    isDeepWork?: boolean;
 }

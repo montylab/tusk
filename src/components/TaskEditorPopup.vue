@@ -18,7 +18,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'create', payload: { text: string, description: string, category: string, startTime?: number | null, duration?: number, date?: string | null }): void
+  (e: 'create', payload: { text: string, description: string, category: string, isDeepWork: boolean, startTime?: number | null, duration?: number, date?: string | null }): void
   (e: 'update', payload: { id: string | number, updates: Partial<Task> }): void
 }>()
 
@@ -29,6 +29,7 @@ const taskText = ref('')
 const taskDescription = ref('')
 const categoryInput = ref('')
 const selectedColor = ref('')
+const isDeepWork = ref(false)
 const duration = ref(1.0) // Store as decimal hours (1.0 = 60 mins)
 
 const getTodayString = () => {
@@ -51,11 +52,13 @@ const resetForm = () => {
     duration.value = (props.task.duration || 60) / 60
     startTime.value = props.task.startTime ?? null
     taskDate.value = props.task.date ?? getTodayString()
+    isDeepWork.value = !!props.task.isDeepWork
   } else {
     taskText.value = ''
     taskDescription.value = ''
     categoryInput.value = ''
     selectedColor.value = ''
+    isDeepWork.value = false
     duration.value = 1.0
     startTime.value = props.initialStartTime ?? (props.taskType === 'scheduled' ? 9 : null)
     taskDate.value = props.initialDate ?? getTodayString()
@@ -70,7 +73,7 @@ const handleSubmit = async () => {
   const finalColor = selectedColor.value || '#667eea' // fallback
 
   // Persist category if new
-  await categoriesStore.ensureCategoryExists(finalCategoryName, finalColor)
+  await categoriesStore.ensureCategoryExists(finalCategoryName, finalColor, isDeepWork.value)
 
   if (isEditMode.value && props.task) {
     emit('update', {
@@ -81,7 +84,8 @@ const handleSubmit = async () => {
         category: finalCategoryName,
         startTime: startTime.value,
         duration: Math.round(duration.value * 60),
-        date: taskDate.value
+        date: taskDate.value,
+        isDeepWork: isDeepWork.value
       }
     })
   } else {
@@ -89,6 +93,7 @@ const handleSubmit = async () => {
       text: taskText.value.trim(),
       description: taskDescription.value.trim(),
       category: finalCategoryName,
+      isDeepWork: isDeepWork.value,
       startTime: props.taskType === 'scheduled' ? (startTime.value ?? 9) : null,
       duration: Math.round(duration.value * 60),
       date: taskDate.value
@@ -173,7 +178,8 @@ onUnmounted(() => {
             <div class="form-group">
               <label for="category">Category</label>
               <CategorySelector v-model:name="categoryInput"
-                                v-model:color="selectedColor" />
+                                v-model:color="selectedColor"
+                                v-model:isDeepWork="isDeepWork" />
             </div>
 
             <!-- Duration -->
@@ -190,6 +196,19 @@ onUnmounted(() => {
               <label>Date & Time</label>
               <TaskDateTimePicker v-model:date="taskDate"
                                   v-model:time="startTime" />
+            </div>
+
+            <!-- Deep Work Toggle -->
+            <div class="form-group">
+              <div class="checkbox-group">
+                <input id="deep-work"
+                       v-model="isDeepWork"
+                       type="checkbox"
+                       class="form-checkbox" />
+                <label for="deep-work"
+                       class="checkbox-label">Deep Work</label>
+                <div class="deep-work-hint">Focused, uninterrupted work</div>
+              </div>
             </div>
 
             <!-- Task Description -->
@@ -346,6 +365,52 @@ onUnmounted(() => {
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.6);
   margin-top: 0.25rem;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+
+.checkbox-group:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+.checkbox-group:has(.form-checkbox:checked) {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: rgba(124, 58, 237, 0.4);
+}
+
+.form-checkbox {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: #7c3aed;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.checkbox-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  margin: 0 !important;
+  text-transform: none !important;
+}
+
+.deep-work-hint {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
 }
 
 .form-actions {

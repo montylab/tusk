@@ -126,7 +126,8 @@ export const useTasksStore = defineStore('tasks', () => {
                 duration: 60,
                 isShortcut: false,
                 order: maxOrder + 10000,
-                date: undefined // Not relevant for todo
+                date: undefined, // Not relevant for todo
+                isDeepWork: false
             }
 
             const finalTaskData = { ...defaults, ...taskData }
@@ -150,7 +151,8 @@ export const useTasksStore = defineStore('tasks', () => {
                 duration: 60,
                 isShortcut: true,
                 order: maxOrder + 10000,
-                date: undefined
+                date: undefined,
+                isDeepWork: false
             }
 
             const finalTaskData = { ...defaults, ...taskData }
@@ -172,7 +174,8 @@ export const useTasksStore = defineStore('tasks', () => {
                 isShortcut: false,
                 order: 0,
                 date: taskData.date || currentDates.value[0],
-                color: null
+                color: null,
+                isDeepWork: false
             }
 
             const finalTaskData = { ...defaults, ...taskData }

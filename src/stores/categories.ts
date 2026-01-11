@@ -56,7 +56,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     }
 
     // --- Actions ---
-    const addCategory = async (name: string, color: string) => {
+    const addCategory = async (name: string, color: string, isDeepWork: boolean = false) => {
         try {
             const maxOrder = categoriesArray.value.length > 0
                 ? Math.max(...categoriesArray.value.map(c => c.order ?? 0))
@@ -65,7 +65,8 @@ export const useCategoriesStore = defineStore('categories', () => {
             const newCategory: Omit<Category, 'id'> = {
                 name,
                 color,
-                order: maxOrder + 10
+                order: maxOrder + 10,
+                isDeepWork
             }
             return await firebaseService.createCategory(newCategory)
         } catch (err) {
@@ -92,12 +93,12 @@ export const useCategoriesStore = defineStore('categories', () => {
         }
     }
 
-    const ensureCategoryExists = async (name: string, defaultColor: string): Promise<Category> => {
+    const ensureCategoryExists = async (name: string, defaultColor: string, isDeepWork: boolean = false): Promise<Category> => {
         const existing = categoriesArray.value.find(c => c.name.toLowerCase() === name.toLowerCase())
         if (existing) return existing
 
-        const id = await addCategory(name, defaultColor)
-        return { id, name, color: defaultColor, order: 0 } // order doesn't matter much for return
+        const id = await addCategory(name, defaultColor, isDeepWork)
+        return { id, name, color: defaultColor, order: 0, isDeepWork } // order doesn't matter much for return
     }
 
     return {

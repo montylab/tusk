@@ -70,6 +70,12 @@ const onEditClick = (e: Event) => {
           </button>
         </div>
         <span class="category-badge">{{ task.category || 'Uncategorized' }}</span>
+        <span v-if="task.isDeepWork"
+              class="deep-work-badge"
+              title="Deep Work task">
+          <i class="pi pi-brain"></i>
+          <span v-if="!isCompact">DEEP</span>
+        </span>
       </div>
       <p v-if="task.description && !isCompact"
          class="description-text">
@@ -176,10 +182,6 @@ const onEditClick = (e: Event) => {
   justify-content: flex-start;
 }
 
-.is-compact .meta {
-  /* margin-left: auto; */
-  /* margin-right: auto; */
-}
 
 .is-compact .category-badge {
   display: none;
@@ -281,8 +283,29 @@ const onEditClick = (e: Event) => {
   border-radius: 4px;
   padding: 0 4px;
   font-weight: 700;
+  white-space: nowrap;
   text-transform: uppercase;
   flex-shrink: 0;
+}
+
+.deep-work-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #7c3aed;
+  /* Purple */
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+  pointer-events: none;
+}
+
+.deep-work-badge i {
+  font-size: 0.65rem;
 }
 
 .time-badge,

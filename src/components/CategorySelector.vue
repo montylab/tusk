@@ -8,11 +8,13 @@ import { useCategoriesStore } from '../stores/categories'
 const props = defineProps<{
     name: string
     color: string
+    isDeepWork: boolean
 }>()
 
 const emit = defineEmits<{
     (e: 'update:name', value: string): void
     (e: 'update:color', value: string): void
+    (e: 'update:isDeepWork', value: boolean): void
 }>()
 
 const categoriesStore = useCategoriesStore()
@@ -53,6 +55,14 @@ const onCategorySelect = (event: any) => {
     const item = event.value;
     emit('update:name', item.name);
     emit('update:color', item.color);
+
+    // Find the actual category to get its isDeepWork value
+    const fullCat = categoriesStore.categoriesArray.find(c => c.name === item.name)
+    if (fullCat) {
+        emit('update:isDeepWork', !!fullCat.isDeepWork)
+    } else {
+        emit('update:isDeepWork', false)
+    }
 };
 
 // Internal model for AutoComplete
@@ -67,6 +77,7 @@ watch(nameInput, (newValue) => {
 
     if (!newValue) {
         emit('update:color', '');
+        emit('update:isDeepWork', false);
         return;
     }
 
@@ -75,10 +86,13 @@ watch(nameInput, (newValue) => {
 
     if (foundCategory) {
         emit('update:color', foundCategory.color);
+        emit('update:isDeepWork', !!foundCategory.isDeepWork);
     } else if (newValue.trim()) {
         //emit('update:color', generateColorForCategory());
+        emit('update:isDeepWork', false);
     } else {
         emit('update:color', '');
+        emit('update:isDeepWork', false);
     }
 });
 
@@ -157,6 +171,17 @@ const handlePickerClick = () => {
                     Only new categories can choose color
                 </div>
             </Transition>
+        </div>
+
+        <div class="deep-work-toggle"
+             v-if="isNewCategory">
+            <label class="toggle-container"
+                   title="Deep Work category">
+                <input type="checkbox"
+                       :checked="isDeepWork"
+                       @change="emit('update:isDeepWork', ($event.target as HTMLInputElement).checked)" />
+                <span class="toggle-label">Deep Work</span>
+            </label>
         </div>
     </div>
 </template>
@@ -278,5 +303,35 @@ const handlePickerClick = () => {
 
 :deep(.form-input::placeholder) {
     color: rgba(255, 255, 255, 0.3);
+}
+
+.deep-work-toggle {
+    margin-left: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    user-select: none;
+    white-space: nowrap;
+}
+
+.toggle-container input {
+    cursor: pointer;
+    accent-color: var(--color-urgent);
+}
+
+.toggle-label {
+    transition: color 0.2s;
+}
+
+.toggle-container:hover .toggle-label {
+    color: #fff;
 }
 </style>

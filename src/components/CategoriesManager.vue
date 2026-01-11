@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+    setup
+    lang="ts"
+>
 import { ref, computed } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
 import draggable from 'vuedraggable'
@@ -24,12 +27,14 @@ const localCategories = computed({
 
 const newCategoryName = ref('')
 const newCategoryColor = ref('3b82f6') // Default hex string (without # for PrimeVue ColorPicker)
+const newCategoryIsDeepWork = ref(false)
 
 const handleAddCategory = async () => {
     if (newCategoryName.value.trim()) {
         const color = newCategoryColor.value.startsWith('#') ? newCategoryColor.value : '#' + newCategoryColor.value
-        await categoriesStore.addCategory(newCategoryName.value.trim(), color)
+        await categoriesStore.addCategory(newCategoryName.value.trim(), color, newCategoryIsDeepWork.value)
         newCategoryName.value = ''
+        newCategoryIsDeepWork.value = false
         // Keep color as is or reset? Let's keep it for now.
     }
 }
@@ -51,6 +56,10 @@ const handleUpdateName = async (id: string, name: string) => {
     }
 }
 
+const handleUpdateDeepWork = async (id: string, isDeepWork: boolean) => {
+    await categoriesStore.updateCategory(id, { isDeepWork })
+}
+
 // Helper to strip # for ColorPicker model
 const stripHex = (hex: string) => hex.replace('#', '')
 </script>
@@ -65,8 +74,10 @@ const stripHex = (hex: string) => hex.replace('#', '')
         <div class="add-section">
             <div class="input-group">
                 <label>Category Name</label>
-                <InputText v-model="newCategoryName" placeholder="e.g., Deep Work, Health..."
-                    @keyup.enter="handleAddCategory" class="name-input" />
+                <InputText v-model="newCategoryName"
+                           placeholder="e.g., Deep Work, Health..."
+                           @keyup.enter="handleAddCategory"
+                           class="name-input" />
             </div>
             <div class="input-group">
                 <label>Color</label>
@@ -75,42 +86,77 @@ const stripHex = (hex: string) => hex.replace('#', '')
                     <span class="color-code">#{{ newCategoryColor }}</span>
                 </div>
             </div>
-            <Button label="Add Category" icon="pi pi-plus" @click="handleAddCategory"
-                :disabled="!newCategoryName.trim()" class="add-button" />
+            <div class="input-group checkbox-group">
+                <label>Deep Work</label>
+                <div class="checkbox-container">
+                    <input type="checkbox"
+                           v-model="newCategoryIsDeepWork" />
+                    <span class="checkbox-hint">Auto-enables for tasks</span>
+                </div>
+            </div>
+            <Button label="Add Category"
+                    icon="pi pi-plus"
+                    @click="handleAddCategory"
+                    :disabled="!newCategoryName.trim()"
+                    class="add-button" />
         </div>
 
         <div class="list-section">
-            <div v-if="categoriesStore.loading" class="loading">Loading categories...</div>
+            <div v-if="categoriesStore.loading"
+                 class="loading">Loading categories...</div>
 
-            <draggable v-else v-model="localCategories" item-key="id" handle=".drag-handle" class="categories-list"
-                ghost-class="ghost">
+            <draggable v-else
+                       v-model="localCategories"
+                       item-key="id"
+                       handle=".drag-handle"
+                       class="categories-list"
+                       ghost-class="ghost">
                 <template #item="{ element }">
                     <div class="category-item-card">
-                        <div class="drag-handle" title="Drag to reorder">
+                        <div class="drag-handle"
+                             title="Drag to reorder">
                             <i class="pi pi-bars"></i>
                         </div>
 
                         <div class="color-swatch-wrapper">
-                            <div class="color-indicator" :style="{ backgroundColor: element.color }"></div>
+                            <div class="color-indicator"
+                                 :style="{ backgroundColor: element.color }"></div>
                             <ColorPicker :modelValue="stripHex(element.color)"
-                                @update:modelValue="(val) => handleUpdateColor(element.id, val)"
-                                class="inline-picker" />
+                                         @update:modelValue="(val) => handleUpdateColor(element.id, val)"
+                                         class="inline-picker" />
                         </div>
 
                         <div class="item-content">
-                            <InputText v-model="element.name" @blur="handleUpdateName(element.id, element.name)"
-                                @keyup.enter="($event.target as HTMLInputElement).blur()" class="item-name-input" />
+                            <InputText v-model="element.name"
+                                       @blur="handleUpdateName(element.id, element.name)"
+                                       @keyup.enter="($event.target as HTMLInputElement).blur()"
+                                       class="item-name-input" />
+                        </div>
+
+                        <div class="item-deep-work">
+                            <input type="checkbox"
+                                   :checked="element.isDeepWork"
+                                   @change="handleUpdateDeepWork(element.id, ($event.target as HTMLInputElement).checked)"
+                                   title="Deep Work enabled" />
+                            <i class="pi pi-brain"
+                               v-if="element.isDeepWork"
+                               style="color: #a78bfa; font-size: 0.8rem;"></i>
                         </div>
 
                         <div class="actions">
-                            <Button icon="pi pi-trash" severity="danger" text rounded
-                                @click="handleRemoveCategory(element.id)" title="Delete Category" />
+                            <Button icon="pi pi-trash"
+                                    severity="danger"
+                                    text
+                                    rounded
+                                    @click="handleRemoveCategory(element.id)"
+                                    title="Delete Category" />
                         </div>
                     </div>
                 </template>
             </draggable>
 
-            <div v-if="!categoriesStore.loading && localCategories.length === 0" class="empty-state">
+            <div v-if="!categoriesStore.loading && localCategories.length === 0"
+                 class="empty-state">
                 No categories found. Create your first one above!
             </div>
         </div>
@@ -143,6 +189,7 @@ const stripHex = (hex: string) => hex.replace('#', '')
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
+    flex-wrap: wrap;
 }
 
 .input-group {
@@ -176,6 +223,31 @@ const stripHex = (hex: string) => hex.replace('#', '')
 .add-button {
     height: 36px;
     font-size: 0.9rem;
+}
+
+.checkbox-group {
+    flex: 0 0 auto;
+    min-width: 120px;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 36px;
+}
+
+.checkbox-container input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #a78bfa;
+}
+
+.checkbox-hint {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-style: italic;
 }
 
 .list-section {
@@ -270,6 +342,18 @@ const stripHex = (hex: string) => hex.replace('#', '')
 
 .item-name-input:focus {
     background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.item-deep-work {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.5rem;
+}
+
+.item-deep-work input {
+    cursor: pointer;
+    accent-color: #a78bfa;
 }
 
 .actions {
