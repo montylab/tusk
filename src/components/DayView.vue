@@ -195,8 +195,15 @@ watch(activeTaskId, (id) => {
 
 // 2. Layout Logic (Now handled by DayColumn components)
 
+const scrollToTop = () => {
+    if (scrollAreaRef.value) {
+        scrollAreaRef.value.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+}
+
 defineExpose({
-    startExternalDrag: handleExternalDrag // Expose the new handler
+    startExternalDrag: handleExternalDrag,
+    scrollToTop
 })
 
 const currentTime = ref(new Date())

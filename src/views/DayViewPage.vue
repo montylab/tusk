@@ -2,8 +2,8 @@
   setup
   lang="ts"
 >
-import { ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import DayView from '../components/DayView.vue'
 import TrashBasket from '../components/TrashBasket.vue'
@@ -12,10 +12,18 @@ import TaskEditorPopup from '../components/TaskEditorPopup.vue'
 import { useTasksStore } from '../stores/tasks'
 import { useExternalDrag } from '../composables/useExternalDrag'
 import { useDragState } from '../composables/useDragState'
+import { useTimeBoundaries } from '../composables/useTimeBoundaries'
+import { formatDate } from '../utils/dateUtils'
 import type { Task } from '../types'
 
 const route = useRoute()
+const router = useRouter()
 const tasksStore = useTasksStore()
+const { onDayChange } = useTimeBoundaries()
+
+onDayChange((newDate) => {
+  router.push({ name: 'day', params: { date: newDate } })
+})
 const { currentDates, scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
 
 const {
@@ -25,8 +33,7 @@ const {
   calendarBounds,
   isOverTrash,
   isOverTodo,
-  isOverShortcut,
-  overZone
+  isOverShortcut
 } = useDragState()
 
 
@@ -45,13 +52,20 @@ const {
 } = useExternalDrag(dayViewRef)
 
 // Watch for date parameter changes
-watch(() => route.params.date, (newDate) => {
+watch(() => route.params.date, (newDate, oldDate) => {
   if (newDate && typeof newDate === 'string') {
     tasksStore.currentDates = [newDate]
   } else {
     // Use today's date
-    const today = new Date().toISOString().split('T')[0]
+    const today = formatDate(new Date())
     tasksStore.currentDates = [today]
+  }
+
+  // Scroll reset on date change
+  if (newDate !== oldDate) {
+    nextTick(() => {
+      dayViewRef.value?.scrollToTop()
+    })
   }
 }, { immediate: true })
 
