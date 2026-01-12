@@ -80,6 +80,34 @@ const hours = Array.from({ length: props.endHour - props.startHour }, (_, i) => 
 
 const allTasks = computed(() => Object.values(props.tasksByDate).flat())
 
+// Collect unique task boundary times (start and end) excluding round hours
+const taskBoundaryTimes = computed(() => {
+    const times = new Set<number>()
+
+    allTasks.value.forEach(task => {
+        if (task.startTime !== null && task.startTime !== undefined) {
+            // Add start time if not a round hour
+            if (task.startTime % 1 !== 0) {
+                times.add(task.startTime)
+            }
+
+            // Calculate and add end time if not a round hour
+            const endTime = task.startTime + (task.duration / 60)
+            if (endTime % 1 !== 0) {
+                times.add(endTime)
+            }
+        }
+    })
+
+    return Array.from(times).sort((a, b) => a - b)
+})
+
+const formatTimeLabel = (time: number) => {
+    const h = Math.floor(time)
+    const m = Math.round((time % 1) * 60)
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+}
+
 const {
     mode,
     activeTaskId,
@@ -481,11 +509,26 @@ const getTeleportStyle = (task: any) => {
                              class="time-label">
                             {{ hour.toString().padStart(2, '0') }}:00
                         </div>
+
+                        <!-- Dynamic task boundary labels -->
+                        <div v-for="time in taskBoundaryTimes"
+                             :key="`boundary-${time}`"
+                             class="time-label task-boundary-label"
+                             :style="{ top: `${(time - startHour) * 80 + 70}px` }">
+                            {{ formatTimeLabel(time) }}
+                        </div>
                     </div>
 
                     <!-- Columnar Content -->
                     <div class="days-wrapper"
                          ref="tasksContainerRef">
+                        <!-- Task boundary grid lines -->
+                        <div v-for="time in taskBoundaryTimes"
+                             :key="`line-${time}`"
+                             class="task-boundary-line"
+                             :style="{ top: `${(time - startHour) * 80 + headerOffset}px` }">
+                        </div>
+
                         <div v-for="date in dates"
                              :key="date"
                              class="day-column-outer">
@@ -595,6 +638,7 @@ const getTeleportStyle = (task: any) => {
 .time-labels {
     width: 60px;
     flex-shrink: 0;
+    position: relative;
     /* margin-top: 40px; */
     /* Offset for column headers */
 }
@@ -604,6 +648,22 @@ const getTeleportStyle = (task: any) => {
     padding: 0 1rem;
     font-size: 0.8rem;
     color: var(--text-muted);
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: flex-start;
+}
+
+.task-boundary-label {
+    position: absolute;
+    right: 0;
+    height: auto;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+    border-bottom: none;
+    border-top: 1px solid #333;
+    font-weight: 400;
+    padding: 0 0.5rem;
+    pointer-events: none;
     display: flex;
     align-items: flex-start;
 }

@@ -122,7 +122,7 @@ const handleSlotClick = (hour: number, q: number) => {
 
 .quarter-slot {
     flex: 1;
-    border-bottom: 1px dashed rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     cursor: cell;
     transition: background 0.2s;
 }
