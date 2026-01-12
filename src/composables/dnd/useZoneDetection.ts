@@ -43,8 +43,12 @@ export function useZoneDetection() {
             zone = 'calendar'
         }
 
-        setDropTarget({ zone })
-    }, { deep: true }) // dragPosition is ref object, needs deep or value watch
+        // Only update if the zone has actually changed to avoid clearing strategy-specific data
+        const currentZone = useDragContext().dropTarget.value.zone
+        if (currentZone !== zone) {
+            setDropTarget({ zone })
+        }
+    }, { deep: true })
 
     const registerZone = (zone: Exclude<ZoneType, 'none'>, rect: DOMRect) => {
         bounds[zone] = rect

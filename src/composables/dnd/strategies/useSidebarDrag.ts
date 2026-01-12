@@ -21,13 +21,14 @@ interface SidebarDragPayload {
 }
 
 export function useSidebarDrag(config: SidebarDragConfig): DragStrategy {
-    const { startDrag, updateDragPosition, updateGhostPosition, endDrag, setDropTarget, dropTarget } = useDragContext()
+    const { startDrag, updateDragPosition, updateGhostPosition, updateDragDimensions, updateDragOffset, endDrag, setDropTarget, dropTarget } = useDragContext()
     const tasksStore = useTasksStore()
 
     // Internal State
     let activeTask: Task | null = null
     let activeSource: 'todo' | 'shortcut' | null = null
     let yOffsetHours = 0
+    let initialOffsetRatioY = 0.5
 
     // Snap State
     const currentSnapTime = ref<number | null>(null)
@@ -45,16 +46,13 @@ export function useSidebarDrag(config: SidebarDragConfig): DragStrategy {
         // Ideally we know the height based on duration
         const duration = activeTask.duration || 60
         const height = (duration / 60) * config.hourHeight
+        initialOffsetRatioY = yOffsetHours / (duration / 60)
 
         startDrag(
-            { type: 'task', data: activeTask, source: 'calendar' }, // Source 'calendar' used for ghost styling or 'sidebar'?
-            // Actually ghost usually looks same.
-            // But useDragContext source type is 'calendar' | 'todo' | 'shortcut'
+            { type: 'task', data: activeTask, source: 'calendar' },
             { x: event.clientX, y: event.clientY },
-            { x: 0, y: 0 }, // Offset handled by yOffsetHours conceptually, but for ghost visual?
-            // Visual offset: We want mouse to be relative to ghost as it was in sidebar.
-            // yOffsetHours * hourHeight ~ pixels.
-            { width: 200, height }
+            { x: 110, y: yOffsetHours * config.hourHeight }, // Center horizontally (110 is half of 220)
+            { width: 220, height }
         )
     }
 
@@ -73,7 +71,8 @@ export function useSidebarDrag(config: SidebarDragConfig): DragStrategy {
         if (isOverCalendar) {
             // Column Calculation
             const relativeX = event.clientX - containerRect.left
-            const colWidth = containerRect.width / config.dates.value.length
+            // Subtract the 30px spacer of AddDayZone to get true columns area
+            const colWidth = (containerRect.width - 30) / config.dates.value.length
             const colIndex = Math.floor(relativeX / colWidth)
             const targetDate = config.dates.value[Math.min(colIndex, config.dates.value.length - 1)]
 
@@ -95,18 +94,31 @@ export function useSidebarDrag(config: SidebarDragConfig): DragStrategy {
             currentSnapTime.value = snapped
 
             // Ghost Position
-            const ghostX = containerRect.left + (colIndex * colWidth)
+            // +1 to account for the border-left of DayColumn
+            const ghostX = containerRect.left + (colIndex * colWidth) + 1
             const ghostY = containerRect.top + (snapped - config.startHour) * config.hourHeight + unref(config.topOffset)
 
             updateGhostPosition(ghostX, ghostY)
             setDropTarget({ zone: 'calendar', data: { date: targetDate, time: snapped } })
+
+            // Expand to column width
+            if (activeTask) {
+                const h = (activeTask.duration / 60) * config.hourHeight
+                updateDragDimensions(colWidth, h)
+                updateDragOffset(colWidth * 0.5, h * initialOffsetRatioY)
+            }
         } else {
             updateGhostPosition(null, null)
+            // Shrink to card size when over sidebar/trash
+            const h = activeTask ? (activeTask.duration / 60) * config.hourHeight : 60
+            updateDragDimensions(220, 60) // Simple card height? or h? 
+            // Usually sidebar items have uniform height in TaskPile (e.g. 60)
+            updateDragOffset(110, 30)
             // Let ZoneDetection handle Sidebar/Trash zones
         }
     }
 
-    const onEnd = (event: MouseEvent) => {
+    const onEnd = (_event: MouseEvent) => {
         if (activeTask && activeSource) {
             const target = dropTarget.value.zone
             const duration = activeTask.duration || 60
@@ -120,12 +132,30 @@ export function useSidebarDrag(config: SidebarDragConfig): DragStrategy {
             } else if (target === 'trash') {
                 if (activeSource === 'todo') tasksStore.deleteTodo(activeTask.id)
                 else tasksStore.deleteShortcut(activeTask.id)
-            } else if (target === 'todo' && activeSource === 'shortcut') {
-                // Copy shortcut to todo
-                tasksStore.copyShortcutToTodo(activeTask.id)
-            } else if (target === 'shortcut' && activeSource === 'todo') {
-                // Move todo to shortcut
-                tasksStore.moveTodoToShortcut(activeTask.id)
+            } else if (target === 'todo') {
+                const targetIndex = dropTarget.value.data?.index
+                if (targetIndex !== undefined) {
+                    if (activeSource === 'shortcut') {
+                        const order = tasksStore.calculateNewOrder(tasksStore.todoTasks, targetIndex)
+                        tasksStore.copyShortcutToTodo(activeTask.id, order)
+                    } else if (activeSource === 'todo') {
+                        tasksStore.reorderTodo(activeTask.id, targetIndex)
+                    }
+                } else if (activeSource === 'shortcut') {
+                    tasksStore.copyShortcutToTodo(activeTask.id)
+                }
+            } else if (target === 'shortcut') {
+                const targetIndex = dropTarget.value.data?.index
+                if (targetIndex !== undefined) {
+                    if (activeSource === 'todo') {
+                        const order = tasksStore.calculateNewOrder(tasksStore.shortcutTasks, targetIndex)
+                        tasksStore.moveTodoToShortcut(activeTask.id, order)
+                    } else if (activeSource === 'shortcut') {
+                        tasksStore.reorderShortcut(activeTask.id, targetIndex)
+                    }
+                } else if (activeSource === 'todo') {
+                    tasksStore.moveTodoToShortcut(activeTask.id)
+                }
             }
             // If target is same as source (e.g. todo -> todo), it's reorder.
             // Reorder strategy might handle that, or we handle it here if dropped on self?

@@ -68,7 +68,10 @@ const handleSlotClick = (hour: number, q: number) => {
             <template v-for="task in layoutTasks"
                       :key="task.id">
                 <div class="task-wrapper-absolute"
-                     :class="{ 'is-dragging': task.id === activeTaskId && mode === 'drag' }"
+                     :class="{
+                        'is-dragging': task.id === activeTaskId && mode === 'drag',
+                        'dragged-origin': task.id === activeTaskId
+                    }"
                      :style="task.style"
                      @mousedown="emit('start-operation', {
                         event: $event,
@@ -152,8 +155,8 @@ const handleSlotClick = (hour: number, q: number) => {
 }
 
 .task-wrapper-absolute.is-dragging {
-    opacity: 0;
-    /* Hide in column while dragging (Teleport handles the visual) */
+    opacity: 0.25;
+    /* Show faded version in column while dragging */
     pointer-events: none;
 }
 
@@ -176,6 +179,11 @@ const handleSlotClick = (hour: number, q: number) => {
 
 .is-ghost {
     opacity: 0.5;
+    pointer-events: none;
+}
+
+.dragged-origin {
+    opacity: 0.25;
     pointer-events: none;
 }
 </style>

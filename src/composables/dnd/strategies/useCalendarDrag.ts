@@ -1,4 +1,4 @@
-import { ref, unref, Ref } from 'vue'
+import { ref, unref, Ref, readonly } from 'vue'
 import { DragStrategy } from '../useDragAndDrop'
 import { useDragContext } from '../useDragContext'
 import { useTasksStore } from '../../../stores/tasks'
@@ -17,10 +17,11 @@ interface CalendarDragConfig {
 interface CalendarDragPayload {
     task: Task
     mode: 'drag' | 'resize-top' | 'resize-bottom'
+    initialRect?: DOMRect
 }
 
 export function useCalendarDrag(config: CalendarDragConfig): DragStrategy {
-    const { startDrag, updateDragPosition, updateGhostPosition, updateDragDimensions, endDrag, setDropTarget, dropTarget } = useDragContext()
+    const { startDrag, updateDragPosition, updateGhostPosition, updateDragDimensions, updateDragOffset, endDrag, setDropTarget, dropTarget } = useDragContext()
     const tasksStore = useTasksStore()
 
     // Internal State
@@ -35,11 +36,14 @@ export function useCalendarDrag(config: CalendarDragConfig): DragStrategy {
     const currentDuration = ref<number | null>(null)
 
     let activeTask: Task | null = null
-    let activeMode: 'drag' | 'resize-top' | 'resize-bottom' = 'drag'
+    const activeMode = ref<'drag' | 'resize-top' | 'resize-bottom'>('drag')
+    let initialOffsetRatioX = 0.5
+    let initialOffsetRatioY = 0.5
+    let originalWidth = 200
 
     const onStart = (payload: CalendarDragPayload, event: MouseEvent) => {
         activeTask = payload.task
-        activeMode = payload.mode
+        activeMode.value = payload.mode
 
         startY.value = event.clientY
         startScrollTop.value = config.getScrollTop()
@@ -49,21 +53,46 @@ export function useCalendarDrag(config: CalendarDragConfig): DragStrategy {
         currentDuration.value = initialDuration.value
         currentSnapDate.value = activeTask.date || null
 
-        // Dimensions (Attempt to get from event target if possible, or config?)
-        // Ideally we grab the rect of the task element.
-        // For logic, we assume standard width/height or use passed dims.
-        // Here we just accept a default since we don't have the element rect readily available
-        // unless passed in payload.
-        // Assuming hourHeight * duration
-        const h = (activeMode === 'drag')
-            ? (activeTask.duration / 60) * config.hourHeight
-            : (activeTask.duration / 60) * config.hourHeight // Resize ghost size?
+        currentSnapDate.value = activeTask.date || null
+
+        // Calculate Offset & Dimensions from initialRect if available
+        let offsetX = 0
+        let offsetY = 0
+        let width = 200 // Fallback
+
+        // Initial Height
+        const h = (activeTask.duration / 60) * config.hourHeight
+
+        const containerRect = config.getContainerRect()
+        if (payload.initialRect) {
+            width = payload.initialRect.width
+            originalWidth = width
+            offsetX = event.clientX - payload.initialRect.left
+            offsetY = event.clientY - payload.initialRect.top
+
+            // If it's a drag operation, we want it to become full column width immediately
+            if (activeMode.value === 'drag' && containerRect && activeTask.date) {
+                const colWidth = (containerRect.width - 30) / config.dates.value.length
+                const colIndex = config.dates.value.indexOf(activeTask.date)
+                if (colIndex !== -1) {
+                    const colLeft = containerRect.left + (colIndex * colWidth)
+                    width = colWidth
+                    offsetX = event.clientX - colLeft
+                }
+            }
+
+            initialOffsetRatioX = offsetX / width
+            initialOffsetRatioY = offsetY / h
+        } else {
+            originalWidth = 200 // Fallback
+        }
+
 
         startDrag(
             { type: 'task', data: activeTask, source: 'calendar' },
             { x: event.clientX, y: event.clientY },
-            { x: 0, y: 0 }, // Offset TODO: Calculate correct offset
-            { width: 200, height: h } // Width hardcoded for now or fetch from context
+            { x: offsetX, y: offsetY },
+            { width, height: h }
         )
     }
 
@@ -75,7 +104,7 @@ export function useCalendarDrag(config: CalendarDragConfig): DragStrategy {
         const deltaY = (event.clientY - startY.value) + deltaScroll
         const deltaHours = deltaY / config.hourHeight
 
-        if (activeMode === 'drag') {
+        if (activeMode.value === 'drag') {
             const containerRect = config.getContainerRect()
             if (!containerRect) return
 
@@ -88,7 +117,8 @@ export function useCalendarDrag(config: CalendarDragConfig): DragStrategy {
             if (isOverCalendar) {
                 // Column Calculation
                 const relativeX = event.clientX - containerRect.left
-                const colWidth = containerRect.width / config.dates.value.length
+                // Subtract the 30px spacer of AddDayZone to get true columns area
+                const colWidth = (containerRect.width - 30) / config.dates.value.length
                 const colIndex = Math.floor(relativeX / colWidth)
                 const targetDate = config.dates.value[Math.min(colIndex, config.dates.value.length - 1)]
                 currentSnapDate.value = targetDate
@@ -101,33 +131,28 @@ export function useCalendarDrag(config: CalendarDragConfig): DragStrategy {
 
                 // Update Ghost Position
                 // Calculate Screen coords for the ghost
-                const ghostX = containerRect.left + (colIndex * colWidth)
+                // +1 to account for the border-left of DayColumn
+                const ghostX = containerRect.left + (colIndex * colWidth) + 1
                 const ghostY = containerRect.top + (snapped - config.startHour) * config.hourHeight + unref(config.topOffset)
 
                 updateGhostPosition(ghostX, ghostY)
                 setDropTarget({ zone: 'calendar', data: { date: targetDate, time: snapped } })
 
-                // Ensure dimensions match duration (if changed externally? no)
+                // Dimensions: Now always use full column width for better visibility
+                if (activeTask) {
+                    const h = (activeTask.duration / 60) * config.hourHeight
+                    updateDragDimensions(colWidth, h)
+                    updateDragOffset(colWidth * initialOffsetRatioX, h * initialOffsetRatioY)
+                }
+
             } else {
                 updateGhostPosition(null, null)
-                // Let ZoneDetection handle zones.
-                // It will overwrite setDropTarget.
-                // We assume ZoneDetection runs AFTER or concurrently. 
-                // Wait, useZoneDetection watches dragPosition.
-                // If we also set dropTarget here, who wins?
-                // Depending on watch/update order. 
-                // BUT, ZoneDetection only sets 'trash' / 'todo' if collision.
-                // If collision with Calendar bounds -> it sets 'calendar'.
-                // Strategy logic is more specific (it calculates snap).
-                // If ZoneDetection overrides, we might lose `data` (snap time).
-
-                // Solution: ZoneDetection detects generic zone.
-                // Detailed Strategy overrides/augments it?
-                // Or better: Strategy handles Calendar Zone explicitely (as above)
-                // and if NOT over calendar, let ZoneDetection handle it (via fallback or simple overlap).
+                // Outside Calendar: Shrink to card size
+                updateDragDimensions(220, 60)
+                updateDragOffset(110, 30) // Center mouse on card
             }
         }
-        else if (activeMode === 'resize-bottom') {
+        else if (activeMode.value === 'resize-bottom') {
             let deltaMinutes = deltaHours * 60
             let rawDuration = initialDuration.value + deltaMinutes
             let snappedDuration = Math.round(rawDuration / 15) * 15
@@ -147,26 +172,28 @@ export function useCalendarDrag(config: CalendarDragConfig): DragStrategy {
         if (activeTask) {
             const target = dropTarget.value.zone
 
-            if (activeMode === 'drag') {
+            if (activeMode.value === 'drag') {
                 if (target === 'trash') {
                     tasksStore.deleteScheduledTask(activeTask.id, activeTask.date!)
                 } else if (target === 'todo') {
-                    // Move to Todo
-                    // We need order? Store handles appending usually.
-                    // Or use dropTarget.data if ZoneDetection provided index?
-                    tasksStore.moveCalendarToTodo(activeTask.id, activeTask.date!)
+                    const targetIndex = dropTarget.value.data?.index
+                    const order = targetIndex !== undefined ? tasksStore.calculateNewOrder(tasksStore.todoTasks, targetIndex) : undefined
+                    tasksStore.moveCalendarToTodo(activeTask.id, activeTask.date!, order)
                 } else if (target === 'shortcut') {
-                    tasksStore.moveCalendarToShortcut(activeTask.id, activeTask.date!)
-                    // Note: Logic allows moving calendar -> shortcut. 
+                    const targetIndex = dropTarget.value.data?.index
+                    const order = targetIndex !== undefined ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, targetIndex) : undefined
+                    tasksStore.moveCalendarToShortcut(activeTask.id, activeTask.date!, order)
                 } else if (target === 'calendar') {
-                    // Check specific data from our own calculation?
-                    // If ZoneDetection overwrote it, we might check local currentSnapTime.
-                    // Local state is more reliable for specific strategy logic.
                     if (currentSnapTime.value !== null && currentSnapDate.value) {
-                        tasksStore.updateScheduledTask(activeTask.id, activeTask.date!, {
-                            startTime: currentSnapTime.value,
-                            date: currentSnapDate.value
-                        })
+                        if (currentSnapDate.value !== activeTask.date) {
+                            tasksStore.moveScheduledTask(activeTask.id, activeTask.date!, currentSnapDate.value, {
+                                startTime: currentSnapTime.value
+                            })
+                        } else {
+                            tasksStore.updateScheduledTask(activeTask.id, activeTask.date!, {
+                                startTime: currentSnapTime.value
+                            })
+                        }
                     }
                 }
             } else {
@@ -186,5 +213,16 @@ export function useCalendarDrag(config: CalendarDragConfig): DragStrategy {
         endDrag()
     }
 
-    return { onStart, onMove, onEnd }
+    return {
+        onStart,
+        onMove,
+        onEnd,
+        currentSnapTime: readonly(currentSnapTime),
+        currentSnapDate: readonly(currentSnapDate),
+        currentDuration: readonly(currentDuration),
+        activeMode: readonly(activeMode)
+    }
 }
+
+// Update the type definition if needed, or let TS infer it.
+// Actually DragStrategy interface probably needs updating or we just use the return type.

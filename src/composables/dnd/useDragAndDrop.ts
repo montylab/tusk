@@ -5,6 +5,7 @@ export interface DragStrategy {
     onMove: (event: MouseEvent) => void
     onEnd: (event: MouseEvent) => void
     onCancel?: () => void
+    [key: string]: any
 }
 
 // Singleton state

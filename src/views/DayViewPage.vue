@@ -2,7 +2,7 @@
   setup
   lang="ts"
 >
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import DayView from '../components/DayView.vue'
@@ -10,9 +10,9 @@ import TrashBasket from '../components/TrashBasket.vue'
 import TaskPile from '../components/TaskPile.vue'
 import TaskEditorPopup from '../components/TaskEditorPopup.vue'
 import { useTasksStore } from '../stores/tasks'
-import { useExternalDrag } from '../composables/useExternalDrag'
-import { useDragState } from '../composables/useDragState'
 import { useTimeBoundaries } from '../composables/useTimeBoundaries'
+import { useZoneDetection } from '../composables/dnd/useZoneDetection'
+import { useDragContext } from '../composables/dnd/useDragContext'
 import { formatDate } from '../utils/dateUtils'
 import type { Task } from '../types'
 
@@ -26,42 +26,45 @@ onDayChange((newDate) => {
 })
 const { currentDates, scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
 
-const {
-  trashBounds,
-  todoBounds,
-  shortcutBounds,
-  calendarBounds,
-  isOverTrash,
-  isOverTodo,
-  isOverShortcut
-} = useDragState()
+// --- Drag & Drop Zone Registration ---
+const { registerZone } = useZoneDetection()
+const { dropTarget } = useDragContext() // To show highlighting
 
+const isOverTrash = computed(() => dropTarget.value.zone === 'trash')
+const isOverTodo = computed(() => dropTarget.value.zone === 'todo')
+const isOverShortcut = computed(() => dropTarget.value.zone === 'shortcut')
 
 const todoInsertionIndex = ref<number | null>(null)
 const shortcutInsertionIndex = ref<number | null>(null)
 
-// Reference to DayView for external drag initiation
-const dayViewRef = ref<any>(null)
+const handleInsertionIndexUpdate = (zone: 'todo' | 'shortcut', index: number | null) => {
+  if (zone === 'todo') {
+    todoInsertionIndex.value = index
+    if (isOverTodo.value) {
+      const { setDropTarget } = useDragContext()
+      setDropTarget({ zone: 'todo', data: { index } })
+    }
+  } else if (zone === 'shortcut') {
+    shortcutInsertionIndex.value = index
+    if (isOverShortcut.value) {
+      const { setDropTarget } = useDragContext()
+      setDropTarget({ zone: 'shortcut', data: { index } })
+    }
+  }
+}
 
-// External drag handling
-const {
-  activeExternalTask,
-  handleExternalDragStart,
-  handleExternalTaskDropped,
-  handleExternalTaskDeleted
-} = useExternalDrag(dayViewRef)
+// Reference to DayView
+const dayViewRef = ref<any>(null)
 
 // Watch for date parameter changes
 watch(() => route.params.date, (newDate, oldDate) => {
   if (newDate && typeof newDate === 'string') {
     tasksStore.currentDates = [newDate]
   } else {
-    // Use today's date
     const today = formatDate(new Date())
     tasksStore.currentDates = [today]
   }
 
-  // Scroll reset on date change
   if (newDate !== oldDate) {
     nextTick(() => {
       dayViewRef.value?.scrollToTop()
@@ -69,76 +72,14 @@ watch(() => route.params.date, (newDate, oldDate) => {
   }
 }, { immediate: true })
 
-const handleCalendarTaskDropped = (payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut', date: string }) => {
-  if (payload.target === 'todo') {
-    const finalOrder = todoInsertionIndex.value !== null
-      ? tasksStore.calculateNewOrder(tasksStore.todoTasks, todoInsertionIndex.value)
-      : undefined
-
-    tasksStore.moveCalendarToTodo(payload.taskId, payload.date, finalOrder)
-  } else if (payload.target === 'shortcut') {
-    const finalOrder = shortcutInsertionIndex.value !== null
-      ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, shortcutInsertionIndex.value)
-      : undefined
-
-    tasksStore.moveCalendarToShortcut(payload.taskId, payload.date, finalOrder)
-  }
-
-  todoInsertionIndex.value = null
-  shortcutInsertionIndex.value = null
-}
-
-const handleExternalTaskSidebarDrop = async () => {
-  if (!activeExternalTask.value) return
-
-  const { source, task } = activeExternalTask.value
-
-  if (isOverTodo.value) {
-    if (source === 'shortcut') {
-      const finalOrder = todoInsertionIndex.value !== null
-        ? tasksStore.calculateNewOrder(tasksStore.todoTasks, todoInsertionIndex.value)
-        : undefined
-
-      await tasksStore.copyShortcutToTodo(task.id, finalOrder)
-    } else if (source === 'todo') {
-      if (todoInsertionIndex.value !== null) {
-        tasksStore.reorderTodo(task.id, todoInsertionIndex.value)
-      }
-    }
-  } else if (isOverShortcut.value) {
-    if (source === 'todo') {
-      const finalOrder = shortcutInsertionIndex.value !== null
-        ? tasksStore.calculateNewOrder(tasksStore.shortcutTasks, shortcutInsertionIndex.value)
-        : undefined
-
-      await tasksStore.moveTodoToShortcut(task.id, finalOrder)
-    } else if (source === 'shortcut') {
-      if (shortcutInsertionIndex.value !== null) {
-        tasksStore.reorderShortcut(task.id, shortcutInsertionIndex.value)
-      }
-    }
-  }
-
-  activeExternalTask.value = null
-  todoInsertionIndex.value = null
-  shortcutInsertionIndex.value = null
-}
-
-const handleExternalTaskDeletedWrapper = () => {
-  handleExternalTaskDeleted()
-  todoInsertionIndex.value = null
-  shortcutInsertionIndex.value = null
-}
-
 // Popup visibility state
 const showEditorPopup = ref(false)
 const initialStartTime = ref<number | null>(null)
 const taskToEdit = ref<Task | null>(null)
 const popupTaskType = ref<'scheduled' | 'todo' | 'shortcut'>('scheduled')
-
 const popupTargetDate = ref<string | null>(null)
 
-// Handler for when a slot is clicked or "Create Task" button is pressed
+// Handlers
 const handleOpenCreatePopup = (payload?: { startTime: number, date?: string }) => {
   taskToEdit.value = null
   initialStartTime.value = payload?.startTime ?? null
@@ -147,7 +88,6 @@ const handleOpenCreatePopup = (payload?: { startTime: number, date?: string }) =
   showEditorPopup.value = true
 }
 
-// Handler for opening the editor for an existing task
 const handleEditTask = (task: Task) => {
   taskToEdit.value = task
   if (task.startTime !== null && task.startTime !== undefined) {
@@ -160,7 +100,6 @@ const handleEditTask = (task: Task) => {
   showEditorPopup.value = true
 }
 
-// Handler for when the popup emits a create event
 const handleTaskCreate = (payload: { text: string; description: string; category: string; startTime?: number | null; duration?: number }) => {
   tasksStore.createScheduledTask({
     text: payload.text,
@@ -177,11 +116,9 @@ const handleTaskCreate = (payload: { text: string; description: string; category
   showEditorPopup.value = false
 }
 
-// Handler for when the popup emits an update event
 const handleTaskUpdate = (payload: { id: string | number, updates: Partial<Task> }) => {
   const task = tasksStore.getTaskById(payload.id)
   if (!task) return
-
   if (task.startTime !== null && task.startTime !== undefined) {
     tasksStore.updateScheduledTask(task.id, task.date!, payload.updates)
   } else if (task.isShortcut) {
@@ -206,32 +143,34 @@ const handleAddDay = () => {
   const nextDateStr = nextDate.toISOString().split('T')[0]
   tasksStore.addDate(nextDateStr)
 }
+
+// Pass External Drag Start to DayView (which delegates to strategy in new system)
+const onDragStart = (_source: 'todo' | 'shortcut', task: Task, event: MouseEvent) => {
+  // _source unused but kept for potential future logic or logging
+  dayViewRef.value?.startExternalDrag(event, task)
+}
+
 </script>
 
 <template>
   <div class="page-layout">
     <aside class="sidebar left">
       <TrashBasket :active="isOverTrash"
-                   @update:bounds="trashBounds = $event" />
+                   @update:bounds="registerZone('trash', $event)" />
     </aside>
 
     <main class="main-content">
-      <button ref="createBtnRef"
-              class="create-btn"
+      <button class="create-btn"
               @click="handleOpenCreatePopup()"
-              style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">Create
-        Task</button>
+              style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer;">
+        Create Task
+      </button>
       <DayView ref="dayViewRef"
                :dates="currentDates"
                :tasks-by-date="scheduledTasks"
                :start-hour="0"
                :end-hour="24"
-               :active-external-task="activeExternalTask?.task || null"
-               @update:calendar-bounds="calendarBounds = $event"
-               @external-task-dropped="handleExternalTaskDropped"
-               @delete-external-task="handleExternalTaskDeletedWrapper"
-               @task-dropped-on-sidebar="handleCalendarTaskDropped($event)"
-               @external-task-dropped-on-sidebar="handleExternalTaskSidebarDrop"
+               @update:calendar-bounds="registerZone('calendar', $event)"
                @create-task="handleOpenCreatePopup"
                @edit="handleEditTask"
                @add-day="handleAddDay" />
@@ -251,21 +190,19 @@ const handleAddDay = () => {
                   :tasks="shortcutTasks"
                   list-type="shortcut"
                   :is-highlighted="isOverShortcut"
-                  :active-task-id="activeExternalTask?.task.id"
                   :insertion-index="shortcutInsertionIndex"
-                  @update:bounds="shortcutBounds = $event"
-                  @update:insertion-index="shortcutInsertionIndex = $event"
-                  @drag-start="handleExternalDragStart('shortcut', $event.task, $event.event)"
+                  @update:bounds="registerZone('shortcut', $event)"
+                  @update:insertion-index="handleInsertionIndexUpdate('shortcut', $event)"
+                  @drag-start="onDragStart('shortcut', $event.task, $event.event)"
                   @edit="handleEditTask" />
         <TaskPile title="To Do"
                   :tasks="todoTasks"
                   list-type="todo"
                   :is-highlighted="isOverTodo"
-                  :active-task-id="activeExternalTask?.task.id"
                   :insertion-index="todoInsertionIndex"
-                  @update:bounds="todoBounds = $event"
-                  @update:insertion-index="todoInsertionIndex = $event"
-                  @drag-start="handleExternalDragStart('todo', $event.task, $event.event)"
+                  @update:bounds="registerZone('todo', $event)"
+                  @update:insertion-index="handleInsertionIndexUpdate('todo', $event)"
+                  @drag-start="onDragStart('todo', $event.task, $event.event)"
                   @edit="handleEditTask" />
       </div>
     </aside>

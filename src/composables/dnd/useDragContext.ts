@@ -54,6 +54,10 @@ export function useDragContext() {
         dragDimensions.value = { width, height }
     }
 
+    const updateDragOffset = (x: number, y: number) => {
+        dragOffset.value = { x, y }
+    }
+
     const setDropTarget = (target: DropTarget) => {
         dropTarget.value = target
     }
@@ -79,6 +83,7 @@ export function useDragContext() {
         updateDragPosition,
         updateGhostPosition,
         updateDragDimensions,
+        updateDragOffset,
         setDropTarget,
         endDrag
     }
