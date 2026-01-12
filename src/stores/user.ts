@@ -17,24 +17,13 @@ export const useUserStore = defineStore('user', () => {
 
     onMounted(() => {
         // Support mocking for tests
-        if (import.meta.env.DEV) {
-            if ((window as any).__MOCK_USER__) {
-                user.value = (window as any).__MOCK_USER__;
-                loading.value = false;
-                return;
-            }
-
-            // Listen for manual mock updates
-            (window as any).__UPDATE_MOCK_USER__ = (mockUser: any) => {
-                user.value = mockUser;
-                loading.value = false;
-            };
+        if (import.meta.env.DEV && (window as any).__MOCK_USER__) {
+            user.value = (window as any).__MOCK_USER__;
+            loading.value = false;
+            return;
         }
 
         onAuthStateChanged(auth, (firebaseUser) => {
-            // Don't override mock user if set
-            if (import.meta.env.DEV && (window as any).__MOCK_USER__) return;
-
             user.value = firebaseUser;
             loading.value = false;
         });
@@ -70,13 +59,7 @@ export const useUserStore = defineStore('user', () => {
 
     async function logout() {
         try {
-            if (import.meta.env.DEV) {
-                (window as any).__MOCK_USER__ = null;
-            }
             await signOut(auth);
-            if (import.meta.env.DEV) {
-                user.value = null;
-            }
         } catch (error) {
             console.error('Logout failed:', error);
         }
