@@ -1,7 +1,11 @@
-<script setup lang="ts">
+<script
+  setup
+  lang="ts"
+>
 import { storeToRefs } from 'pinia'
 import { useUserStore } from './stores/user'
 import AppHeader from './components/AppHeader.vue'
+import DragOverlay from './components/DragOverlay.vue'
 
 const userStore = useUserStore()
 const { user, loading: authLoading } = storeToRefs(userStore)
@@ -9,7 +13,8 @@ const { user, loading: authLoading } = storeToRefs(userStore)
 
 <template>
   <div class="app-layout">
-    <div v-if="authLoading" class="loading-overlay">
+    <div v-if="authLoading"
+         class="loading-overlay">
       <div class="loader"></div>
       <p>Checking authentication...</p>
     </div>
@@ -19,6 +24,7 @@ const { user, loading: authLoading } = storeToRefs(userStore)
       <main class="app-main">
         <router-view />
       </main>
+      <DragOverlay />
     </template>
   </div>
 </template>
