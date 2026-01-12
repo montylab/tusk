@@ -124,7 +124,7 @@ const onEditClick = (e: Event) => {
 }
 
 .task-item.on-air {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--category-color), transparent 50%);
   border-width: 2px;
   z-index: 5;
 }
