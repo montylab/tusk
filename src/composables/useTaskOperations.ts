@@ -41,6 +41,7 @@ export function useTaskOperations(
     const initialDuration = ref(60)
     const startY = ref(0)
     const startX = ref(0) // Track horizontal to detect movement in any direction
+    const startScrollTop = ref(0)
     const dragThreshold = 5
     const pendingOp = ref<{
         taskId: string | number | null, opMode: OperationMode, task: Task
@@ -67,6 +68,7 @@ export function useTaskOperations(
 
         startY.value = e.clientY
         startX.value = e.clientX
+        startScrollTop.value = config.getScrollTop?.() || 0
         currentSnapDate.value = task.date!
 
         // Calculate initial offset from task start if not passed explicitly?
@@ -86,6 +88,7 @@ export function useTaskOperations(
     const startExternalDrag = (e: MouseEvent, task: Task, onStarted?: () => void, yOffsetHours?: number) => {
         startY.value = e.clientY
         startX.value = e.clientX
+        startScrollTop.value = config.getScrollTop?.() || 0
         pendingOp.value = { taskId: null, opMode: 'drag', task, isExternal: true, onStarted, yOffsetHours }
 
         window.addEventListener('mousemove', onMouseMove)
@@ -103,11 +106,17 @@ export function useTaskOperations(
 
                 if (isExternal) {
                     const scrollTop = config.getScrollTop?.() || 0
+                    // Reset start coordinates to current position to avoid double-counting delta
+                    // since initialStart is calculated based on current position
+                    startY.value = e.clientY
+                    startX.value = e.clientX
+                    startScrollTop.value = scrollTop
+
                     const containerRect = config.getContainerRect?.()
                     const headerHeight = unref(config.topOffset) || 0
 
                     if (containerRect) {
-                        const relativeY = e.clientY - containerRect.top + scrollTop - headerHeight
+                        const relativeY = e.clientY - containerRect.top - headerHeight
                         const mouseTime = (relativeY / config.hourHeight) + config.startHour
                         initialStart.value = mouseTime - (yOffsetHours || 0)
                     } else {
@@ -139,18 +148,18 @@ export function useTaskOperations(
         if (mode.value === 'none') return
 
         const hourHeight = config.hourHeight
-        const deltaY = e.clientY - startY.value
+        const scrollTop = config.getScrollTop?.() || 0
+        const deltaScroll = scrollTop - startScrollTop.value
+
+        // Calculate deltaY relative to the grid (including scroll)
+        // This ensures that if the grid scrolls, the delta accounts for it
+        const deltaY = (e.clientY - startY.value) + deltaScroll
         const deltaHours = deltaY / hourHeight
 
         if (mode.value === 'drag') {
             const containerRect = config.getContainerRect?.()
             if (containerRect) {
                 // Calculate time based on absolute mouse position relative to container
-                // We need to account for the initial grab offset IF provided
-                // But wait, we don't have the offset here yet.
-
-                // Let's modify the calculation to be delta-based from initial start time
-                // This preserves the relative grab position naturally!
                 const relativeY = e.clientY - containerRect.top - (unref(config.topOffset) || 0)
                 const rawTime = (relativeY / config.hourHeight) + config.startHour
 
