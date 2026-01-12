@@ -1,8 +1,15 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Redirects', () => {
+    // Helper to clear state
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/signout'); // Ensure logged out
+        await page.waitForURL(/.*\/signin/, { timeout: 10000 });
+    });
+
     test('should redirect to home if already authenticated and accessing /signin', async ({ page }) => {
-        // Inject mock user BEFORE navigation
+        // We use the mock injection here because it's the fastest way to test REDIRECTS 
+        // without depending on Firebase responsiveness.
         await page.addInitScript(() => {
             (window as any).__MOCK_USER__ = {
                 uid: 'test-user',
@@ -11,51 +18,37 @@ test.describe('Authentication Redirects', () => {
             };
         });
 
-        // Navigate to /signin
         await page.goto('/signin');
-
-        // Should redirect to home (/) or /day
         await expect(page).toHaveURL(/.*(\/|\/day)/);
     });
 
-    test('should redirect to home after successful sign-in', async ({ page }) => {
-        // Navigate to /signin without a user
+    test('should login with email and password', async ({ page }) => {
         await page.goto('/signin');
+        await page.fill('#email', 'test@example.com');
+        await page.fill('#password', 'password123');
+        await page.click('.submit-btn');
 
-        // Ensure we are on the sign-in page
-        await expect(page.locator('.signin-page')).toBeVisible();
+        // Should redirect to dashboard
+        await expect(page).toHaveURL(/.*(\/|\/day)/, { timeout: 15000 });
+        await expect(page.locator('.app-header')).toBeVisible();
+    });
 
-        // Mock the login process - since we can't easily interact with the Google popup,
-        // we'll mock the user store behavior when the login button is clicked.
-        // We already have exposure of Pinia and the mock user logic.
-
-        // We use addInitScript to make sure __MOCK_USER__ is available, 
-        // but we don't set it yet to stay on signin page
-
-        await page.evaluate(() => {
-            // Intercept the login call to set the mock user
-            const pinia = (window as any).pinia;
-            if (pinia) {
-                const userStore = pinia._s.get('user');
-                if (userStore) {
-                    const originalLogin = userStore.login;
-                    userStore.login = async () => {
-                        (window as any).__MOCK_USER__ = {
-                            uid: 'new-user',
-                            email: 'new@example.com',
-                            displayName: 'New User'
-                        };
-                        userStore.user = (window as any).__MOCK_USER__;
-                        userStore.loading = false;
-                    };
-                }
-            }
-        });
-
-        // Click login button
-        await page.click('.login-btn');
-
-        // Should redirect to home
+    test('should logout correctly', async ({ page }) => {
+        // Login first
+        await page.goto('/signin');
+        await page.fill('#email', 'test@example.com');
+        await page.fill('#password', 'password123');
+        await page.click('.submit-btn');
         await expect(page).toHaveURL(/.*(\/|\/day)/);
+
+        // Click logout
+        const logoutBtn = page.locator('.logout-btn');
+        await expect(logoutBtn).toBeVisible();
+        await logoutBtn.click();
+
+        // Should go through signout to signin
+        await expect(page).toHaveURL(/.*\/signout/);
+        await page.waitForURL(/.*\/signin/, { timeout: 10000 });
+        await expect(page.locator('.signin-page')).toBeVisible();
     });
 });
