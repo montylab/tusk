@@ -83,7 +83,12 @@ const handleSlotClick = (hour: number, q: number) => {
                     <!-- Top Handle -->
                     <div v-if="task.id !== activeTaskId || mode !== 'drag'"
                          class="resize-handle top"
-                         @mousedown.stop="emit('start-operation', { event: $event, taskId: task.id, opMode: 'resize-top' })">
+                         @mousedown.stop="emit('start-operation', {
+                            event: $event,
+                            taskId: task.id,
+                            opMode: 'resize-top',
+                            initialRect: ($event.currentTarget as HTMLElement).closest('.task-wrapper-absolute')?.getBoundingClientRect()
+                        })">
                     </div>
 
                     <TaskItem :task="task"
@@ -95,7 +100,12 @@ const handleSlotClick = (hour: number, q: number) => {
                     <!-- Bottom Handle -->
                     <div v-if="task.id !== activeTaskId || mode !== 'drag'"
                          class="resize-handle bottom"
-                         @mousedown.stop="emit('start-operation', { event: $event, taskId: task.id, opMode: 'resize-bottom' })">
+                         @mousedown.stop="emit('start-operation', {
+                            event: $event,
+                            taskId: task.id,
+                            opMode: 'resize-bottom',
+                            initialRect: ($event.currentTarget as HTMLElement).closest('.task-wrapper-absolute')?.getBoundingClientRect()
+                        })">
                     </div>
                 </div>
             </template>
@@ -150,13 +160,18 @@ const handleSlotClick = (hour: number, q: number) => {
 .task-wrapper-absolute {
     position: absolute;
     pointer-events: auto;
-    transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+    /* Only animate when NOT interacting to avoid lag/jumping */
+    transition: none;
     user-select: none;
 }
 
+/* Base transition for static items */
+.task-wrapper-absolute:not(.dragged-origin) {
+    transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+}
+
 .task-wrapper-absolute.is-dragging {
-    opacity: 0.25;
-    /* Show faded version in column while dragging */
+    opacity: 0.15;
     pointer-events: none;
 }
 

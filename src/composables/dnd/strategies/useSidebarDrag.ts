@@ -1,18 +1,9 @@
-import { ref, unref, Ref } from 'vue'
+import { ref } from 'vue'
 import { DragStrategy } from '../useDragAndDrop'
 import { useDragContext } from '../useDragContext'
 import { useTasksStore } from '../../../stores/tasks'
 import { Task } from '../../../types'
-
-interface SidebarDragConfig {
-    hourHeight: number
-    startHour: number
-    endHour: number
-    dates: Ref<string[]>
-    topOffset: Ref<number>
-    getContainerRect: () => DOMRect | null
-    getScrollTop: () => number
-}
+import { useCalendarGrid, CalendarGridConfig } from '../useCalendarGrid'
 
 interface SidebarDragPayload {
     task: Task
@@ -20,9 +11,10 @@ interface SidebarDragPayload {
     offsetHours?: number // vertical offset from mouse to task top in hours
 }
 
-export function useSidebarDrag(config: SidebarDragConfig): DragStrategy {
+export function useSidebarDrag(config: CalendarGridConfig): DragStrategy {
     const { startDrag, updateDragPosition, updateGhostPosition, updateDragDimensions, updateDragOffset, endDrag, setDropTarget, dropTarget } = useDragContext()
     const tasksStore = useTasksStore()
+    const grid = useCalendarGrid(config)
 
     // Internal State
     let activeTask: Task | null = null
@@ -59,62 +51,32 @@ export function useSidebarDrag(config: SidebarDragConfig): DragStrategy {
     const onMove = (event: MouseEvent) => {
         updateDragPosition(event.clientX, event.clientY)
 
-        const containerRect = config.getContainerRect()
-        if (!containerRect) return
+        if (activeTask) {
+            const dragOffsetY = yOffsetHours * config.hourHeight
+            const projection = grid.project(event.clientX, event.clientY, activeTask.duration / 60, dragOffsetY)
 
-        const isOverCalendar =
-            event.clientX >= containerRect.left &&
-            event.clientX <= containerRect.right &&
-            event.clientY >= containerRect.top &&
-            event.clientY <= containerRect.bottom
+            if (projection) {
+                currentSnapDate.value = projection.date
+                currentSnapTime.value = projection.time
 
-        if (isOverCalendar) {
-            // Column Calculation
-            const relativeX = event.clientX - containerRect.left
-            // Subtract the 30px spacer of AddDayZone to get true columns area
-            const colWidth = (containerRect.width - 30) / config.dates.value.length
-            const colIndex = Math.floor(relativeX / colWidth)
-            const targetDate = config.dates.value[Math.min(colIndex, config.dates.value.length - 1)]
+                updateGhostPosition(projection.ghostX, projection.ghostY)
 
-            // Time Calculation
-            // We need to account for the scroll and the offset at which we grabbed the task
-            const relativeY = event.clientY - containerRect.top - unref(config.topOffset)
-            const mouseTime = (relativeY / config.hourHeight) + config.startHour
+                // Only setDropTarget to calendar if we are not over a higher priority zone
+                if (dropTarget.value.zone === 'calendar' || dropTarget.value.zone === 'none') {
+                    setDropTarget({ zone: 'calendar', data: { date: projection.date, time: projection.time } })
+                }
 
-            // The task start time should be where the TOP of the task lands.
-            // mouseTime is where the cursor is.
-            // startTime = mouseTime - yOffsetHours
-            const rawStartTime = mouseTime - yOffsetHours
-
-            let snapped = Math.round(rawStartTime * 4) / 4
-            const duration = activeTask?.duration || 60
-            snapped = Math.max(config.startHour, Math.min(config.endHour - (duration / 60), snapped))
-
-            currentSnapDate.value = targetDate
-            currentSnapTime.value = snapped
-
-            // Ghost Position
-            // +1 to account for the border-left of DayColumn
-            const ghostX = containerRect.left + (colIndex * colWidth) + 1
-            const ghostY = containerRect.top + (snapped - config.startHour) * config.hourHeight + unref(config.topOffset)
-
-            updateGhostPosition(ghostX, ghostY)
-            setDropTarget({ zone: 'calendar', data: { date: targetDate, time: snapped } })
-
-            // Expand to column width
-            if (activeTask) {
+                // Expand to column width
                 const h = (activeTask.duration / 60) * config.hourHeight
-                updateDragDimensions(colWidth, h)
-                updateDragOffset(colWidth * 0.5, h * initialOffsetRatioY)
+                updateDragDimensions(projection.colWidth, h)
+                updateDragOffset(projection.colWidth * 0.5, h * initialOffsetRatioY)
+            } else {
+                updateGhostPosition(null, null)
+                // Shrink to card size when over sidebar/trash
+                const h = activeTask ? (activeTask.duration / 60) * config.hourHeight : 60
+                updateDragDimensions(220, 60)
+                updateDragOffset(110, 30)
             }
-        } else {
-            updateGhostPosition(null, null)
-            // Shrink to card size when over sidebar/trash
-            const h = activeTask ? (activeTask.duration / 60) * config.hourHeight : 60
-            updateDragDimensions(220, 60) // Simple card height? or h? 
-            // Usually sidebar items have uniform height in TaskPile (e.g. 60)
-            updateDragOffset(110, 30)
-            // Let ZoneDetection handle Sidebar/Trash zones
         }
     }
 

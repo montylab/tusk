@@ -67,15 +67,14 @@ const sidebarStrategy = useSidebarDrag(config)
 // Handlers for child components
 const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: 'drag' | 'resize-top' | 'resize-bottom', initialRect?: DOMRect) => {
     e.stopPropagation()
-    // Find task object
-    const allTasks = Object.values(props.tasksByDate).flat()
-    const task = allTasks.find(t => t.id === taskId)
+    const task = allTasks.value.find(t => t.id === taskId)
+    if (!task) return
 
-    if (task) {
-        updateScroll() // Ensure state is fresh
-        // Start Internal Drag
-        startDrag(calendarStrategy, e, { task, mode: opMode, initialRect })
-    }
+    updateScroll()
+
+    // Both drag and resize use the same calendar strategy
+    // but the 'mode' in the payload tells it what to do.
+    startDrag(calendarStrategy, e, { task, mode: opMode, initialRect })
 }
 
 // Handler for External Drag (Called by parent or via Ref exposure)
