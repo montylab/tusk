@@ -2,7 +2,7 @@
     setup
     lang="ts"
 >
-import { ref, watch, onMounted, onUnmounted, computed, toRef, nextTick } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import DayColumn from './DayColumn.vue'
 import AddDayZone from './AddDayZone.vue'
 import type { Task } from '../types'

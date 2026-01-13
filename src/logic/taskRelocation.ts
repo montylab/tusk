@@ -12,6 +12,9 @@ export async function manageTaskRelocation(
     task: Task,
     dropData: any
 ) {
+    // Destination: null or invalid (cancel)
+    if (!dest) return
+
     const store = useTasksStore()
 
     // Destination: Trash
@@ -26,9 +29,6 @@ export async function manageTaskRelocation(
         }
         return
     }
-
-    // Destination: null or invalid (cancel)
-    if (!dest) return
 
     // Destination: Calendar
     if (dest.startsWith('calendar-day-')) {

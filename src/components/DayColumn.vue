@@ -180,9 +180,7 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
                              :hour-height="hourHeight"
                              :start-hour="props.startHour"
                              class="task-wrapper-absolute"
-                             :class="{
-                                'dragged-origin': task.id === activeDraggedTaskId
-                            }"
+                             :class="{ 'dragged-origin': task.id === activeDraggedTaskId }"
                              @mousedown="handleTaskMouseDown($event, task)"
                              @touchstart="handleTaskTouchStart($event, task)">
                     <template #default="{ resizedTask, isResizing }">

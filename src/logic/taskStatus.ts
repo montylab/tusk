@@ -1,6 +1,6 @@
 import type { Task } from '../types'
 
-export const getTaskStatus = (task: Task | Partial<Task>, now: Date = new Date()): 'past' | 'future' | 'on-air' | null => {
+export const getTaskStatus = (task: Task | Partial<Task>, now = new Date()): 'past' | 'future' | 'on-air' | null => {
     if (task.startTime === null || task.startTime === undefined || !task.date) return null
     const todayStr = now.toISOString().split('T')[0]
     const currentTotalMinutes = now.getHours() * 60 + now.getMinutes()

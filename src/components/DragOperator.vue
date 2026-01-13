@@ -57,7 +57,7 @@ const ghostTask = computed(() => {
             overrides.startTime = dropData.value.time
             overrides.duration = dropData.value.duration
             overrides.date = dropData.value.date
-            overrides.status = getTaskStatus(overrides, new Date())
+            overrides.status = getTaskStatus(overrides)
         }
     } else {
         // Force compact mode behavior
