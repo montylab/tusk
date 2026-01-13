@@ -1,6 +1,6 @@
 import { ref, readonly } from 'vue'
 import type { Task } from '../types'
-import { useTasksStore } from '../stores/tasks'
+import { manageTaskRelocation } from '../logic/taskRelocation'
 
 // Zone configuration
 export interface ZoneConfig {
@@ -125,7 +125,7 @@ function handleMove(event: MouseEvent | TouchEvent) {
     }
 }
 
-function handleEnd(event: MouseEvent | TouchEvent) {
+async function handleEnd(event: MouseEvent | TouchEvent) {
     if (!isDragging.value) return
 
     event.preventDefault()
@@ -141,15 +141,13 @@ function handleEnd(event: MouseEvent | TouchEvent) {
             return
         }
 
-        const tasksStore = useTasksStore()
-
         // Recalculate drop data at final position
         if (zone.info.config.calculateDropData) {
             dropData.value = zone.info.config.calculateDropData(coords.x, coords.y, draggedTask.value)
         }
 
-        // Call store to handle relocation
-        tasksStore.manageTaskRelocation(sourceZone.value, zone.name, draggedTask.value, dropData.value)
+        // Call logic handler for relocation
+        await manageTaskRelocation(sourceZone.value, zone.name, draggedTask.value, dropData.value)
     }
 
     // Reset state
@@ -229,6 +227,7 @@ export function useDragOperator() {
             document.removeEventListener('keydown', handleKey)
         }
 
+        // Trigger initial move to set ghost info immediately
         handleMove(event)
     }
 

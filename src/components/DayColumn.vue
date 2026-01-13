@@ -3,6 +3,7 @@
     lang="ts"
 >
 import TaskItem from './TaskItem.vue'
+import TaskResizer from './TaskResizer.vue'
 import type { Task } from '../types'
 import { useTaskLayout } from '../composables/useTaskLayout'
 import { useDragOperator } from '../composables/useDragOperator'
@@ -29,7 +30,6 @@ const emit = defineEmits<{
 const tasksStore = useTasksStore()
 const { activeDraggedTaskId, registerZone, unregisterZone, updateZoneBounds, startDrag, dragOffset } = useDragOperator()
 
-const columnRef = ref<HTMLElement | null>(null)
 const gridRef = ref<HTMLElement | null>(null)
 
 const zoneName = computed(() => `calendar-day-${props.date}`)
@@ -175,20 +175,24 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
         <div class="tasks-container">
             <template v-for="task in layoutTasks"
                       :key="task.id">
-                <div class="task-wrapper-absolute"
-                     :class="{
-                        'dragged-origin': task.id === activeDraggedTaskId
-                    }"
-                     :style="task.style"
-                     @mousedown="handleTaskMouseDown($event, task)"
-                     @touchstart="handleTaskTouchStart($event, task)">
-
-                    <TaskItem :task="task"
-                              :is-dragging="task.id === activeDraggedTaskId"
-                              :is-shaking="task.isOverlapping"
-                              :status="taskStatuses[task.id]"
-                              @edit="emit('edit', $event)" />
-                </div>
+                <TaskResizer :task="task"
+                             :layout-style="task.style"
+                             :hour-height="hourHeight"
+                             :start-hour="props.startHour"
+                             class="task-wrapper-absolute"
+                             :class="{
+                                'dragged-origin': task.id === activeDraggedTaskId
+                            }"
+                             @mousedown="handleTaskMouseDown($event, task)"
+                             @touchstart="handleTaskTouchStart($event, task)">
+                    <template #default="{ resizedTask, isResizing }">
+                        <TaskItem :task="resizedTask"
+                                  :is-dragging="task.id === activeDraggedTaskId"
+                                  :is-shaking="task.isOverlapping"
+                                  :status="taskStatuses[task.id]"
+                                  @edit="emit('edit', $event)" />
+                    </template>
+                </TaskResizer>
             </template>
         </div>
     </div>

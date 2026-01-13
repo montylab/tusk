@@ -4,6 +4,7 @@
 >
 import { computed } from 'vue'
 import { useDragOperator } from '../composables/useDragOperator'
+import { getTaskStatus } from '../logic/taskStatus'
 import TaskItem from './TaskItem.vue'
 
 const { isDragging, draggedTask, ghostPosition, currentZone, dropData } = useDragOperator()
@@ -36,9 +37,6 @@ const ghostStyle = computed(() => {
     }
 
     return {
-        position: 'fixed' as const,
-        zIndex: 9999,
-        pointerEvents: 'none' as const,
         top,
         left,
         width,
@@ -59,6 +57,7 @@ const ghostTask = computed(() => {
             overrides.startTime = dropData.value.time
             overrides.duration = dropData.value.duration
             overrides.date = dropData.value.date
+            overrides.status = getTaskStatus(overrides, new Date())
         }
     } else {
         // Force compact mode behavior
@@ -80,32 +79,18 @@ const ghostTask = computed(() => {
              :style="ghostStyle">
             <TaskItem :task="ghostTask"
                       :is-dragging="true"
-                      :status="isOverCalendar ? 'future' : null" />
+                      :status="ghostTask.status" />
         </div>
     </Teleport>
 </template>
 
 <style scoped>
 .drag-ghost {
-    /* Smooth transition for position and size to make snapping feel fluid */
-    /* transition: width 0.1s cubic-bezier(0.2, 0, 0, 1), */
-    /* height 0.1s cubic-bezier(0.2, 0, 0, 1); */
-    /* top 0.05s linear, */
-    /* left 0.05s linear; */
+    z-index: 9999;
     will-change: top, left, width, height;
     border-radius: 6px;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-}
-
-/* Ensure the TaskItem inside the ghost looks distinct */
-:deep(.task-item) {
-    background: rgba(40, 40, 45, 0.95) !important;
-    backdrop-filter: blur(8px);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Ensure dragging style doesn't make it too transparent */
-:deep(.task-item.dragging) {
-    opacity: 1 !important;
+    pointer-events: none;
+    position: fixed
 }
 </style>
