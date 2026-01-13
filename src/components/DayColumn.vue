@@ -17,8 +17,10 @@ const props = withDefaults(defineProps<{
     endHour: number
     taskStatuses: Record<string | number, 'past' | 'future' | 'on-air' | null>
     scrollTop?: number
+    scrollLeft?: number
 }>(), {
-    scrollTop: 0
+    scrollTop: 0,
+    scrollLeft: 0
 })
 
 const emit = defineEmits<{
@@ -53,7 +55,7 @@ const { layoutTasks } = useTaskLayout(
 )
 
 // Grid snapping calculation for drop data
-const calculateDropData = (x: number, y: number, task: Task) => {
+const calculateDropData = (_x: number, y: number, task: Task) => {
     if (!gridRef.value) return { time: props.startHour, duration: task.duration || 60, date: props.date }
 
     const rect = gridRef.value.getBoundingClientRect()
@@ -92,12 +94,12 @@ const updateBounds = () => {
     if (gridRef.value) {
         const bounds = gridRef.value.getBoundingClientRect()
         emit('update:bounds', bounds)
-        updateZoneBounds(zoneName.value, bounds, { x: 0, y: props.scrollTop })
+        updateZoneBounds(zoneName.value, bounds, { x: props.scrollLeft, y: props.scrollTop })
     }
 }
 
 // Watch scrollTop to keep bounds accurate during scroll
-watch(() => props.scrollTop, updateBounds)
+watch(() => [props.scrollTop, props.scrollLeft], updateBounds)
 
 onMounted(() => {
     if (gridRef.value) {
@@ -183,7 +185,7 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
                              :class="{ 'dragged-origin': task.id === activeDraggedTaskId }"
                              @mousedown="handleTaskMouseDown($event, task)"
                              @touchstart="handleTaskTouchStart($event, task)">
-                    <template #default="{ resizedTask, isResizing }">
+                    <template #default="{ resizedTask }">
                         <TaskItem :task="resizedTask"
                                   :is-dragging="task.id === activeDraggedTaskId"
                                   :is-shaking="task.isOverlapping"

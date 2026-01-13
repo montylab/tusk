@@ -29,6 +29,7 @@ const headerOffset = ref(0)
 const tasksContainerRef = ref<HTMLElement | null>(null)
 const scrollAreaRef = ref<HTMLElement | null>(null)
 const scrollTop = ref(0)
+const scrollLeft = ref(0)
 
 const { isDragging } = useDragOperator()
 
@@ -36,6 +37,7 @@ const { isDragging } = useDragOperator()
 const updateScroll = () => {
     if (scrollAreaRef.value) {
         scrollTop.value = scrollAreaRef.value.scrollTop
+        scrollLeft.value = scrollAreaRef.value.scrollLeft
     }
 }
 
@@ -245,6 +247,7 @@ defineExpose({
                                        :end-hour="endHour"
                                        :task-statuses="taskStatuses"
                                        :scroll-top="scrollTop"
+                                       :scroll-left="scrollLeft"
                                        @slot-click="handleSlotClick($event.startTime, 0, date)"
                                        @edit="emit('edit', $event)" />
 
