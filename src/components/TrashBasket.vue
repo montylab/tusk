@@ -1,34 +1,39 @@
-<script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+<script
+  setup
+  lang="ts"
+>
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useDragOperator } from '../composables/useDragOperator'
 
-const props = defineProps<{
-  active?: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:bounds', rect: DOMRect): void
-}>()
+const { currentZone, registerZone, unregisterZone, updateZoneBounds } = useDragOperator()
 
 const basketRef = ref<HTMLElement | null>(null)
 
+// Reactive active state based on current zone
+const isActive = computed(() => currentZone.value === 'trash')
+
 const updateBounds = () => {
   if (basketRef.value) {
-    emit('update:bounds', basketRef.value.getBoundingClientRect())
+    updateZoneBounds('trash', basketRef.value.getBoundingClientRect())
   }
 }
 
 onMounted(() => {
-  updateBounds()
-  window.addEventListener('resize', updateBounds)
-  
   if (basketRef.value) {
+    // Register zone
+    registerZone('trash', basketRef.value.getBoundingClientRect())
+
+    // Listen for resize events
+    window.addEventListener('resize', updateBounds)
+
     const resizeObserver = new ResizeObserver(() => updateBounds())
     resizeObserver.observe(basketRef.value)
-    ;(basketRef.value as any).__resizeObserver = resizeObserver
+      ; (basketRef.value as any).__resizeObserver = resizeObserver
   }
 })
 
 onUnmounted(() => {
+  unregisterZone('trash')
   window.removeEventListener('resize', updateBounds)
   if (basketRef.value && (basketRef.value as any).__resizeObserver) {
     (basketRef.value as any).__resizeObserver.disconnect()
@@ -41,18 +46,31 @@ defineExpose({
 </script>
 
 <template>
-  <div 
-    ref="basketRef"
-    class="trash-basket"
-    :class="{ 'active': active }"
-  >
+  <div ref="basketRef"
+       class="trash-basket"
+       :class="{ 'active': isActive }">
     <div class="icon-container">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trash-icon">
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="24"
+           height="24"
+           viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           stroke-width="2"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           class="trash-icon">
         <path d="M3 6h18"></path>
         <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
         <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-        <line x1="10" y1="11" x2="10" y2="17"></line>
-        <line x1="14" y1="11" x2="14" y2="17"></line>
+        <line x1="10"
+              y1="11"
+              x2="10"
+              y2="17"></line>
+        <line x1="14"
+              y1="11"
+              x2="14"
+              y2="17"></line>
       </svg>
     </div>
     <span class="label">Delete</span>
@@ -104,7 +122,7 @@ defineExpose({
 }
 
 .trash-icon {
-    width: 28px;
-    height: 28px;
+  width: 28px;
+  height: 28px;
 }
 </style>

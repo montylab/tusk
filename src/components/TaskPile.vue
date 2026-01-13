@@ -4,62 +4,120 @@
 >
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
+import { useDragOperator } from '../composables/useDragOperator'
+import { useTasksStore } from '../stores/tasks'
 
 const props = defineProps<{
   title: string
   tasks: Task[]
   listType: 'todo' | 'shortcut'
-  isHighlighted?: boolean
-  activeTaskId?: number | string | null
-  insertionIndex: number | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'drag-start', payload: { event: MouseEvent, task: Task }): void
-  (e: 'update:bounds', bounds: DOMRect): void
-  (e: 'update:insertion-index', index: number | null): void
   (e: 'edit', task: Task): void
 }>()
 
 const categoriesStore = useCategoriesStore()
+const tasksStore = useTasksStore()
+const { currentZone, activeDraggedTaskId, isDragging, registerZone, unregisterZone, updateZoneBounds, startDrag } = useDragOperator()
+
 const pileRef = ref<HTMLElement | null>(null)
 const contentRef = ref<HTMLElement | null>(null)
+const insertionIndex = ref<number | null>(null)
+
+// Zone name
+const zoneName = computed(() => props.listType)
+
+// Reactive highlighting
+const isHighlighted = computed(() => currentZone.value === zoneName.value)
 
 const updateBounds = () => {
   if (pileRef.value) {
     const rect = pileRef.value.getBoundingClientRect()
-    emit('update:bounds', rect)
+    updateZoneBounds(zoneName.value, rect)
   }
 }
 
-// For some reason, the parent needs the bounds for collision detection
-onMounted(() => {
-  // Initial update
-  updateBounds()
+// Calculate drop data (insertion index and order)
+const calculateDropData = (x: number, y: number, task: Task) => {
+  if (!contentRef.value) return { index: 0, order: 0 }
 
-  // Watch for resizes
-  if (pileRef.value) {
-    const resizeObserver = new ResizeObserver(() => {
-      updateBounds()
-    })
-    resizeObserver.observe(pileRef.value)
+  const tasks = Array.from(contentRef.value.querySelectorAll('.task-group:not(.bottom-indicator-group)')) as HTMLElement[]
 
-      // Cleanup stored on element for unmount
-      ; (pileRef.value as any).__resizeObserver = resizeObserver
+  let index = tasks.length
+  for (let i = 0; i < tasks.length; i++) {
+    const rect = tasks[i].getBoundingClientRect()
+    const midPoint = rect.top + rect.height / 2
+    if (y < midPoint) {
+      index = i
+      break
+    }
   }
 
-  // Also watch window resize just in case (e.g. layout shift without element resize)
-  window.addEventListener('resize', updateBounds)
-  window.addEventListener('mousemove', handleMouseMove)
+  // Calculate order value for this index
+  const order = tasksStore.calculateNewOrder(props.tasks, index)
+
+  return { index, order }
+}
+
+onMounted(() => {
+  if (pileRef.value) {
+    // Register zone with calculateDropData
+    registerZone(zoneName.value, pileRef.value.getBoundingClientRect(), {
+      calculateDropData
+    })
+
+    // Watch for resizes
+    const resizeObserver = new ResizeObserver(() => updateBounds())
+    resizeObserver.observe(pileRef.value)
+      ; (pileRef.value as any).__resizeObserver = resizeObserver
+
+    window.addEventListener('resize', updateBounds)
+  }
 })
 
 onUnmounted(() => {
+  unregisterZone(zoneName.value)
+
   if (pileRef.value && (pileRef.value as any).__resizeObserver) {
     (pileRef.value as any).__resizeObserver.disconnect()
   }
   window.removeEventListener('resize', updateBounds)
+})
+
+// Update insertion index when dragging over this zone
+const handleMouseMove = (e: MouseEvent) => {
+  if (!isHighlighted.value || !contentRef.value || !isDragging.value) {
+    if (insertionIndex.value !== null) {
+      insertionIndex.value = null
+    }
+    return
+  }
+
+  const tasks = Array.from(contentRef.value.querySelectorAll('.task-group:not(.bottom-indicator-group)')) as HTMLElement[]
+
+  let newIndex = tasks.length
+  for (let i = 0; i < tasks.length; i++) {
+    const rect = tasks[i].getBoundingClientRect()
+    const midPoint = rect.top + rect.height / 2
+    if (e.clientY < midPoint) {
+      newIndex = i
+      break
+    }
+  }
+
+  if (insertionIndex.value !== newIndex) {
+    insertionIndex.value = newIndex
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('mousemove', handleMouseMove)
+})
+
+onUnmounted(() => {
   window.removeEventListener('mousemove', handleMouseMove)
 })
 
@@ -92,33 +150,13 @@ const getChaoticStyle = (task: Task) => {
   }
 }
 
-const handleMouseMove = (e: MouseEvent) => {
-  if (!props.isHighlighted || !contentRef.value) {
-    if (props.insertionIndex !== null) {
-      emit('update:insertion-index', null)
-    }
-    return
-  }
-
-  const tasks = Array.from(contentRef.value.querySelectorAll('.task-group:not(.bottom-indicator-group)')) as HTMLElement[]
-
-  let newIndex = tasks.length
-  for (let i = 0; i < tasks.length; i++) {
-    const rect = tasks[i].getBoundingClientRect()
-    const midPoint = rect.top + rect.height / 2
-    if (e.clientY < midPoint) {
-      newIndex = i
-      break
-    }
-  }
-
-  if (props.insertionIndex !== newIndex) {
-    emit('update:insertion-index', newIndex)
-  }
+const handleMouseDown = (e: MouseEvent, task: Task) => {
+  // Start drag
+  startDrag(task, zoneName.value, e)
 }
 
-const handleMouseDown = (e: MouseEvent, task: Task) => {
-  emit('drag-start', { event: e, task })
+const handleTouchStart = (e: TouchEvent, task: Task) => {
+  startDrag(task, zoneName.value, e)
 }
 </script>
 
@@ -141,12 +179,13 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
           </div>
 
           <div class="pile-task"
-               :class="{ 'is-active-drag': task.id === activeTaskId }"
+               :class="{ 'is-active-drag': task.id === activeDraggedTaskId }"
                :style="[
                 getChaoticStyle(task),
                 { '--category-color': task.color || categoriesStore.categoriesArray.find(c => c.name === task.category)?.color || 'var(--color-default)' }
               ]"
-               @mousedown="handleMouseDown($event, task)">
+               @mousedown="handleMouseDown($event, task)"
+               @touchstart="handleTouchStart($event, task)">
             <TaskItem :task="task"
                       @edit="emit('edit', $event)" />
           </div>
@@ -220,7 +259,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 }
 
 .pile-task.is-active-drag {
-  opacity: 0.1;
+  opacity: 0.25;
   pointer-events: none;
 }
 

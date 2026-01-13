@@ -2,75 +2,74 @@
     setup
     lang="ts"
 >
-import { ref, onUnmounted, watch, onMounted } from 'vue'
-
-import { useDragState } from '../composables/useDragState'
+import { ref, onUnmounted, watch, onMounted, computed } from 'vue'
+import { useDragOperator } from '../composables/useDragOperator'
 
 const props = defineProps<{
     label: string
-    isDragging: boolean
 }>()
 
 const emit = defineEmits<{
     (e: 'add-day'): void
 }>()
 
-const { addButtonBounds } = useDragState()
+const { isDragging, currentZone, registerZone, unregisterZone, updateZoneBounds } = useDragOperator()
+
 const zoneRef = ref<HTMLElement | null>(null)
+const isHovered = computed(() => currentZone.value === 'add-day-zone')
+
+const totalCountdownSeconds = 3
+const speed = 1.2
+const countdown = ref(totalCountdownSeconds)
+
+let timer: any = null
 
 const updateBounds = () => {
     if (zoneRef.value) {
-        addButtonBounds.value = zoneRef.value.getBoundingClientRect()
+        updateZoneBounds('add-day-zone', zoneRef.value.getBoundingClientRect())
     }
 }
 
-let resizeObserver: ResizeObserver | null = null
-
 onMounted(() => {
-    updateBounds()
-    window.addEventListener('resize', updateBounds)
-
     if (zoneRef.value) {
-        resizeObserver = new ResizeObserver(() => {
-            updateBounds()
-        })
+        // Register zone (dropping here cancels the drag)
+        registerZone('add-day-zone', zoneRef.value.getBoundingClientRect())
+
+        updateBounds()
+        window.addEventListener('resize', updateBounds)
+
+        const resizeObserver = new ResizeObserver(() => updateBounds())
         resizeObserver.observe(zoneRef.value)
+            ; (zoneRef.value as any).__resizeObserver = resizeObserver
     }
 })
 
 onUnmounted(() => {
+    unregisterZone('add-day-zone')
     window.removeEventListener('resize', updateBounds)
-    if (resizeObserver) {
-        resizeObserver.disconnect()
+
+    if (zoneRef.value && (zoneRef.value as any).__resizeObserver) {
+        (zoneRef.value as any).__resizeObserver.disconnect()
     }
     if (timer) clearInterval(timer)
 })
 
-const isHovered = ref(false)
-const totalCountdownSeconds = 3
-const speed = 1.2 // we use faster speed to make it feel more natural
-const countdown = ref(totalCountdownSeconds)
-
-
-let timer: any = null
-
 const startCountdown = () => {
-    isHovered.value = true
-    if (!props.isDragging) return
+    if (!isDragging.value) return
 
     countdown.value = totalCountdownSeconds
-    if (timer) clearInterval(timer) // i know that it's overhead, but prevent any possible double countdown 
+    if (timer) clearInterval(timer)
+
     timer = setInterval(() => {
         countdown.value--
         if (countdown.value < 0) {
             emit('add-day')
             stopCountdown()
         }
-    }, 1000 / speed) // we use 800ms to make it feel more natural
+    }, 1000 / speed)
 }
 
 const stopCountdown = () => {
-    isHovered.value = false
     if (timer) {
         clearInterval(timer)
         timer = null
@@ -78,8 +77,17 @@ const stopCountdown = () => {
     countdown.value = totalCountdownSeconds
 }
 
-// If drag stops while hovering, stop countdown
-watch(() => props.isDragging, (val) => {
+// Start countdown when hovering while dragging
+watch(isHovered, (val) => {
+    if (val && isDragging.value) {
+        startCountdown()
+    } else {
+        stopCountdown()
+    }
+})
+
+// Stop countdown if drag ends
+watch(isDragging, (val) => {
     if (!val) stopCountdown()
 })
 
@@ -90,9 +98,6 @@ watch(() => props.isDragging, (val) => {
         <div class="add-day-zone"
              ref="zoneRef"
              @click="emit('add-day')"
-             @mouseenter="startCountdown"
-             @mouseleave="stopCountdown"
-             @mouseup="stopCountdown"
              :class="{
                 'is-counting': isDragging && isHovered && countdown < totalCountdownSeconds,
                 'over': isHovered
@@ -120,11 +125,8 @@ watch(() => props.isDragging, (val) => {
 
 <style scoped>
 .zone-occupier {
-    /* display: none; */
     width: calc(40px - 10px);
-    /* 10px scroll place */
     position: relative;
-    /* overflow: hidden; */
 }
 
 .add-day-zone {
@@ -147,7 +149,8 @@ watch(() => props.isDragging, (val) => {
     text-align: center;
 }
 
-.add-day-zone:hover {
+.add-day-zone:hover,
+.add-day-zone.over {
     width: 180px;
     background: rgba(255, 255, 255, 0.05);
     border-left-style: solid;
@@ -155,7 +158,6 @@ watch(() => props.isDragging, (val) => {
 
 .is-counting {
     width: 180px !important;
-    /* Force expand during countdown */
     background: rgba(var(--color-primary-rgb), 0.1);
 }
 
@@ -175,7 +177,8 @@ watch(() => props.isDragging, (val) => {
     transition: transform 0.3s;
 }
 
-.add-day-zone:hover .plus-icon {
+.add-day-zone:hover .plus-icon,
+.add-day-zone.over .plus-icon {
     transform: rotate(180deg) scale(5);
     color: #fff;
 }
@@ -188,7 +191,8 @@ watch(() => props.isDragging, (val) => {
     color: var(--text-muted);
 }
 
-.add-day-zone:hover .hover-label {
+.add-day-zone:hover .hover-label,
+.add-day-zone.over .hover-label {
     opacity: 1;
     transform: translateY(0);
 }

@@ -5,7 +5,7 @@
 import { storeToRefs } from 'pinia'
 import { useUserStore } from './stores/user'
 import AppHeader from './components/AppHeader.vue'
-import DragOverlay from './components/DragOverlay.vue'
+import DragOperator from './components/DragOperator.vue'
 
 const userStore = useUserStore()
 const { user, loading: authLoading } = storeToRefs(userStore)
@@ -24,7 +24,7 @@ const { user, loading: authLoading } = storeToRefs(userStore)
       <main class="app-main">
         <router-view />
       </main>
-      <DragOverlay />
+      <DragOperator />
     </template>
   </div>
 </template>

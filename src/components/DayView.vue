@@ -6,29 +6,19 @@ import { ref, watch, onMounted, onUnmounted, computed, toRef, nextTick } from 'v
 import DayColumn from './DayColumn.vue'
 import AddDayZone from './AddDayZone.vue'
 import type { Task } from '../types'
-import { useDragAndDrop } from '../composables/dnd/useDragAndDrop'
-import { useCalendarDrag } from '../composables/dnd/strategies/useCalendarDrag'
-import { useSidebarDrag } from '../composables/dnd/strategies/useSidebarDrag'
-import { useDragContext } from '../composables/dnd/useDragContext'
+import { useDragOperator } from '../composables/useDragOperator'
 
 const props = withDefaults(defineProps<{
     dates: string[]
     tasksByDate: Record<string, Task[]>
     startHour?: number
     endHour?: number
-    activeExternalTask?: Task | null
 }>(), {
     startHour: 0,
     endHour: 24,
-    activeExternalTask: null
 })
 
 const emit = defineEmits<{
-    (e: 'update:calendar-bounds', rect: DOMRect): void
-    (e: 'external-task-dropped', payload: { taskId: string | number, startTime: number, duration?: number, date: string }): void
-    (e: 'task-dropped-on-sidebar', payload: { taskId: string | number, event: MouseEvent, target: 'todo' | 'shortcut', date: string }): void
-    (e: 'external-task-dropped-on-sidebar', payload: { event: MouseEvent }): void
-    (e: 'delete-external-task', payload: {}): void
     (e: 'create-task', payload: { startTime: number, date: string }): void
     (e: 'edit', task: Task): void
     (e: 'add-day'): void
@@ -39,86 +29,12 @@ const tasksContainerRef = ref<HTMLElement | null>(null)
 const scrollAreaRef = ref<HTMLElement | null>(null)
 const scrollTop = ref(0)
 
-// --- Drag & Drop Integration ---
-const { startDrag } = useDragAndDrop()
-const { isDragging, dragPayload } = useDragContext()
-
-const draggedTaskId = computed(() => {
-    if (isDragging.value && dragPayload.value?.type === 'task') {
-        return dragPayload.value.data.id
-    }
-    return null
-})
-
-const config = {
-    startHour: props.startHour,
-    endHour: props.endHour,
-    hourHeight: 80,
-    dates: toRef(props, 'dates'),
-    getContainerRect: () => tasksContainerRef.value?.getBoundingClientRect() || null,
-    getScrollTop: () => scrollTop.value,
-    topOffset: headerOffset
-}
-
-// Strategies
-const calendarStrategy = useCalendarDrag(config)
-const sidebarStrategy = useSidebarDrag(config)
-
-// Handlers for child components
-const handleStartOperation = (e: MouseEvent, taskId: string | number, opMode: 'drag' | 'resize-top' | 'resize-bottom', initialRect?: DOMRect) => {
-    e.stopPropagation()
-    const task = allTasks.value.find(t => t.id === taskId)
-    if (!task) return
-
-    updateScroll()
-
-    // Both drag and resize use the same calendar strategy
-    // but the 'mode' in the payload tells it what to do.
-    startDrag(calendarStrategy, e, { task, mode: opMode, initialRect })
-}
-
-// Handler for External Drag (Called by parent or via Ref exposure)
-const handleExternalDrag = (e: MouseEvent, task: Task, onStarted?: () => void) => {
-    updateScroll()
-
-    // Determine source from element or passed prop? 
-    // Usually external drag implies Sidebar. We need to know if it's Todo or Shortcut.
-    const source = task.isShortcut ? 'shortcut' : 'todo'
-
-    // Calculate offset
-    const target = e.target as HTMLElement
-    const itemEl = target.closest('.task-item')
-    let yOffsetHours = 0
-    if (itemEl) {
-        const rect = itemEl.getBoundingClientRect()
-        const dragOffsetY = e.clientY - rect.top
-        yOffsetHours = dragOffsetY / 80
-    } else {
-        yOffsetHours = 0.25 // Default
-    }
-
-    startDrag(sidebarStrategy, e, { task, source, offsetHours: yOffsetHours })
-    onStarted?.()
-}
-
+const { isDragging } = useDragOperator()
 
 // --- Scroll & Layout ---
 const updateScroll = () => {
     if (scrollAreaRef.value) {
         scrollTop.value = scrollAreaRef.value.scrollTop
-        updateContainerRect()
-    }
-}
-
-const updateContainerRect = () => {
-    if (tasksContainerRef.value) {
-        const rect = tasksContainerRef.value.getBoundingClientRect()
-        emit('update:calendar-bounds', rect)
-        // Measure header height dynamically
-        const headerEl = tasksContainerRef.value.querySelector('.column-header')
-        if (headerEl) {
-            headerOffset.value = headerEl.clientHeight
-        }
     }
 }
 
@@ -250,24 +166,33 @@ const scrollToTop = () => {
     scrollAreaRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+const updateHeaderOffset = () => {
+    if (tasksContainerRef.value) {
+        const headerEl = tasksContainerRef.value.querySelector('.column-header')
+        if (headerEl) {
+            headerOffset.value = headerEl.clientHeight
+        }
+    }
+}
+
 onMounted(() => {
     updateTaskStatuses()
     timer = setInterval(() => {
         currentTime.value = new Date()
         updateTaskStatuses()
     }, 60000)
-    window.addEventListener('resize', updateContainerRect)
+    window.addEventListener('resize', updateHeaderOffset)
+    updateHeaderOffset()
 })
 
 onUnmounted(() => {
     if (timer) clearInterval(timer)
-    window.removeEventListener('resize', updateContainerRect)
+    window.removeEventListener('resize', updateHeaderOffset)
 })
 
 watch(() => props.tasksByDate, updateTaskStatuses, { immediate: true, deep: true })
 
 defineExpose({
-    startExternalDrag: handleExternalDrag,
     scrollToTop
 })
 </script>
@@ -329,12 +254,8 @@ defineExpose({
                                        :tasks="tasksByDate[date] || []"
                                        :start-hour="startHour"
                                        :end-hour="endHour"
-                                       :active-task-id="draggedTaskId"
-                                       :mode="calendarStrategy.activeMode"
-                                       :current-snap-time="calendarStrategy.currentSnapDate === date ? calendarStrategy.currentSnapTime : null"
-                                       :current-duration="calendarStrategy.currentSnapDate === date ? calendarStrategy.currentDuration : null"
                                        :task-statuses="taskStatuses"
-                                       @start-operation="handleStartOperation($event.event, $event.taskId, $event.opMode, $event.initialRect)"
+                                       :scroll-top="scrollTop"
                                        @slot-click="handleSlotClick($event.startTime, 0, date)"
                                        @edit="emit('edit', $event)" />
 
@@ -346,7 +267,6 @@ defineExpose({
                         </div>
 
                         <AddDayZone :label="getNextDateLabel"
-                                    :is-dragging="isDragging"
                                     @add-day="onAddDay" />
                     </div>
                 </div>

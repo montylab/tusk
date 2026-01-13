@@ -5,54 +5,162 @@
 import TaskItem from './TaskItem.vue'
 import type { Task } from '../types'
 import { useTaskLayout } from '../composables/useTaskLayout'
-import { computed } from 'vue'
+import { useDragOperator } from '../composables/useDragOperator'
+import { useTasksStore } from '../stores/tasks'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 
 const props = withDefaults(defineProps<{
     date: string
     tasks: Task[]
     startHour: number
     endHour: number
-    activeTaskId: string | number | null
-    mode: 'none' | 'drag' | 'resize-top' | 'resize-bottom'
-    currentSnapTime: number | null
-    currentDuration: number | null
     taskStatuses: Record<string | number, 'past' | 'future' | 'on-air' | null>
-    isGhost?: boolean
+    scrollTop?: number
 }>(), {
-    isGhost: false
+    scrollTop: 0
 })
 
 const emit = defineEmits<{
-    (e: 'start-operation', payload: { event: MouseEvent, taskId: string | number, opMode: 'drag' | 'resize-top' | 'resize-bottom', initialRect?: DOMRect }): void
     (e: 'slot-click', payload: { startTime: number }): void
     (e: 'edit', task: Task): void
+    (e: 'update:bounds', bounds: DOMRect): void
 }>()
+
+const tasksStore = useTasksStore()
+const { activeDraggedTaskId, registerZone, unregisterZone, updateZoneBounds, startDrag, dragOffset } = useDragOperator()
+
+const columnRef = ref<HTMLElement | null>(null)
+const gridRef = ref<HTMLElement | null>(null)
+
+const zoneName = computed(() => `calendar-day-${props.date}`)
+const hourHeight = 80
 
 const hours = computed(() =>
     Array.from({ length: props.endHour - props.startHour }, (_, i) => i + props.startHour)
 )
 
+// Use activeTaskId from drag operator instead of prop
 const { layoutTasks } = useTaskLayout(
     () => props.tasks,
-    computed(() => props.activeTaskId),
-    computed(() => props.currentSnapTime),
-    computed(() => props.currentDuration),
+    activeDraggedTaskId,
+    ref(null), // Not using snapped time anymore
+    ref(null), // Not using snapped duration anymore
     {
         startHour: props.startHour,
         endHour: props.endHour,
-        hourHeight: 80
+        hourHeight
     }
 )
+
+// Grid snapping calculation for drop data
+const calculateDropData = (x: number, y: number, task: Task) => {
+    if (!gridRef.value) return { time: props.startHour, duration: task.duration || 60, date: props.date }
+
+    const rect = gridRef.value.getBoundingClientRect()
+
+    // Calculate Task Top Y based on cursor Y and drag offset
+    // This ensures we snap the TOP of the task to the grid, based on where the user grabbed it
+    const taskTopY = y - dragOffset.value.y
+    const relativeY = taskTopY - rect.top
+
+    const hours = relativeY / hourHeight
+    const snappedHours = Math.round(hours / 0.25) * 0.25 // 15min snap
+    let time = props.startHour + snappedHours
+
+    // Clamp time
+    time = Math.max(props.startHour, Math.min(time, props.endHour - ((task.duration || 60) / 60)))
+
+    // Calculate snapped screen coordinates
+    const snappedScreenY = rect.top + (time - props.startHour) * hourHeight
+    const snappedScreenX = rect.left
+    const snappedWidth = rect.width
+
+    return {
+        time,
+        duration: task.duration || 60,
+        date: props.date,
+        snappedRect: {
+            top: snappedScreenY,
+            left: snappedScreenX,
+            width: snappedWidth,
+            height: ((task.duration || 60) / 60) * hourHeight
+        }
+    }
+}
+
+const updateBounds = () => {
+    if (gridRef.value) {
+        const bounds = gridRef.value.getBoundingClientRect()
+        emit('update:bounds', bounds)
+        updateZoneBounds(zoneName.value, bounds, { x: 0, y: props.scrollTop })
+    }
+}
+
+// Watch scrollTop to keep bounds accurate during scroll
+watch(() => props.scrollTop, updateBounds)
+
+onMounted(() => {
+    if (gridRef.value) {
+        // Register zone with grid config and drop data calculator
+        registerZone(zoneName.value, gridRef.value.getBoundingClientRect(), {
+            gridConfig: {
+                snapWidth: gridRef.value.clientWidth / 7, // Assume 7 days max
+                snapHeight: hourHeight / 4, // 15 min segments
+                startHour: props.startHour,
+                endHour: props.endHour
+            },
+            calculateDropData,
+            scrollOffset: { x: 0, y: props.scrollTop }
+        })
+
+        // Listen for resize
+        const resizeObserver = new ResizeObserver(() => updateBounds())
+        resizeObserver.observe(gridRef.value)
+            ; (gridRef.value as any).__resizeObserver = resizeObserver
+
+        window.addEventListener('resize', updateBounds)
+    }
+})
+
+onUnmounted(() => {
+    unregisterZone(zoneName.value)
+
+    if (gridRef.value && (gridRef.value as any).__resizeObserver) {
+        (gridRef.value as any).__resizeObserver.disconnect()
+    }
+    window.removeEventListener('resize', updateBounds)
+})
 
 const handleSlotClick = (hour: number, q: number) => {
     emit('slot-click', { startTime: hour + q * 0.25 })
 }
+
+const handleTaskMouseDown = (e: MouseEvent, task: Task) => {
+    // Handle Ctrl+Click duplication
+    if (e.ctrlKey || e.metaKey) {
+        // Create duplicate with temp ID
+        const duplicateTask: Task = {
+            ...task,
+            id: tasksStore.generateTempId()
+        }
+        startDrag(duplicateTask, zoneName.value, e)
+    } else {
+        // Normal drag
+        startDrag(task, zoneName.value, e)
+    }
+}
+
+const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
+    // TODO: For touch, we could implement long-press for duplication
+    startDrag(task, zoneName.value, e)
+}
 </script>
 
 <template>
-    <div class="day-column"
-         :class="{ 'is-ghost': isGhost }">
-        <div class="column-grid">
+    <div ref="columnRef"
+         class="day-column">
+        <div ref="gridRef"
+             class="column-grid">
             <div v-for="hour in hours"
                  :key="hour"
                  class="hour-row">
@@ -69,44 +177,17 @@ const handleSlotClick = (hour: number, q: number) => {
                       :key="task.id">
                 <div class="task-wrapper-absolute"
                      :class="{
-                        'is-dragging': task.id === activeTaskId && mode === 'drag',
-                        'dragged-origin': task.id === activeTaskId
+                        'dragged-origin': task.id === activeDraggedTaskId
                     }"
                      :style="task.style"
-                     @mousedown="emit('start-operation', {
-                        event: $event,
-                        taskId: task.id,
-                        opMode: 'drag',
-                        initialRect: ($event.currentTarget as HTMLElement).getBoundingClientRect()
-                    })">
-
-                    <!-- Top Handle -->
-                    <div v-if="task.id !== activeTaskId || mode !== 'drag'"
-                         class="resize-handle top"
-                         @mousedown.stop="emit('start-operation', {
-                            event: $event,
-                            taskId: task.id,
-                            opMode: 'resize-top',
-                            initialRect: ($event.currentTarget as HTMLElement).closest('.task-wrapper-absolute')?.getBoundingClientRect()
-                        })">
-                    </div>
+                     @mousedown="handleTaskMouseDown($event, task)"
+                     @touchstart="handleTaskTouchStart($event, task)">
 
                     <TaskItem :task="task"
-                              :is-dragging="task.id === activeTaskId && mode === 'drag'"
+                              :is-dragging="task.id === activeDraggedTaskId"
                               :is-shaking="task.isOverlapping"
                               :status="taskStatuses[task.id]"
                               @edit="emit('edit', $event)" />
-
-                    <!-- Bottom Handle -->
-                    <div v-if="task.id !== activeTaskId || mode !== 'drag'"
-                         class="resize-handle bottom"
-                         @mousedown.stop="emit('start-operation', {
-                            event: $event,
-                            taskId: task.id,
-                            opMode: 'resize-bottom',
-                            initialRect: ($event.currentTarget as HTMLElement).closest('.task-wrapper-absolute')?.getBoundingClientRect()
-                        })">
-                    </div>
                 </div>
             </template>
         </div>
@@ -160,41 +241,18 @@ const handleSlotClick = (hour: number, q: number) => {
 .task-wrapper-absolute {
     position: absolute;
     pointer-events: auto;
-    /* Only animate when NOT interacting to avoid lag/jumping */
     transition: none;
     user-select: none;
+    cursor: grab;
+}
+
+.task-wrapper-absolute:active {
+    cursor: grabbing;
 }
 
 /* Base transition for static items */
 .task-wrapper-absolute:not(.dragged-origin) {
     transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
-}
-
-.task-wrapper-absolute.is-dragging {
-    opacity: 0.15;
-    pointer-events: none;
-}
-
-.resize-handle {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 6px;
-    cursor: ns-resize;
-    z-index: 10;
-}
-
-.resize-handle.top {
-    top: -3px;
-}
-
-.resize-handle.bottom {
-    bottom: -3px;
-}
-
-.is-ghost {
-    opacity: 0.5;
-    pointer-events: none;
 }
 
 .dragged-origin {

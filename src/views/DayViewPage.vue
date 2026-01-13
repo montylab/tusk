@@ -2,7 +2,7 @@
   setup
   lang="ts"
 >
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import DayView from '../components/DayView.vue'
@@ -11,8 +11,6 @@ import TaskPile from '../components/TaskPile.vue'
 import TaskEditorPopup from '../components/TaskEditorPopup.vue'
 import { useTasksStore } from '../stores/tasks'
 import { useTimeBoundaries } from '../composables/useTimeBoundaries'
-import { useZoneDetection } from '../composables/dnd/useZoneDetection'
-import { useDragContext } from '../composables/dnd/useDragContext'
 import { formatDate } from '../utils/dateUtils'
 import type { Task } from '../types'
 
@@ -25,33 +23,6 @@ onDayChange((newDate) => {
   router.push({ name: 'day', params: { date: newDate } })
 })
 const { currentDates, scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
-
-// --- Drag & Drop Zone Registration ---
-const { registerZone } = useZoneDetection()
-const { dropTarget } = useDragContext() // To show highlighting
-
-const isOverTrash = computed(() => dropTarget.value.zone === 'trash')
-const isOverTodo = computed(() => dropTarget.value.zone === 'todo')
-const isOverShortcut = computed(() => dropTarget.value.zone === 'shortcut')
-
-const todoInsertionIndex = ref<number | null>(null)
-const shortcutInsertionIndex = ref<number | null>(null)
-
-const handleInsertionIndexUpdate = (zone: 'todo' | 'shortcut', index: number | null) => {
-  if (zone === 'todo') {
-    todoInsertionIndex.value = index
-    if (isOverTodo.value) {
-      const { setDropTarget } = useDragContext()
-      setDropTarget({ zone: 'todo', data: { index } })
-    }
-  } else if (zone === 'shortcut') {
-    shortcutInsertionIndex.value = index
-    if (isOverShortcut.value) {
-      const { setDropTarget } = useDragContext()
-      setDropTarget({ zone: 'shortcut', data: { index } })
-    }
-  }
-}
 
 // Reference to DayView
 const dayViewRef = ref<any>(null)
@@ -144,19 +115,12 @@ const handleAddDay = () => {
   tasksStore.addDate(nextDateStr)
 }
 
-// Pass External Drag Start to DayView (which delegates to strategy in new system)
-const onDragStart = (_source: 'todo' | 'shortcut', task: Task, event: MouseEvent) => {
-  // _source unused but kept for potential future logic or logging
-  dayViewRef.value?.startExternalDrag(event, task)
-}
-
 </script>
 
 <template>
   <div class="page-layout">
     <aside class="sidebar left">
-      <TrashBasket :active="isOverTrash"
-                   @update:bounds="registerZone('trash', $event)" />
+      <TrashBasket />
     </aside>
 
     <main class="main-content">
@@ -170,7 +134,6 @@ const onDragStart = (_source: 'todo' | 'shortcut', task: Task, event: MouseEvent
                :tasks-by-date="scheduledTasks"
                :start-hour="0"
                :end-hour="24"
-               @update:calendar-bounds="registerZone('calendar', $event)"
                @create-task="handleOpenCreatePopup"
                @edit="handleEditTask"
                @add-day="handleAddDay" />
@@ -189,20 +152,10 @@ const onDragStart = (_source: 'todo' | 'shortcut', task: Task, event: MouseEvent
         <TaskPile title="Shortcuts"
                   :tasks="shortcutTasks"
                   list-type="shortcut"
-                  :is-highlighted="isOverShortcut"
-                  :insertion-index="shortcutInsertionIndex"
-                  @update:bounds="registerZone('shortcut', $event)"
-                  @update:insertion-index="handleInsertionIndexUpdate('shortcut', $event)"
-                  @drag-start="onDragStart('shortcut', $event.task, $event.event)"
                   @edit="handleEditTask" />
         <TaskPile title="To Do"
                   :tasks="todoTasks"
                   list-type="todo"
-                  :is-highlighted="isOverTodo"
-                  :insertion-index="todoInsertionIndex"
-                  @update:bounds="registerZone('todo', $event)"
-                  @update:insertion-index="handleInsertionIndexUpdate('todo', $event)"
-                  @drag-start="onDragStart('todo', $event.task, $event.event)"
                   @edit="handleEditTask" />
       </div>
     </aside>
