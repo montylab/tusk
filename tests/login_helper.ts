@@ -1,33 +1,64 @@
 import { expect, Page } from '@playwright/test';
 
-export async function loginTestUser(page: Page) {
+export async function loginTestUser(page: Page, email = 'test@example.com', password = 'password123') {
+    // 1. Force navigation to signin. If we are on /signout, we need to wait for redirect or go directly.
     await page.goto('/signin');
+    await page.waitForLoadState('load');
 
-    // Check if already logged in (redirected to /)
-    if (!page.url().includes('/signin')) {
+    // If already at /day or home, we're likely logged in.
+    let url = page.url();
+    if (url.endsWith('/day') || (url.endsWith('/') && !url.includes('signin') && !url.includes('signout'))) {
         return;
     }
 
-    await page.fill('#email', 'test@example.com');
-    await page.fill('#password', 'password123');
-    await page.click('.submit-btn');
+    // Double check we are actually on signin page (Handle case where we are stuck on /signout)
+    if (url.includes('signout')) {
+        await page.waitForURL(/.*signin/, { timeout: 10000 });
+    }
 
-    // Wait a bit to see if we get an error or redirect
+    const emailInput = page.locator('#email');
+    const passwordInput = page.locator('#password');
+    const submitBtn = page.locator('.submit-btn');
+
+    // Ensure form is ready
+    await expect(emailInput).toBeVisible({ timeout: 10000 });
+
+    await emailInput.fill(email);
+    await passwordInput.fill(password);
+    await submitBtn.click();
+
+    // 3. Handle result
     try {
-        await expect(page).toHaveURL(/.*(\/|\/day)/, { timeout: 5000 });
-    } catch (e) {
-        // If we are still on signin, maybe user doesn't exist? Try Sign Up
-        const error = await page.locator('.error-text').textContent();
-        if (error) {
-            console.log('Login failed, trying to sign up:', error);
-            // Click the toggle button to switch to Sign Up mode
-            await page.click('.text-link');
-            // Wait for the button text to change to "Create Account" or similar if needed, 
-            // but just clicking .submit-btn again should work as it's the same form.
-            await page.click('.submit-btn');
-            await expect(page).toHaveURL(/.*(\/|\/day)/, { timeout: 15000 });
+        // Wait for the app-header to appear - this is the best indicator of a successful login
+        await expect(page.locator('.app-header')).toBeVisible({ timeout: 15000 });
+    } catch (err) {
+        const errorLocator = page.locator('.error-text');
+        if (await errorLocator.isVisible({ timeout: 2000 })) {
+            const errorText = await errorLocator.textContent();
+            if (errorText && (errorText.toLowerCase().includes('not found') || errorText.toLowerCase().includes('user-not-found'))) {
+                await page.locator('.text-link').click(); // Switch mode
+                await page.waitForTimeout(500);
+                await submitBtn.click();
+                await expect(page.locator('.app-header')).toBeVisible({ timeout: 15000 });
+            } else {
+                throw err;
+            }
         } else {
-            throw e;
+            throw err;
         }
     }
+
+    // 4. Cleanup/Sync
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
 }
+
+
+
+
+
+
+
+
+
+

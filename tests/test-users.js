@@ -5,4 +5,20 @@
 //   ...
 // ];
 
-export const testUsers = [];
+export const testUsers = [
+    {
+        email: 'test1@example.com',
+        password: 'password123',
+        role: 'primary'
+    },
+    {
+        email: 'test2@example.com',
+        password: 'password123',
+        role: 'secondary'
+    },
+    {
+        email: 'test3@example.com',
+        password: 'password123',
+        role: 'reviewer'
+    }
+];

@@ -1,54 +1,68 @@
 import { test, expect } from '@playwright/test';
+import { loginTestUser } from './login_helper';
+// @ts-ignore - test-users.js is in gitignore
+import { testUsers } from './test-users.js';
 
-test.describe('Authentication Redirects', () => {
-    // Helper to clear state
+test.describe('Authentication & Security', () => {
+    const primaryUser = testUsers[0];
+
     test.beforeEach(async ({ page }) => {
-        await page.goto('/signout'); // Ensure logged out
-        await page.waitForURL(/.*\/signin/, { timeout: 10000 });
+        // Force logout to clean state
+        await page.goto('/signout');
+        await page.waitForURL(/.*signin/);
     });
 
-    test('should redirect to home if already authenticated and accessing /signin', async ({ page }) => {
-        // We use the mock injection here because it's the fastest way to test REDIRECTS 
-        // without depending on Firebase responsiveness.
-        await page.addInitScript(() => {
-            (window as any).__MOCK_USER__ = {
-                uid: 'test-user',
-                email: 'test@example.com',
-                displayName: 'Test User'
-            };
-        });
-
-        await page.goto('/signin');
-        await expect(page).toHaveURL(/.*(\/|\/day)/);
+    test('should redirect unauthenticated users to /signin', async ({ page }) => {
+        await page.goto('/settings');
+        await expect(page).toHaveURL(/.*signin/);
     });
 
-    test('should login with email and password', async ({ page }) => {
+    test('should explicitly create a new account via signup toggle', async ({ page }) => {
+        const newUser = { email: `new-${Date.now()}@example.com`, password: 'password123' };
         await page.goto('/signin');
-        await page.fill('#email', 'test@example.com');
-        await page.fill('#password', 'password123');
+
+        await page.click('.text-link'); // Switch to signup
+        await page.fill('#email', newUser.email);
+        await page.fill('#password', newUser.password);
         await page.click('.submit-btn');
 
-        // Should redirect to dashboard
-        await expect(page).toHaveURL(/.*(\/|\/day)/, { timeout: 15000 });
+        await expect(page.locator('.app-header')).toBeVisible({ timeout: 15000 });
+        await expect(page).toHaveURL(/.*(\/|day)/);
+    });
+
+    test('should persist authentication on page refresh (F5)', async ({ page }) => {
+        await loginTestUser(page, primaryUser.email, primaryUser.password);
+        await page.goto('/settings');
         await expect(page.locator('.app-header')).toBeVisible();
+
+        await page.reload();
+
+        // Wait for the header to reappear after refresh
+        await expect(page.locator('.app-header')).toBeVisible({ timeout: 15000 });
+        await expect(page).toHaveURL(/.*\/settings/);
     });
 
-    test('should logout correctly', async ({ page }) => {
-        // Login first
+    test('should show error on invalid login credentials', async ({ page }) => {
         await page.goto('/signin');
-        await page.fill('#email', 'test@example.com');
-        await page.fill('#password', 'password123');
+        await page.fill('#email', 'nonexistent@example.com');
+        await page.fill('#password', 'wrong-pass');
         await page.click('.submit-btn');
-        await expect(page).toHaveURL(/.*(\/|\/day)/);
 
-        // Click logout
-        const logoutBtn = page.locator('.logout-btn');
-        await expect(logoutBtn).toBeVisible();
+        const error = page.locator('.error-text');
+        await expect(error).toBeVisible();
+        await expect(error).not.toBeEmpty();
+    });
+
+    test('should logout correctly and prevent back-navigation', async ({ page }) => {
+        await loginTestUser(page, primaryUser.email, primaryUser.password);
+
+        const logoutBtn = page.getByTitle('Logout');
+        await expect(logoutBtn).toBeVisible({ timeout: 10000 });
         await logoutBtn.click();
 
-        // Should go through signout to signin
-        await expect(page).toHaveURL(/.*\/signout/);
-        await page.waitForURL(/.*\/signin/, { timeout: 10000 });
-        await expect(page.locator('.signin-page')).toBeVisible();
+        await expect(page).toHaveURL(/.*signin/, { timeout: 15000 });
+
+        await page.goto('/settings');
+        await expect(page).toHaveURL(/.*signin/);
     });
 });

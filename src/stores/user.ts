@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import {
     onAuthStateChanged,
     signInWithPopup,
@@ -15,9 +15,10 @@ export const useUserStore = defineStore('user', () => {
     const user = ref<User | null>(null);
     const loading = ref(true);
 
-    onMounted(() => {
+    // Initialize auth listener immediately
+    const initAuth = () => {
         // Support mocking for tests
-        if (import.meta.env.DEV && (window as any).__MOCK_USER__) {
+        if (typeof window !== 'undefined' && (window as any).__MOCK_USER__) {
             user.value = (window as any).__MOCK_USER__;
             loading.value = false;
             return;
@@ -27,7 +28,10 @@ export const useUserStore = defineStore('user', () => {
             user.value = firebaseUser;
             loading.value = false;
         });
-    });
+    };
+
+    initAuth();
+
 
     async function loginWithGoogle() {
         const provider = new GoogleAuthProvider();

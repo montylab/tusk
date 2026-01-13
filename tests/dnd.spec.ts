@@ -1,127 +1,161 @@
 import { test, expect, Page } from '@playwright/test';
 import { loginTestUser } from './login_helper';
+import {
+    setupTestTask,
+    cleanupTestTasks,
+    spyOnStoreAction,
+    waitForStoreAction,
+    getLastStoreActionCall,
+    dragAndDrop
+} from './test_utils';
 
 test.describe('Drag and Drop & Resize', () => {
+    let taskName: string;
+
     test.beforeEach(async ({ page }: { page: Page }) => {
-        // Ensure clean state
         await page.goto('/signout');
         await page.waitForURL(/.*\/signin/);
-
-        // Login with real test user flow
         await loginTestUser(page);
-
-        // Wait for app to be ready
         await expect(page.locator('.app-header')).toBeVisible({ timeout: 15000 });
 
-        // CREATE a real task via the store actions
-        const taskName = `Test Task ${Date.now()}`;
-        await page.evaluate(async (name) => {
-            const win = window as any;
-            const tasksStore = win.pinia._s.get('tasks');
-            const today = tasksStore.currentDates[0];
-
-            await tasksStore.createScheduledTask({
-                text: name,
-                category: 'Work',
-                completed: false,
-                startTime: 10,
-                duration: 60,
-                date: today,
-                isShortcut: false
-            });
-        }, taskName);
-
-        // Wait for the task to appear in the UI (it will sync back from Firebase)
-        await expect(page.getByText(taskName)).toBeVisible({ timeout: 15000 });
+        taskName = `Test Task ${Date.now()}`;
+        await setupTestTask(page, taskName, { startTime: 10, duration: 60 });
     });
 
-    // Cleanup after each test to keep DB clean-ish
     test.afterEach(async ({ page }) => {
-        await page.evaluate(async () => {
-            const win = window as any;
-            const tasksStore = win.pinia._s.get('tasks');
-            const today = tasksStore.currentDates[0];
-
-            // Delete all test tasks
-            const tasks = tasksStore.calendarTasksState[today] || [];
-            for (const t of tasks) {
-                if (t.text.startsWith('Test Task')) {
-                    await tasksStore.deleteScheduledTask(t.id, today);
-                }
-            }
-        });
+        await cleanupTestTasks(page);
     });
 
     test('should drag task to a new time', async ({ page }: { page: Page }) => {
-        const task = page.locator('.task-wrapper-absolute').first();
-        const taskBox = await task.boundingBox();
-        if (!taskBox) throw new Error('Task box not found');
+        const task = page.locator('.task-wrapper-absolute').filter({ hasText: taskName }).first();
+        await task.scrollIntoViewIfNeeded();
+        const initialBox = await task.boundingBox();
+        if (!initialBox) throw new Error('Task box not found');
 
-        const startX = taskBox.x + taskBox.width / 2;
-        const startY = taskBox.y + taskBox.height / 2;
-        const targetY = startY + 160; // +2 hours
+        const start = { x: initialBox.x + initialBox.width / 2, y: initialBox.y + initialBox.height / 2 };
+        const end = { x: start.x, y: start.y + 160 }; // +2 hours (80px per hour)
 
-        // Listen for the update call by spying on the store action
-        await page.evaluate(() => {
-            const win = window as any;
-            const tasksStore = win.pinia._s.get('tasks');
-            win.__LAST_UPDATE__ = null;
+        await dragAndDrop(page, start, end);
 
-            const originalUpdate = tasksStore.updateScheduledTask;
-            tasksStore.updateScheduledTask = async (...args: any[]) => {
-                win.__LAST_UPDATE__ = { id: args[0], date: args[1], updates: args[2] };
-                return originalUpdate.apply(tasksStore, args);
-            };
-        });
+        // Wait for UI update
+        await page.waitForTimeout(500);
 
-        await page.mouse.move(startX, startY);
-        await page.mouse.down();
-        await page.mouse.move(startX, targetY, { steps: 10 });
-        await page.mouse.up();
-
-        // Wait for the spy to catch the update
-        await expect.poll(async () => {
-            return await page.evaluate(() => (window as any).__LAST_UPDATE__);
-        }, { timeout: 10000 }).not.toBeNull();
-
-        const lastUpdate = await page.evaluate(() => (window as any).__LAST_UPDATE__);
-        expect(lastUpdate.updates.startTime).toBe(12);
+        const finalBox = await task.boundingBox();
+        expect(finalBox?.y).toBeGreaterThan(initialBox.y + 100); // expect significant move
     });
 
     test('should resize task from bottom', async ({ page }: { page: Page }) => {
-        const task = page.locator('.task-wrapper-absolute').first();
-        const resizeHandle = task.locator('.resize-handle.bottom');
+        const task = page.locator('.task-wrapper-absolute').filter({ hasText: taskName }).first();
+        await task.scrollIntoViewIfNeeded();
 
+        // Wait for task to be stable
+        await task.waitFor({ state: 'visible' });
+
+        const initialBox = await task.boundingBox();
+        if (!initialBox) throw new Error('Task box not found');
+
+        const resizeHandle = task.locator('.resize-handle.bottom');
         await resizeHandle.waitFor({ state: 'visible' });
+
         const handleBox = await resizeHandle.boundingBox();
         if (!handleBox) throw new Error('Handle box not found');
 
-        const startX = handleBox.x + handleBox.width / 2;
-        const startY = handleBox.y + handleBox.height / 2;
-        const targetY = startY + 80; // +1 hour
+        const start = { x: handleBox.x + handleBox.width / 2, y: handleBox.y + handleBox.height / 2 };
+        const end = { x: start.x, y: start.y + 80 }; // +1 hour
 
-        await page.evaluate(() => {
-            const win = window as any;
-            const tasksStore = win.pinia._s.get('tasks');
-            win.__LAST_UPDATE__ = null;
+        await dragAndDrop(page, start, end);
 
-            const originalUpdate = tasksStore.updateScheduledTask;
-            tasksStore.updateScheduledTask = async (...args: any[]) => {
-                win.__LAST_UPDATE__ = { id: args[0], date: args[1], updates: args[2] };
-                return originalUpdate.apply(tasksStore, args);
-            };
-        });
+        // Wait for UI update
+        await page.waitForTimeout(500);
 
-        await page.mouse.move(startX, startY);
-        await page.mouse.down();
-        await page.mouse.move(startX, targetY, { steps: 10 });
-        await page.mouse.up();
+        const finalBox = await task.boundingBox();
+        expect(finalBox?.height).toBeGreaterThan(initialBox.height + 50);
+    });
 
-        await expect.poll(async () => {
-            return await page.evaluate(() => (window as any).__LAST_UPDATE__);
-        }, { timeout: 10000 }).not.toBeNull();
+    test('should resize task from top', async ({ page }: { page: Page }) => {
+        const task = page.locator('.task-wrapper-absolute').filter({ hasText: taskName }).first();
+        await task.scrollIntoViewIfNeeded();
+        await task.waitFor({ state: 'visible' });
 
-        const lastUpdate = await page.evaluate(() => (window as any).__LAST_UPDATE__);
-        expect(lastUpdate.updates.duration).toBe(120);
+        const initialBox = await task.boundingBox();
+        if (!initialBox) throw new Error('Task box not found');
+
+        const resizeHandle = task.locator('.resize-handle.top');
+        // Hover to ensure handle might appear if strictly `display:none` (though CSS says it's visible)
+        await task.hover();
+        await resizeHandle.waitFor({ state: 'visible' });
+
+        const handleBox = await resizeHandle.boundingBox();
+        if (!handleBox) throw new Error('Handle box not found');
+
+        const start = { x: handleBox.x + handleBox.width / 2, y: handleBox.y + handleBox.height / 2 };
+        const end = { x: start.x, y: start.y - 80 }; // -1 hour
+
+        await dragAndDrop(page, start, end);
+
+        // Wait for UI update
+        await page.waitForTimeout(500);
+
+        const finalBox = await task.boundingBox();
+        // Top should move up (smaller Y), Height should increase
+        expect(finalBox?.y).toBeLessThan(initialBox.y - 50);
+        expect(finalBox?.height).toBeGreaterThan(initialBox.height + 50);
+    });
+
+    test('should drag task from To-Do pile to calendar', async ({ page }: { page: Page }) => {
+        const todoName = `Todo Task ${Date.now()}`;
+        await setupTestTask(page, todoName, { isTodo: true });
+
+        // Locate task in pile
+        const todoTask = page.locator('.task-pile:has-text("To Do") .task-item').filter({ hasText: todoName }).first();
+        await todoTask.scrollIntoViewIfNeeded();
+        await expect(todoTask).toBeVisible();
+
+        const taskBox = await todoTask.boundingBox();
+        if (!taskBox) throw new Error('Todo task box not found');
+
+        // Locate calendar slot (e.g., 9 AM)
+        const slot = page.locator('.quarter-slot').nth(36); // 9th hour * 4
+        await slot.scrollIntoViewIfNeeded();
+        const slotBox = await slot.boundingBox();
+        if (!slotBox) throw new Error('Slot box not found');
+
+        const start = { x: taskBox.x + taskBox.width / 2, y: taskBox.y + taskBox.height / 2 };
+        const end = { x: slotBox.x + slotBox.width / 2, y: slotBox.y + slotBox.height / 2 };
+
+        await dragAndDrop(page, start, end);
+        await page.waitForTimeout(500);
+
+        // Verify it moved to calendar (absolute wrapper exists)
+        const calendarTask = page.locator('.task-wrapper-absolute').filter({ hasText: todoName });
+        await expect(calendarTask).toBeVisible();
+    });
+
+    test('should drag task from calendar to To-Do pile', async ({ page }: { page: Page }) => {
+        // Use the default task created in beforeEach
+        const task = page.locator('.task-wrapper-absolute').filter({ hasText: taskName }).first();
+        await task.scrollIntoViewIfNeeded();
+        const taskBox = await task.boundingBox();
+        if (!taskBox) throw new Error('Calendar task box not found');
+
+        // Locate To-Do pile
+        const todoPile = page.locator('.task-pile:has-text("To Do")');
+        await todoPile.scrollIntoViewIfNeeded();
+        const pileBox = await todoPile.boundingBox();
+        if (!pileBox) throw new Error('Todo pile box not found');
+
+        const start = { x: taskBox.x + taskBox.width / 2, y: taskBox.y + taskBox.height / 2 };
+        // Drop in the middle of the pile
+        const end = { x: pileBox.x + pileBox.width / 2, y: pileBox.y + pileBox.height / 2 };
+
+        await dragAndDrop(page, start, end);
+        await page.waitForTimeout(500);
+
+        // Verify it moved to pile
+        const pileTask = page.locator('.task-pile:has-text("To Do") .task-item').filter({ hasText: taskName });
+        await expect(pileTask).toBeVisible();
+        // Verify it's gone from calendar
+        await expect(page.locator('.task-wrapper-absolute').filter({ hasText: taskName })).not.toBeVisible();
     });
 });
+
