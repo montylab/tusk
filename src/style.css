@@ -1,28 +1,53 @@
 :root {
-  /* Brand Colors */
-  --primary: #646cff;
-  --primary-hover: #7b83ff;
+  /* Default variables (Dark Theme, Brisky Scheme) */
+  --primary: #38bdf8;
+  --primary-hover: #7dd3fc;
   --bg-dark: #121212;
   --bg-card: #1e1e1e;
   --text-main: #ffffff;
-  --text-muted: #rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.7);
   --border-color: #333;
-
-  /* Spacing */
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 2rem;
   --radius: 12px;
-
-  /* Category Colors [Temporary colors] */
+  --font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  
+  /* Category Colors */
   --color-work: #4facfe;
   --color-personal: #43e97b;
   --color-urgent: #ff4b1f;
   --color-learning: #f093fb;
   --color-default: #666;
+}
 
-  /* Typography */
-  --font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+/* Themes */
+[data-theme="light"] {
+  --bg-dark: #f1f5f9;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: rgba(15, 23, 42, 0.6);
+  --border-color: #e2e8f0;
+}
+
+/* Color Schemes */
+[data-scheme="pastel"] {
+  --primary: #f093fb;
+  --primary-hover: #f5befe;
+}
+
+[data-scheme="brisky"] {
+  --primary: #38bdf8;
+  --primary-hover: #7dd3fc;
+}
+
+[data-scheme="royal"] {
+  --primary: #f59e0b;
+  --primary-hover: #fbbf24;
+}
+
+/* Spacing Variables */
+:root {
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
 }
 
 * {

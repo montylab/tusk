@@ -8,6 +8,7 @@ import AddDayZone from './AddDayZone.vue'
 import type { Task } from '../types'
 import { useDragOperator } from '../composables/useDragOperator'
 import { getTaskStatus } from '../logic/taskStatus'
+import { useSettingsStore } from '../stores/settings'
 
 const props = withDefaults(defineProps<{
     dates: string[]
@@ -145,6 +146,16 @@ const handleSlotClick = (hour: number, quarter: number, date: string) => {
     emit('create-task', { startTime, date })
 }
 
+const settingsStore = useSettingsStore()
+
+const scrollToDefaultTime = () => {
+    const defaultHour = settingsStore.settings.defaultStartHour ?? 0
+    if (scrollAreaRef.value && defaultHour > props.startHour) {
+        const top = (defaultHour - props.startHour) * 80
+        scrollAreaRef.value.scrollTo({ top })
+    }
+}
+
 const onAddDay = async () => {
     emit('add-day')
     await nextTick()
@@ -174,6 +185,13 @@ onMounted(() => {
     }, 60000)
     window.addEventListener('resize', updateHeaderOffset)
     updateHeaderOffset()
+
+    // Scroll to default time once settings are loaded
+    watch(() => settingsStore.loading, (isLoading) => {
+        if (!isLoading) {
+            nextTick(() => scrollToDefaultTime())
+        }
+    }, { immediate: true })
 })
 
 onUnmounted(() => {

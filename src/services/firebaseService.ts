@@ -122,3 +122,20 @@ export const deleteCategory = async (categoryId: string): Promise<void> => {
     const categoryRef = ref(db, `${root}/categories/${categoryId}`);
     await remove(categoryRef);
 };
+
+// --- Settings ---
+
+export const subscribeToSettings = (callback: (settings: any) => void) => {
+    const root = getUserRoot();
+    const settingsRef = ref(db, `${root}/settings`);
+    return onValue(settingsRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        callback(data);
+    });
+};
+
+export const updateSettings = async (updates: Partial<any>): Promise<void> => {
+    const root = getUserRoot();
+    const settingsRef = ref(db, `${root}/settings`);
+    await update(settingsRef, updates);
+};

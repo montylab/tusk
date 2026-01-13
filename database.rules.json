@@ -2,6 +2,10 @@
   "rules": {
     "users": {
       "$uid": {
+        "settings": {
+          ".read": "$uid === auth.uid",
+          ".write": "$uid === auth.uid"
+        },
         "categories": {
           ".read": "$uid === auth.uid",
           ".write": "$uid === auth.uid"

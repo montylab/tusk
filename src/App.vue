@@ -3,12 +3,40 @@
   lang="ts"
 >
 import { storeToRefs } from 'pinia'
+import { watch } from 'vue'
 import { useUserStore } from './stores/user'
+import { useSettingsStore } from './stores/settings'
 import AppHeader from './components/AppHeader.vue'
 import DragOperator from './components/DragOperator.vue'
 
 const userStore = useUserStore()
 const { user, loading: authLoading } = storeToRefs(userStore)
+
+const settingsStore = useSettingsStore()
+const { settings } = storeToRefs(settingsStore)
+
+// Apply settings to document
+watch(settings, (newSettings) => {
+  if (newSettings.theme) {
+    document.documentElement.setAttribute('data-theme', newSettings.theme)
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark')
+  }
+
+  if (newSettings.colorScheme) {
+    document.documentElement.setAttribute('data-scheme', newSettings.colorScheme)
+  } else {
+    document.documentElement.setAttribute('data-scheme', 'brisky')
+  }
+
+  if (newSettings.interfaceScale) {
+    document.documentElement.setAttribute('data-scale', newSettings.interfaceScale.toString())
+    document.documentElement.style.fontSize = `${newSettings.interfaceScale}%`
+  } else {
+    document.documentElement.setAttribute('data-scale', '100')
+    document.documentElement.style.fontSize = '100%'
+  }
+}, { deep: true, immediate: true })
 </script>
 
 <template>
