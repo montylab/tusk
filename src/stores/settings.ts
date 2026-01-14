@@ -1,53 +1,72 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useUserStore } from './user'
 import * as firebaseService from '../services/firebaseService'
 
 export interface UserSettings {
-  defaultStartHour?: number
-  theme?: 'light' | 'dark'
-  colorScheme?: 'pastel' | 'brisky' | 'royal'
-  interfaceScale?: number
+	defaultStartHour?: number
+	theme?: 'light' | 'dark'
+	colorScheme?: 'pastel' | 'brisky' | 'royal'
+	interfaceScale?: number
+	hourHeight?: number
+	headerHeight?: number
+	snapMinutes?: number
+}
+
+const DEFAULT_SETTINGS: UserSettings = {
+	theme: 'dark',
+	colorScheme: 'brisky',
+	interfaceScale: 100,
+	hourHeight: 80,
+	headerHeight: 70,
+	snapMinutes: 15,
+	defaultStartHour: 9
 }
 
 export const useSettingsStore = defineStore('settings', () => {
-  const userStore = useUserStore()
-  const settings = ref<UserSettings>({})
-  const loading = ref(false)
-  let unsub: (() => void) | null = null
+	const userStore = useUserStore()
+	const settingsData = ref<UserSettings>({ ...DEFAULT_SETTINGS })
+	const loading = ref(false)
 
-  watch(
-    () => userStore.user,
-    (u) => {
-      if (u) {
-        setupSync()
-      } else {
-        settings.value = {}
-        if (unsub) {
-          unsub()
-          unsub = null
-        }
-      }
-    },
-    { immediate: true }
-  )
+	const settings = computed(() => ({
+		...DEFAULT_SETTINGS,
+		...settingsData.value
+	}))
 
-  function setupSync() {
-    loading.value = true
-    if (unsub) unsub()
-    unsub = firebaseService.subscribeToSettings((data) => {
-      settings.value = data
-      loading.value = false
-    })
-  }
+	let unsub: (() => void) | null = null
 
-  async function updateSettings(updates: Partial<UserSettings>) {
-    await firebaseService.updateSettings(updates)
-  }
+	watch(
+		() => userStore.user,
+		(u) => {
+			if (u) {
+				setupSync()
+			} else {
+				settingsData.value = { ...DEFAULT_SETTINGS }
+				if (unsub) {
+					unsub()
+					unsub = null
+				}
+			}
+		},
+		{ immediate: true }
+	)
 
-  return {
-    settings,
-    loading,
-    updateSettings
-  }
+	function setupSync() {
+		loading.value = true
+		if (unsub) unsub()
+		unsub = firebaseService.subscribeToSettings((data) => {
+			settingsData.value = data
+			loading.value = false
+		})
+	}
+
+	async function updateSettings(updates: Partial<UserSettings>) {
+		await firebaseService.updateSettings(updates)
+	}
+
+	return {
+		settings,
+		loading,
+		updateSettings
+	}
 })

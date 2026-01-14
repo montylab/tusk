@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { storeToRefs } from 'pinia'
 import DayColumn from './DayColumn.vue'
 import AddDayZone from './AddDayZone.vue'
 import type { Task } from '../types'
@@ -118,11 +119,17 @@ const formatTimeLabel = (time: number) => {
 	return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
 }
 
+const settingsStore = useSettingsStore()
+const { settings } = storeToRefs(settingsStore)
+const uiScale = computed(() => (settings.value.interfaceScale || 100) / 100)
+const hourHeight = computed(() => (settings.value.hourHeight || 80) * uiScale.value)
+const headerHeight = computed(() => (settings.value.headerHeight || 70) * uiScale.value)
+
 const timeIndicatorTop = computed(() => {
 	const now = currentTime.value
 	const currentTotalHours = now.getHours() + now.getMinutes() / 60
 	if (currentTotalHours < props.startHour || currentTotalHours > props.endHour) return -100
-	return (currentTotalHours - props.startHour) * 80
+	return (currentTotalHours - props.startHour) * hourHeight.value
 })
 
 const getDayName = (dateStr: string) => {
@@ -148,12 +155,10 @@ const handleSlotClick = (hour: number, quarter: number, date: string) => {
 	emit('create-task', { startTime, date })
 }
 
-const settingsStore = useSettingsStore()
-
 const scrollToDefaultTime = () => {
 	const defaultHour = settingsStore.settings.defaultStartHour ?? 0
 	if (scrollAreaRef.value && defaultHour > props.startHour) {
-		const top = (defaultHour - props.startHour) * 80
+		const top = (defaultHour - props.startHour) * hourHeight.value
 		scrollAreaRef.value.scrollTo({ top })
 	}
 }
@@ -205,6 +210,10 @@ onUnmounted(() => {
 	window.removeEventListener('resize', updateHeaderOffset)
 })
 
+watch(uiScale, () => {
+	nextTick(() => updateHeaderOffset())
+})
+
 watch(() => props.tasksByDate, updateTaskStatuses, { immediate: true, deep: true })
 
 defineExpose({
@@ -225,7 +234,7 @@ defineExpose({
 							v-for="time in taskBoundaryTimes"
 							:key="`boundary-${time}`"
 							class="time-label task-boundary-label"
-							:style="{ top: `${(time - startHour) * 80 + 70}px` }"
+							:style="{ top: `${(time - startHour) * hourHeight + headerOffset}px` }"
 						>
 							{{ formatTimeLabel(time) }}
 						</div>
@@ -237,7 +246,7 @@ defineExpose({
 							v-for="time in taskBoundaryTimes"
 							:key="`line-${time}`"
 							class="task-boundary-line"
-							:style="{ top: `${(time - startHour) * 80 + headerOffset}px` }"
+							:style="{ top: `${(time - startHour) * hourHeight + headerOffset}px` }"
 						></div>
 
 						<div v-for="date in dates" :key="date" class="day-column-outer">
@@ -332,7 +341,7 @@ defineExpose({
 }
 
 .time-label {
-	height: 80px;
+	height: v-bind('hourHeight + "px"');
 	padding: 0 1rem;
 	font-size: 0.8rem;
 	color: var(--text-muted);
@@ -373,7 +382,7 @@ defineExpose({
 }
 
 .column-header {
-	height: 70px;
+	height: v-bind('headerHeight + "px"');
 	padding: 0 0.75rem;
 	display: flex;
 	align-items: center;
