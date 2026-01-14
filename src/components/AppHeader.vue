@@ -20,14 +20,6 @@ const currentView = computed(() => {
   return null
 })
 
-const navigateToView = (view: 'day' | 'week' | 'month') => {
-  router.push({ name: view })
-}
-
-const goToSettings = () => {
-  router.push({ name: 'settings' })
-}
-
 const logout = () => {
   router.push({ name: 'signout' })
 }
@@ -36,8 +28,8 @@ const logout = () => {
 <template>
   <header class="app-header">
     <div class="header-left">
-      <div class="logo-container"
-           @click="router.push('/')">
+      <router-link to="/"
+                   class="logo-container">
         <svg class="logo-svg"
              viewBox="0 0 32 32"
              fill="none"
@@ -57,31 +49,31 @@ const logout = () => {
                   opacity="0.3" />
         </svg>
         <span class="brand-name">Tusk</span>
-      </div>
+      </router-link>
     </div>
 
     <div class="header-center">
       <div class="view-switcher">
-        <button :class="['view-btn', { active: currentView === 'day' }]"
-                @click="navigateToView('day')">
+        <router-link :to="{ name: 'day' }"
+                     :class="['view-btn', { active: currentView === 'day' }]">
           Day
-        </button>
-        <button :class="['view-btn', { active: currentView === 'week' }]"
-                @click="navigateToView('week')">
+        </router-link>
+        <router-link :to="{ name: 'week' }"
+                     :class="['view-btn', { active: currentView === 'week' }]">
           Week
-        </button>
-        <button :class="['view-btn', { active: currentView === 'month' }]"
-                @click="navigateToView('month')">
+        </router-link>
+        <router-link :to="{ name: 'month' }"
+                     :class="['view-btn', { active: currentView === 'month' }]">
           Month
-        </button>
+        </router-link>
       </div>
     </div>
 
     <div class="header-right"
          v-if="user">
-      <button class="icon-btn"
-              @click="goToSettings"
-              title="Settings">
+      <router-link :to="{ name: 'settings' }"
+                   class="icon-btn"
+                   title="Settings">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="20"
              height="20"
@@ -97,7 +89,7 @@ const logout = () => {
           <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m-2 2l-4.2 4.2M23 12h-6m-6 0H5m13.2 5.2l-4.2-4.2m-2-2l-4.2-4.2">
           </path>
         </svg>
-      </button>
+      </router-link>
 
       <button class="icon-btn logout-btn"
               @click="logout"
@@ -134,14 +126,14 @@ const logout = () => {
 
 <style scoped>
 .app-header {
+  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1.5rem;
   background: rgba(0, 0, 0, 0.3);
   border-bottom: 1px solid var(--border-color);
   backdrop-filter: blur(10px);
-  height: 60px;
   flex-shrink: 0;
 }
 
@@ -157,8 +149,10 @@ const logout = () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  /* Spacing inside sub-component */
   cursor: pointer;
   transition: opacity 0.2s;
+  text-decoration: none;
 }
 
 .logo-container:hover {
@@ -166,15 +160,15 @@ const logout = () => {
 }
 
 .logo-svg {
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   color: white;
 }
 
 .brand-name {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
   background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.6) 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -188,27 +182,29 @@ const logout = () => {
 .header-right {
   justify-content: flex-end;
   gap: 0.75rem;
+  /* Layout gap */
 }
 
 .view-switcher {
   display: flex;
   gap: 0.5rem;
-  /* background: rgba(255, 255, 255, 0.1); */
   padding: 0.25rem;
   border-radius: 8px;
-  /* border: 1px solid var(--border-color); */
 }
 
 .view-btn {
   padding: 0.5rem 1.25rem;
+  /* Internal spacing */
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 1rem;
+  line-height: 1.25rem;
   font-weight: 500;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
+  text-decoration: none;
 }
 
 .view-btn:hover {
@@ -222,8 +218,8 @@ const logout = () => {
 }
 
 .icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 2.25rem;
+  height: 2.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -233,6 +229,12 @@ const logout = () => {
   color: var(--text-light);
   cursor: pointer;
   transition: all 0.2s;
+  text-decoration: none;
+}
+
+.icon-btn svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .icon-btn:hover {
@@ -247,16 +249,16 @@ const logout = () => {
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50%;
   border: 2px solid var(--primary-color);
   object-fit: cover;
 }
 
 .user-avatar-placeholder {
-  width: 36px;
-  height: 36px;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50%;
   border: 2px solid var(--primary-color);
   background: var(--primary-color);
@@ -265,6 +267,6 @@ const logout = () => {
   justify-content: center;
   font-weight: 600;
   color: white;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 </style>

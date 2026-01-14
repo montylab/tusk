@@ -1,4 +1,8 @@
 :root {
+  --ui-scale: 1;
+  font-size: calc(var(--ui-scale, 16px) * 16px);
+  line-height: 1.25rem;
+
   /* Default variables (Dark Theme, Brisky Scheme) */
   --primary: #38bdf8;
   --primary-hover: #7dd3fc;
@@ -9,7 +13,7 @@
   --border-color: #333;
   --radius: 12px;
   --font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  
+
   /* Category Colors */
   --color-work: #4facfe;
   --color-personal: #43e97b;
@@ -60,7 +64,6 @@ body {
   font-family: var(--font-family);
   background-color: var(--bg-dark);
   color: var(--text-main);
-  line-height: 1.6;
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -75,7 +78,7 @@ h1,
 h2,
 h3 {
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 button {
