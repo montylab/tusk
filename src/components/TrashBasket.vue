@@ -1,76 +1,67 @@
-<script
-  setup
-  lang="ts"
->
-import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useDragOperator } from '../composables/useDragOperator'
+<script setup lang="ts">
+  import { ref, onMounted, onUnmounted, computed } from 'vue'
+  import { useDragOperator } from '../composables/useDragOperator'
 
-const { currentZone, registerZone, unregisterZone, updateZoneBounds } = useDragOperator()
+  const { currentZone, registerZone, unregisterZone, updateZoneBounds } = useDragOperator()
 
-const basketRef = ref<HTMLElement | null>(null)
+  const basketRef = ref<HTMLElement | null>(null)
 
-// Reactive active state based on current zone
-const isActive = computed(() => currentZone.value === 'trash')
+  // Reactive active state based on current zone
+  const isActive = computed(() => currentZone.value === 'trash')
 
-const updateBounds = () => {
-  if (basketRef.value) {
-    updateZoneBounds('trash', basketRef.value.getBoundingClientRect())
+  const updateBounds = () => {
+    if (basketRef.value) {
+      updateZoneBounds('trash', basketRef.value.getBoundingClientRect())
+    }
   }
-}
 
-onMounted(() => {
-  if (basketRef.value) {
-    // Register zone
-    registerZone('trash', basketRef.value.getBoundingClientRect())
+  onMounted(() => {
+    if (basketRef.value) {
+      // Register zone
+      registerZone('trash', basketRef.value.getBoundingClientRect())
 
-    // Listen for resize events
-    window.addEventListener('resize', updateBounds)
+      // Listen for resize events
+      window.addEventListener('resize', updateBounds)
 
-    const resizeObserver = new ResizeObserver(() => updateBounds())
-    resizeObserver.observe(basketRef.value)
-      ; (basketRef.value as any).__resizeObserver = resizeObserver
-  }
-})
+      const resizeObserver = new ResizeObserver(() => updateBounds())
+      resizeObserver.observe(basketRef.value)
+      ;(basketRef.value as any).__resizeObserver = resizeObserver
+    }
+  })
 
-onUnmounted(() => {
-  unregisterZone('trash')
-  window.removeEventListener('resize', updateBounds)
-  if (basketRef.value && (basketRef.value as any).__resizeObserver) {
-    (basketRef.value as any).__resizeObserver.disconnect()
-  }
-})
+  onUnmounted(() => {
+    unregisterZone('trash')
+    window.removeEventListener('resize', updateBounds)
+    if (basketRef.value && (basketRef.value as any).__resizeObserver) {
+      ;(basketRef.value as any).__resizeObserver.disconnect()
+    }
+  })
 
-defineExpose({
-  updateBounds
-})
+  defineExpose({
+    updateBounds
+  })
 </script>
 
 <template>
-  <div ref="basketRef"
-       class="trash-basket"
-       :class="{ 'active': isActive }">
+  <div ref="basketRef" class="trash-basket" :class="{ active: isActive }">
     <div class="icon-container">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           class="trash-icon">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="trash-icon"
+      >
         <path d="M3 6h18"></path>
         <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
         <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-        <line x1="10"
-              y1="11"
-              x2="10"
-              y2="17"></line>
-        <line x1="14"
-              y1="11"
-              x2="14"
-              y2="17"></line>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
       </svg>
     </div>
     <span class="label">Delete</span>
@@ -78,51 +69,51 @@ defineExpose({
 </template>
 
 <style scoped>
-.trash-basket {
-  width: 120px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 67, 67, 0.05);
-  border-right: 1px solid rgba(255, 67, 67, 0.2);
-  transition: all 0.3s ease;
-  color: #ff4343;
-  gap: 8px;
-}
+  .trash-basket {
+    width: 120px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 67, 67, 0.05);
+    border-right: 1px solid rgba(255, 67, 67, 0.2);
+    transition: all 0.3s ease;
+    color: #ff4343;
+    gap: 8px;
+  }
 
-.trash-basket.active {
-  background: rgba(255, 67, 67, 0.2);
-  transform: scaleX(1.1);
-  box-shadow: 10px 0 20px rgba(255, 67, 67, 0.1);
-}
+  .trash-basket.active {
+    background: rgba(255, 67, 67, 0.2);
+    transform: scaleX(1.1);
+    box-shadow: 10px 0 20px rgba(255, 67, 67, 0.1);
+  }
 
-.icon-container {
-  padding: 12px;
-  border-radius: 50%;
-  background: rgba(255, 67, 67, 0.1);
-  transition: transform 0.2s ease;
-}
+  .icon-container {
+    padding: 12px;
+    border-radius: 50%;
+    background: rgba(255, 67, 67, 0.1);
+    transition: transform 0.2s ease;
+  }
 
-.active .icon-container {
-  transform: scale(1.2) rotate(5deg);
-}
+  .active .icon-container {
+    transform: scale(1.2) rotate(5deg);
+  }
 
-.label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
-}
+  .label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+  }
 
-.active .label {
-  opacity: 1;
-}
+  .active .label {
+    opacity: 1;
+  }
 
-.trash-icon {
-  width: 28px;
-  height: 28px;
-}
+  .trash-icon {
+    width: 28px;
+    height: 28px;
+  }
 </style>

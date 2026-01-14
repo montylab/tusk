@@ -23,7 +23,7 @@
 }
 
 /* Themes */
-[data-theme="light"] {
+[data-theme='light'] {
   --bg-dark: #f1f5f9;
   --bg-card: #ffffff;
   --text-main: #0f172a;
@@ -32,17 +32,17 @@
 }
 
 /* Color Schemes */
-[data-scheme="pastel"] {
+[data-scheme='pastel'] {
   --primary: #f093fb;
   --primary-hover: #f5befe;
 }
 
-[data-scheme="brisky"] {
+[data-scheme='brisky'] {
   --primary: #38bdf8;
   --primary-hover: #7dd3fc;
 }
 
-[data-scheme="royal"] {
+[data-scheme='royal'] {
   --primary: #f59e0b;
   --primary-hover: #fbbf24;
 }

@@ -11,7 +11,7 @@ import AutoComplete from 'primevue/autocomplete'
 import ColorPicker from 'primevue/colorpicker'
 import DatePicker from 'primevue/datepicker'
 
-import Aura from '@primeuix/themes/aura';
+import Aura from '@primeuix/themes/aura'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -19,10 +19,10 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 app.use(PrimeVue, {
-    theme: {
-        preset: Aura
-    }
-});
+  theme: {
+    preset: Aura
+  }
+})
 
 // Register global components if needed
 app.component('AutoComplete', AutoComplete)
@@ -33,5 +33,5 @@ app.mount('#app')
 
 // Expose pinia for testing
 if (import.meta.env.DEV) {
-    (window as any).pinia = pinia
+  ;(window as any).pinia = pinia
 }

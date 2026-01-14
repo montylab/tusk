@@ -1,0 +1,9 @@
+dist
+node_modules
+public
+.firebase
+playwright-report
+test-results
+package-lock.json
+*.rules.json
+**/*.svg
