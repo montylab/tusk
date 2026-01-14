@@ -1,238 +1,242 @@
 <script setup lang="ts">
-  import { ref, watch, nextTick } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import { storeToRefs } from 'pinia'
-  import DayView from '../components/DayView.vue'
-  import TrashBasket from '../components/TrashBasket.vue'
-  import TaskPile from '../components/TaskPile.vue'
-  import TaskEditorPopup from '../components/TaskEditorPopup.vue'
-  import { useTasksStore } from '../stores/tasks'
-  import { useTimeBoundaries } from '../composables/useTimeBoundaries'
-  import { formatDate } from '../utils/dateUtils'
-  import type { Task } from '../types'
+import { ref, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import DayView from '../components/DayView.vue'
+import TrashBasket from '../components/TrashBasket.vue'
+import TaskPile from '../components/TaskPile.vue'
+import TaskEditorPopup from '../components/TaskEditorPopup.vue'
+import { useTasksStore } from '../stores/tasks'
+import { useTimeBoundaries } from '../composables/useTimeBoundaries'
+import { formatDate } from '../utils/dateUtils'
+import type { Task } from '../types'
 
-  const route = useRoute()
-  const router = useRouter()
-  const tasksStore = useTasksStore()
-  const { onDayChange } = useTimeBoundaries()
+const route = useRoute()
+const router = useRouter()
+const tasksStore = useTasksStore()
+const { onDayChange } = useTimeBoundaries()
 
-  onDayChange((newDate) => {
-    router.push({ name: 'day', params: { date: newDate } })
-  })
-  const { currentDates, scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
+onDayChange((newDate) => {
+	router.push({ name: 'day', params: { date: newDate } })
+})
+const { currentDates, scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
 
-  // Reference to DayView
-  const dayViewRef = ref<any>(null)
+// Reference to DayView
+const dayViewRef = ref<any>(null)
 
-  // Watch for date parameter changes
-  watch(
-    () => route.params.date,
-    (newDate, oldDate) => {
-      if (newDate && typeof newDate === 'string') {
-        tasksStore.currentDates = [newDate]
-      } else {
-        const today = formatDate(new Date())
-        tasksStore.currentDates = [today]
-      }
+// Watch for date parameter changes
+watch(
+	() => route.params.date,
+	(newDate, oldDate) => {
+		if (newDate && typeof newDate === 'string') {
+			tasksStore.currentDates = [newDate]
+		} else {
+			const today = formatDate(new Date())
+			tasksStore.currentDates = [today]
+		}
 
-      if (newDate !== oldDate) {
-        nextTick(() => {
-          dayViewRef.value?.scrollToTop()
-        })
-      }
-    },
-    { immediate: true }
-  )
+		if (newDate !== oldDate) {
+			nextTick(() => {
+				dayViewRef.value?.scrollToTop()
+			})
+		}
+	},
+	{ immediate: true }
+)
 
-  // Popup visibility state
-  const showEditorPopup = ref(false)
-  const initialStartTime = ref<number | null>(null)
-  const taskToEdit = ref<Task | null>(null)
-  const popupTaskType = ref<'scheduled' | 'todo' | 'shortcut'>('scheduled')
-  const popupTargetDate = ref<string | null>(null)
+// Popup visibility state
+const showEditorPopup = ref(false)
+const initialStartTime = ref<number | null>(null)
+const taskToEdit = ref<Task | null>(null)
+const popupTaskType = ref<'scheduled' | 'todo' | 'shortcut'>('scheduled')
+const popupTargetDate = ref<string | null>(null)
 
-  // Handlers
-  const handleOpenCreatePopup = (payload?: { startTime: number; date?: string }) => {
-    taskToEdit.value = null
-    initialStartTime.value = payload?.startTime ?? null
-    popupTargetDate.value = payload?.date ?? tasksStore.currentDates[0]
-    popupTaskType.value = 'scheduled'
-    showEditorPopup.value = true
-  }
+// Handlers
+const handleOpenCreatePopup = (payload?: { startTime: number; date?: string }) => {
+	taskToEdit.value = null
+	initialStartTime.value = payload?.startTime ?? null
+	popupTargetDate.value = payload?.date ?? tasksStore.currentDates[0]
+	popupTaskType.value = 'scheduled'
+	showEditorPopup.value = true
+}
 
-  const handleEditTask = (task: Task) => {
-    taskToEdit.value = task
-    if (task.startTime !== null && task.startTime !== undefined) {
-      popupTaskType.value = 'scheduled'
-    } else if (task.isShortcut) {
-      popupTaskType.value = 'shortcut'
-    } else {
-      popupTaskType.value = 'todo'
-    }
-    showEditorPopup.value = true
-  }
+const handleEditTask = (task: Task) => {
+	taskToEdit.value = task
+	if (task.startTime !== null && task.startTime !== undefined) {
+		popupTaskType.value = 'scheduled'
+	} else if (task.isShortcut) {
+		popupTaskType.value = 'shortcut'
+	} else {
+		popupTaskType.value = 'todo'
+	}
+	showEditorPopup.value = true
+}
 
-  const handleTaskCreate = (payload: {
-    text: string
-    description: string
-    category: string
-    startTime?: number | null
-    duration?: number
-  }) => {
-    tasksStore.createScheduledTask({
-      text: payload.text,
-      description: payload.description,
-      category: payload.category,
-      completed: false,
-      startTime: payload.startTime ?? null,
-      duration: payload.duration ?? 60,
-      date: popupTargetDate.value || tasksStore.currentDates[0],
-      isShortcut: false,
-      order: 0,
-      color: null
-    } as any)
-    showEditorPopup.value = false
-  }
+const handleTaskCreate = (payload: {
+	text: string
+	description: string
+	category: string
+	startTime?: number | null
+	duration?: number
+}) => {
+	tasksStore.createScheduledTask({
+		text: payload.text,
+		description: payload.description,
+		category: payload.category,
+		completed: false,
+		startTime: payload.startTime ?? null,
+		duration: payload.duration ?? 60,
+		date: popupTargetDate.value || tasksStore.currentDates[0],
+		isShortcut: false,
+		order: 0,
+		color: null
+	} as any)
+	showEditorPopup.value = false
+}
 
-  const handleTaskUpdate = (payload: { id: string | number; updates: Partial<Task> }) => {
-    const task = tasksStore.getTaskById(payload.id)
-    if (!task) return
-    if (task.startTime !== null && task.startTime !== undefined) {
-      tasksStore.updateScheduledTask(task.id, task.date!, payload.updates)
-    } else if (task.isShortcut) {
-      tasksStore.updateShortcut(task.id, payload.updates)
-    } else {
-      tasksStore.updateTodo(task.id, payload.updates)
-    }
-    showEditorPopup.value = false
-  }
+const handleTaskUpdate = (payload: { id: string | number; updates: Partial<Task> }) => {
+	const task = tasksStore.getTaskById(payload.id)
+	if (!task) return
+	if (task.startTime !== null && task.startTime !== undefined) {
+		tasksStore.updateScheduledTask(task.id, task.date!, payload.updates)
+	} else if (task.isShortcut) {
+		tasksStore.updateShortcut(task.id, payload.updates)
+	} else {
+		tasksStore.updateTodo(task.id, payload.updates)
+	}
+	showEditorPopup.value = false
+}
 
-  const handlePopupClose = () => {
-    showEditorPopup.value = false
-    taskToEdit.value = null
-    popupTargetDate.value = null
-  }
+const handlePopupClose = () => {
+	showEditorPopup.value = false
+	taskToEdit.value = null
+	popupTargetDate.value = null
+}
 
-  const handleAddDay = () => {
-    const lastDateStr = currentDates.value[currentDates.value.length - 1]
-    const lastDate = new Date(lastDateStr)
-    const nextDate = new Date(lastDate)
-    nextDate.setDate(lastDate.getDate() + 1)
-    const nextDateStr = nextDate.toISOString().split('T')[0]
-    tasksStore.addDate(nextDateStr)
-  }
+const handleAddDay = () => {
+	const lastDateStr = currentDates.value[currentDates.value.length - 1]
+	const lastDate = new Date(lastDateStr)
+	const nextDate = new Date(lastDate)
+	nextDate.setDate(lastDate.getDate() + 1)
+	const nextDateStr = nextDate.toISOString().split('T')[0]
+	tasksStore.addDate(nextDateStr)
+}
 </script>
 
 <template>
-  <div class="page-layout">
-    <aside class="sidebar left">
-      <TrashBasket />
-    </aside>
+	<div class="page-layout">
+		<aside class="sidebar left">
+			<TrashBasket />
+		</aside>
 
-    <main class="main-content">
-      <button
-        class="create-btn"
-        @click="handleOpenCreatePopup()"
-        style="
-          margin-bottom: 1rem;
-          padding: 0.5rem 1rem;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: #fff;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-        "
-      >
-        Create Task
-      </button>
-      <DayView
-        ref="dayViewRef"
-        :dates="currentDates"
-        :tasks-by-date="scheduledTasks"
-        :start-hour="0"
-        :end-hour="24"
-        @create-task="handleOpenCreatePopup"
-        @edit="handleEditTask"
-        @add-day="handleAddDay"
-      />
+		<main class="main-content">
+			<button
+				class="create-btn"
+				@click="handleOpenCreatePopup()"
+				style="
+					margin-bottom: 1rem;
+					padding: 0.5rem 1rem;
+					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+					color: #fff;
+					border: none;
+					border-radius: 8px;
+					cursor: pointer;
+				"
+			>
+				Create Task
+			</button>
+			<DayView
+				ref="dayViewRef"
+				:dates="currentDates"
+				:tasks-by-date="scheduledTasks"
+				:start-hour="0"
+				:end-hour="24"
+				@create-task="handleOpenCreatePopup"
+				@edit="handleEditTask"
+				@add-day="handleAddDay"
+			/>
 
-      <TaskEditorPopup
-        :show="showEditorPopup"
-        :task="taskToEdit"
-        :task-type="popupTaskType"
-        :initial-start-time="initialStartTime"
-        @close="handlePopupClose"
-        @create="handleTaskCreate"
-        @update="handleTaskUpdate"
-      />
-    </main>
+			<TaskEditorPopup
+				:show="showEditorPopup"
+				:task="taskToEdit"
+				:task-type="popupTaskType"
+				:initial-start-time="initialStartTime"
+				@close="handlePopupClose"
+				@create="handleTaskCreate"
+				@update="handleTaskUpdate"
+			/>
+		</main>
 
-    <aside class="sidebar right">
-      <div class="pile-container">
-        <TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" @edit="handleEditTask" />
-        <TaskPile title="To Do" :tasks="todoTasks" list-type="todo" @edit="handleEditTask" />
-      </div>
-    </aside>
-  </div>
+		<aside class="sidebar right">
+			<div class="pile-container">
+				<TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" @edit="handleEditTask" />
+				<TaskPile title="To Do" :tasks="todoTasks" list-type="todo" @edit="handleEditTask" />
+			</div>
+		</aside>
+	</div>
 </template>
 
 <style scoped>
-  .page-layout {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
+.page-layout {
+	display: flex;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
 
-  .sidebar.left {
-    width: 15%;
-    min-width: 150px;
-    max-width: 250px;
-    border-right: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.2);
-  }
+.sidebar.left {
+	width: calc(5% + var(--ui-scale) * 5%);
+	/* width: 20%; */
+	min-width: 150px;
+	max-width: 500px;
+	/* border-right: 1px solid var(--border-color); */
+	/* background: rgba(0, 0, 0, 0.2); */
+}
 
-  .sidebar.right {
-    width: 20%;
-    min-width: 200px;
-    max-width: 300px;
-    border-left: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.15);
-  }
+.sidebar.right {
+	width: 20%;
+	width: calc(15% + var(--ui-scale) * 5%);
 
-  .pile-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
+	min-width: 200px;
+	max-width: 40%;
+	/* border-left: 1px solid var(--border-color); */
+	/* background: rgba(0, 0, 0, 0.15); */
+}
 
-  .pile-container > * {
-    flex: 1;
-    min-height: 0;
-  }
+.main-content {
+	flex: 1;
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	padding: 1rem;
+	overflow: hidden;
+	/* min-width: 50vw; */
+}
 
-  .main-content {
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-    overflow: hidden;
-    min-width: 50vw;
-  }
+.pile-container {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
 
-  .create-btn {
-    transition: all 0.2s ease;
-  }
+.pile-container > * {
+	flex: 1;
+	min-height: 0;
+}
 
-  .create-btn.over {
-    transform: scale(1.1);
-    filter: brightness(1.2);
-    box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
-  }
+.create-btn {
+	transition: all 0.2s ease;
+}
 
-  @media (min-width: 1440px) {
-    .main-content {
-      min-width: 70vw;
-    }
-  }
+.create-btn.over {
+	transform: scale(1.1);
+	filter: brightness(1.2);
+	box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
+}
+
+@media (min-width: 1440px) {
+	.main-content {
+		/* min-width: 70vw; */
+	}
+}
 </style>

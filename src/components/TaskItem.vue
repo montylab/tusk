@@ -122,13 +122,13 @@ const onEditClick = (e: Event) => {
 
 .on-air-tag {
 	position: absolute;
-	top: -8px;
-	right: 8px;
+	top: -0.5rem;
+	right: 0.5rem;
 	background: var(--color-urgent);
 	color: #fff;
-	font-size: 0.6rem;
+	font-size: 0.625rem;
 	font-weight: 800;
-	padding: 2px 8px;
+	padding: 0.125rem 0.5rem;
 	border-radius: 3px;
 	z-index: 10;
 	letter-spacing: 0.5px;
@@ -159,7 +159,7 @@ const onEditClick = (e: Event) => {
 }
 
 .color-stripe {
-	width: 4px;
+	width: 0.25rem;
 	height: 100%;
 	flex-shrink: 0;
 	background: var(--category-color);
@@ -235,8 +235,8 @@ const onEditClick = (e: Event) => {
 	border: 1px solid rgba(255, 255, 255, 0.2);
 	border-radius: 4px;
 	color: #fff;
-	width: 20px;
-	height: 20px;
+	width: 1.25rem;
+	height: 1.25rem;
 	display: flex;
 	align-items: center;
 	justify-content: center;

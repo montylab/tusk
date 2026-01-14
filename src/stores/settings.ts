@@ -33,6 +33,10 @@ export const useSettingsStore = defineStore('settings', () => {
 		...settingsData.value
 	}))
 
+	const uiScale = computed(() => (settings.value.interfaceScale || 100) / 100)
+	const hourHeight = computed(() => (settings.value.hourHeight || 80) * uiScale.value)
+	const headerHeight = computed(() => (settings.value.headerHeight || 70) * uiScale.value)
+
 	let unsub: (() => void) | null = null
 
 	watch(
@@ -55,7 +59,7 @@ export const useSettingsStore = defineStore('settings', () => {
 		loading.value = true
 		if (unsub) unsub()
 		unsub = firebaseService.subscribeToSettings((data) => {
-			settingsData.value = data
+			settingsData.value = { ...DEFAULT_SETTINGS, ...data }
 			loading.value = false
 		})
 	}
@@ -66,6 +70,9 @@ export const useSettingsStore = defineStore('settings', () => {
 
 	return {
 		settings,
+		uiScale,
+		hourHeight,
+		headerHeight,
 		loading,
 		updateSettings
 	}

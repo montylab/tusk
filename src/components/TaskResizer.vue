@@ -2,20 +2,14 @@
 import { ref, computed, watch } from 'vue'
 import type { Task } from '../types'
 import { useTasksStore } from '../stores/tasks'
+import { useSettingsStore } from '../stores/settings'
+import { storeToRefs } from 'pinia'
 
-const props = withDefaults(
-	defineProps<{
-		task: Task
-		layoutStyle: Record<string, any>
-		hourHeight?: number
-		snapMinutes?: number
-		startHour: number
-	}>(),
-	{
-		hourHeight: 80,
-		snapMinutes: 15
-	}
-)
+const props = defineProps<{
+	task: Task
+	layoutStyle: Record<string, any>
+	startHour: number
+}>()
 
 const emit = defineEmits<{
 	(e: 'start-resize'): void
@@ -23,6 +17,8 @@ const emit = defineEmits<{
 }>()
 
 const tasksStore = useTasksStore()
+const settingsStore = useSettingsStore()
+const { hourHeight, settings } = storeToRefs(settingsStore)
 
 const isResizing = ref(false)
 const resizeHandle = ref<'top' | 'bottom' | null>(null)
@@ -79,9 +75,9 @@ const onMouseMove = (e: MouseEvent) => {
 	if (!isResizing.value) return
 
 	const dy = e.clientY - startY.value
-	const minutesDelta = (dy / props.hourHeight) * 60
+	const minutesDelta = (dy / hourHeight.value) * 60
 
-	const snap = props.snapMinutes
+	const snap = settings.value.snapMinutes || 15
 
 	if (resizeHandle.value === 'bottom') {
 		let newDuration = initialDuration.value + minutesDelta

@@ -50,14 +50,15 @@ onUnmounted(() => {
 
 <style scoped>
 .trash-basket {
-	width: calc(5vw * var(--ui-scale, 1));
+	width: 100%;
 	height: 100%;
+	position: relative;
+	z-index: 999;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	background: rgba(255, 67, 67, 0.05);
-	border-right: 1px solid rgba(255, 67, 67, 0.2);
+	background: linear-gradient(90deg, rgba(255, 67, 67, 0.2) 0%, rgba(255, 67, 67, 0.1) 60%, transparent 100%) no-repeat;
 	transition: all 0.3s ease;
 	color: #ff4343;
 	gap: 0.5rem;
@@ -65,9 +66,15 @@ onUnmounted(() => {
 
 .trash-basket.active {
 	background: rgba(255, 67, 67, 0.5);
-	transform: scale(1.5);
-	transform-origin: left center;
-	box-shadow: 0.625rem 0 1.25rem rgba(255, 67, 67, 0.1);
+	background: linear-gradient(90deg, rgba(255, 67, 67, 0.8) 0%, rgba(255, 67, 67, 0.5) 60%, transparent 100%) no-repeat;
+	border: none;
+	transform: scale(1.25);
+	transform-origin: center center;
+	color: #fff;
+}
+
+.trash-basket.active .icon-container {
+	filter: brightness(0) invert(1);
 }
 
 .icon-container {

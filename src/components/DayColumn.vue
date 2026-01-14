@@ -33,16 +33,13 @@ const emit = defineEmits<{
 
 const tasksStore = useTasksStore()
 const settingsStore = useSettingsStore()
-const { settings } = storeToRefs(settingsStore)
+const { hourHeight } = storeToRefs(settingsStore)
 
 const { activeDraggedTaskId, registerZone, unregisterZone, updateZoneBounds, startDrag, dragOffset } = useDragOperator()
 
 const gridRef = ref<HTMLElement | null>(null)
 
 const zoneName = computed(() => `calendar-day-${props.date}`)
-
-const uiScale = computed(() => (settings.value.interfaceScale || 100) / 100)
-const hourHeight = computed(() => (settings.value.hourHeight || 80) * uiScale.value)
 
 const hours = computed(() => Array.from({ length: props.endHour - props.startHour }, (_, i) => i + props.startHour))
 
@@ -176,7 +173,6 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
 				<TaskResizer
 					:task="task"
 					:layout-style="task.style"
-					:hour-height="hourHeight"
 					:start-hour="props.startHour"
 					class="task-wrapper-absolute"
 					:class="{ 'dragged-origin': task.id === activeDraggedTaskId }"
@@ -203,7 +199,7 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
 	flex: 1;
 	position: relative;
 	border-left: 1px solid var(--border-color);
-	min-width: 200px;
+	min-width: clamp(200px, 12.5rem, 12.5rem);
 	background: rgba(255, 255, 255, 0.01);
 }
 
@@ -212,7 +208,7 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
 }
 
 .hour-row {
-	height: v-bind('hourHeight + "px"');
+	height: var(--hour-height);
 	border-bottom: 1px solid var(--border-color);
 	display: flex;
 	flex-direction: column;

@@ -120,10 +120,7 @@ const formatTimeLabel = (time: number) => {
 }
 
 const settingsStore = useSettingsStore()
-const { settings } = storeToRefs(settingsStore)
-const uiScale = computed(() => (settings.value.interfaceScale || 100) / 100)
-const hourHeight = computed(() => (settings.value.hourHeight || 80) * uiScale.value)
-const headerHeight = computed(() => (settings.value.headerHeight || 70) * uiScale.value)
+const { hourHeight, uiScale } = storeToRefs(settingsStore)
 
 const timeIndicatorTop = computed(() => {
 	const now = currentTime.value
@@ -300,13 +297,20 @@ defineExpose({
 .day-view-container {
 	background: var(--bg-card);
 	border-radius: var(--radius);
-	padding-top: 0.5rem;
 	flex: 1;
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
 	border: 1px solid var(--border-color);
 	backdrop-filter: blur(10px);
+	overflow: hidden;
+}
+
+.day-view {
+	padding-top: 0.5rem;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
 	overflow: hidden;
 }
 
@@ -335,13 +339,13 @@ defineExpose({
 }
 
 .time-labels {
-	width: 60px;
+	width: 4rem;
 	flex-shrink: 0;
 	position: relative;
 }
 
 .time-label {
-	height: v-bind('hourHeight + "px"');
+	height: var(--hour-height);
 	padding: 0 1rem;
 	font-size: 0.8rem;
 	color: var(--text-muted);
@@ -374,7 +378,7 @@ defineExpose({
 
 .day-column-outer {
 	flex: 1;
-	min-width: 200px;
+	min-width: 12.5rem;
 	width: 20vw;
 	display: flex;
 	flex-direction: column;
@@ -382,7 +386,7 @@ defineExpose({
 }
 
 .column-header {
-	height: v-bind('headerHeight + "px"');
+	height: var(--header-height);
 	padding: 0 0.75rem;
 	display: flex;
 	align-items: center;
@@ -457,15 +461,16 @@ defineExpose({
 	background: var(--color-urgent);
 	z-index: 100;
 	pointer-events: none;
-	box-shadow: 0 0 10px var(--color-urgent);
+	box-shadow: 0 0 calc(var(--ui-scale) * 10px) var(--color-urgent);
 }
 
 .time-dot {
 	position: absolute;
-	left: -4px;
-	top: -4px;
-	width: 10px;
-	height: 10px;
+	inset: 1px 0;
+	transform: translate(-50%, -50%);
+	--dot-size: calc(0.5rem + 0.25rem / var(--ui-scale));
+	width: var(--dot-size);
+	height: var(--dot-size);
 	border-radius: 50%;
 	background: var(--color-urgent);
 }

@@ -8,10 +8,7 @@ import TaskItem from './TaskItem.vue'
 
 const { isDragging, draggedTask, ghostPosition, currentZone, dropData } = useDragOperator()
 const settingsStore = useSettingsStore()
-const { settings } = storeToRefs(settingsStore)
-
-const uiScale = computed(() => (settings.value.interfaceScale || 100) / 100)
-const hourHeight = computed(() => (settings.value.hourHeight || 80) * uiScale.value)
+const { hourHeight, uiScale } = storeToRefs(settingsStore)
 
 const isOverCalendar = computed(() => currentZone.value?.startsWith('calendar-day-'))
 
@@ -20,7 +17,7 @@ const ghostStyle = computed(() => {
 
 	// Default dimensions
 	let width = `${220 * uiScale.value}px`
-	let height = `${70 * uiScale.value}px` // Let TaskItem determine height for piles (compact)
+	let height = `${hourHeight.value}px` // Let TaskItem determine height for piles (compact) as  hourHeight is scaled
 	let left = `${ghostPosition.value.x}px`
 	let top = `${ghostPosition.value.y}px`
 	let transform = 'translate(-50%, -50%)' // Center on cursor by default
