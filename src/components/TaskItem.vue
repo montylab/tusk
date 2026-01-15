@@ -11,6 +11,7 @@ const props = defineProps<{
 	isShaking?: boolean
 	isCompact?: boolean
 	status?: 'past' | 'future' | 'on-air' | null
+	badgeText?: string
 }>()
 
 const emit = defineEmits<{
@@ -103,6 +104,7 @@ const onEditClick = (e: Event) => {
 				</span>
 			</div>
 		</div>
+		<div v-if="badgeText" class="shortcut-badge">{{ badgeText }}</div>
 	</div>
 </template>
 
@@ -127,6 +129,13 @@ const onEditClick = (e: Event) => {
 	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
+
+	&:hover {
+		.shortcut-badge {
+			opacity: 1;
+			visibility: visible;
+		}
+	}
 
 	// 2. Base Components
 	.color-stripe {
@@ -391,6 +400,26 @@ const onEditClick = (e: Event) => {
 		.content .header-actions {
 			opacity: 1;
 		}
+	}
+	.shortcut-badge {
+		position: absolute;
+		top: 0;
+		right: 0;
+		transform: translateY(-100%);
+		// background: var(--category-color);
+		color: #fff;
+		font-size: 0.7rem;
+		line-height: 1.4;
+		font-weight: 700;
+		padding: 0px 4px;
+		border-radius: 4px 4px 0 0;
+		z-index: 10;
+		pointer-events: none;
+		text-transform: uppercase;
+		border: 1px solid var(--category-color);
+		opacity: 0;
+		visibility: hidden;
+		transition: all 0.3s ease;
 	}
 }
 

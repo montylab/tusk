@@ -140,7 +140,7 @@ const getChaoticStyle = (task: Task) => {
 
 	return {
 		transform: `rotate(${rotation}deg) translateX(${xOffset}px)`,
-		margin: '12px 0',
+		margin: '1rem 0',
 		width: '100%',
 		height: `${height}px`,
 		cursor: 'grab'
@@ -182,7 +182,12 @@ const handleTouchStart = (e: TouchEvent, task: Task) => {
 						@mousedown="handleMouseDown($event, task)"
 						@touchstart="handleTouchStart($event, task)"
 					>
-						<TaskItem :task="task" is-compact @edit="emit('edit', $event)" />
+						<TaskItem
+							:task="task"
+							is-compact
+							:badge-text="listType === 'shortcut' && index < 9 ? `Ctrl + ${index + 1}` : undefined"
+							@edit="emit('edit', $event)"
+						/>
 					</div>
 				</div>
 
@@ -201,7 +206,7 @@ const handleTouchStart = (e: TouchEvent, task: Task) => {
 	</div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .task-pile {
 	height: 100%;
 	display: flex;
@@ -295,6 +300,13 @@ const handleTouchStart = (e: TouchEvent, task: Task) => {
 .task-group {
 	position: relative;
 	transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+	&:nth-child(2n) {
+		:deep(.shortcut-badge) {
+			left: 0;
+			right: auto;
+		}
+	}
 }
 
 /* Bottom group shouldn't move siblings when it appears/disappears */
