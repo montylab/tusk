@@ -158,7 +158,16 @@ const handleTouchStart = (e: TouchEvent, task: Task) => {
 </script>
 
 <template>
-	<div ref="pileRef" class="task-pile" :class="{ 'is-highlighted': isHighlighted, 'is-shortcuts': listType === 'shortcut' }">
+	<div
+		ref="pileRef"
+		class="task-pile"
+		:class="{
+			'is-highlighted': isHighlighted,
+			'is-shortcuts': listType === 'shortcut',
+			'todo-pile': listType === 'todo',
+			'shortcut-pile': listType === 'shortcut'
+		}"
+	>
 		<h3 class="pile-title">{{ title }}</h3>
 		<div ref="contentRef" class="pile-content">
 			<TransitionGroup name="task-list">
