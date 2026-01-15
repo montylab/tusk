@@ -2,7 +2,6 @@
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import TaskPageLayout from '../components/TaskPageLayout.vue'
 import TaskEditorPopup from '../components/TaskEditorPopup.vue'
 import MonthCalendar from '../components/MonthCalendar.vue'
 import { useTasksStore } from '../stores/tasks'
@@ -34,7 +33,7 @@ const {
 
 // Parse route params to get year/month
 const parseRouteDate = () => {
-	const { date, year, month, day } = route.params
+	const { year, month } = route.params
 
 	if (year && month) {
 		// /month/2025/01 or /month/2025/01/26
@@ -55,7 +54,6 @@ const updateCurrentDates = () => {
 	tasksStore.currentDates = allDates
 }
 
-// Navigation
 const goToPrevMonth = () => {
 	if (viewMonth.value === 0) {
 		viewMonth.value = 11
@@ -63,6 +61,7 @@ const goToPrevMonth = () => {
 	} else {
 		viewMonth.value--
 	}
+	updateCurrentDates()
 	updateRoute()
 }
 
@@ -73,12 +72,13 @@ const goToNextMonth = () => {
 	} else {
 		viewMonth.value++
 	}
+	updateCurrentDates()
 	updateRoute()
 }
 
 const updateRoute = () => {
-	router.push({
-		name: 'month-ym',
+	router.replace({
+		name: 'month-ymd',
 		params: {
 			year: viewYear.value.toString(),
 			month: (viewMonth.value + 1).toString().padStart(2, '0')
@@ -103,7 +103,7 @@ watch(
 </script>
 
 <template>
-	<TaskPageLayout @edit="handleEditTask">
+	<div class="month-view-page">
 		<MonthCalendar
 			:year="viewYear"
 			:month="viewMonth"
@@ -114,21 +114,24 @@ watch(
 			@next-month="goToNextMonth"
 		/>
 
-		<template #popups>
-			<TaskEditorPopup
-				:show="showEditorPopup"
-				:task="taskToEdit"
-				:task-type="popupTaskType"
-				:initial-start-time="initialStartTime"
-				:initial-date="popupTargetDate"
-				@close="handlePopupClose"
-				@create="handleTaskCreate"
-				@update="handleTaskUpdate"
-			/>
-		</template>
-	</TaskPageLayout>
+		<TaskEditorPopup
+			:show="showEditorPopup"
+			:task="taskToEdit"
+			:task-type="popupTaskType"
+			:initial-start-time="initialStartTime"
+			:initial-date="popupTargetDate"
+			@close="handlePopupClose"
+			@create="handleTaskCreate"
+			@update="handleTaskUpdate"
+		/>
+	</div>
 </template>
 
 <style scoped>
-/* Month view uses full layout from TaskPageLayout and MonthCalendar */
+.month-view-page {
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+	padding: 1rem 2rem;
+}
 </style>

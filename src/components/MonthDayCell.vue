@@ -90,9 +90,9 @@ const handleDrop = (e: DragEvent) => {
 					v-for="task in sortedTasks"
 					:key="task.id"
 					:task="task"
-					@click="emit('task-click', task, $event)"
-					@dblclick="emit('task-dblclick', task)"
-					@dragstart="emit('task-dragstart', task, $event)"
+					@click="(t, e) => emit('task-click', t, e)"
+					@dblclick="(t) => emit('task-dblclick', t)"
+					@dragstart="(t, e) => emit('task-dragstart', t, e)"
 				/>
 			</div>
 		</div>
@@ -105,7 +105,8 @@ const handleDrop = (e: DragEvent) => {
 	flex-direction: column;
 	background: rgba(255, 255, 255, 0.02);
 	border: 1px solid rgba(255, 255, 255, 0.05);
-	min-height: 100px;
+	min-height: 0;
+	height: 100%;
 	transition: all 0.15s ease;
 
 	&:hover {

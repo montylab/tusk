@@ -218,14 +218,14 @@ const handleDrop = (targetDate: string) => {
 
 		.weeks {
 			flex: 1;
-			display: flex;
-			flex-direction: column;
+			display: grid;
+			grid-template-rows: repeat(6, 1fr);
+			min-height: 0; // Allow shrinking
 
 			.week-row {
 				display: grid;
 				grid-template-columns: repeat(7, 1fr);
-				flex: 1;
-				min-height: 80px;
+				min-height: 0;
 			}
 		}
 	}

@@ -39,25 +39,17 @@ const categoryColor = () => {
 }
 
 const calculatePosition = () => {
-	if (!props.anchorEl || !popoverRef.value) return
+	const el = popoverRef.value
+	if (!props.anchorEl || !el || !props.visible) return
 
-	const anchorRect = props.anchorEl.getBoundingClientRect()
-	const popoverRect = popoverRef.value.getBoundingClientRect()
+	const anchor = props.anchorEl.getBoundingClientRect()
+	const [pw, ph, pad, gap] = [el.offsetWidth, el.offsetHeight, 12, 8]
 
-	let top = anchorRect.bottom + 4
-	let left = anchorRect.left
+	const left = Math.max(pad, Math.min(anchor.left + anchor.width / 2 - pw / 2, window.innerWidth - pw - pad))
+	let top = anchor.bottom + gap
+	if (top + ph > window.innerHeight - pad) top = anchor.top - ph - gap
 
-	// Adjust if going off-screen right
-	if (left + popoverRect.width > window.innerWidth - 10) {
-		left = window.innerWidth - popoverRect.width - 10
-	}
-
-	// Adjust if going off-screen bottom
-	if (top + popoverRect.height > window.innerHeight - 10) {
-		top = anchorRect.top - popoverRect.height - 4
-	}
-
-	position.value = { top, left }
+	position.value = { top: Math.max(pad, top), left }
 }
 
 const handleClickOutside = (e: MouseEvent) => {
@@ -258,12 +250,12 @@ onUnmounted(() => {
 
 .popover-enter-active,
 .popover-leave-active {
-	transition: all 0.15s ease;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .popover-enter-from,
 .popover-leave-to {
 	opacity: 0;
-	transform: translateY(-4px);
+	transform: scale(0.25);
 }
 </style>
