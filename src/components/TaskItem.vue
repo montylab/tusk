@@ -9,6 +9,7 @@ const props = defineProps<{
 	task: Task
 	isDragging?: boolean
 	isShaking?: boolean
+	isCompact?: boolean
 	status?: 'past' | 'future' | 'on-air' | null
 }>()
 
@@ -38,7 +39,7 @@ const endTime = computed(() => {
 	return props.task.startTime + props.task.duration / 60
 })
 
-const isCompact = computed(() => props.task.duration <= 30)
+const isAutoCompact = computed(() => props.task.duration <= 30)
 
 const itemStyle = computed(() => {
 	const categoryObj = categoriesStore.categoriesArray.find((c) => c.name === props.task.category)
@@ -61,7 +62,9 @@ const onEditClick = (e: Event) => {
 			'on-air': status === 'on-air',
 			'in-past': status === 'past',
 			'in-future': status === 'future',
-			'is-compact': isCompact
+			'is-compact': isCompact,
+			'is-auto-compact': isAutoCompact,
+			['time-size-' + task.duration]: true
 		}"
 		:style="itemStyle"
 		@dblclick="emit('edit', task)"
@@ -71,36 +74,48 @@ const onEditClick = (e: Event) => {
 		<div class="content">
 			<div class="main-info">
 				<h4 class="title">{{ task.text }}</h4>
-				<div class="header-actions" v-if="!isDragging">
-					<button class="edit-btn" @mousedown.stop @click="onEditClick" title="Edit Task">
-						<img :src="pencilSrc" class="task-icon small" alt="Edit" />
-					</button>
+
+				<div class="meta">
+					<span class="time-badge" v-if="task.startTime !== null && task.startTime !== undefined">
+						{{ formatTime(task.startTime) }} - {{ endTime !== null ? formatTime(endTime) : '?' }}
+					</span>
+					<span class="duration-badge">
+						{{ formatDuration(task.duration) }}
+					</span>
 				</div>
-				<span class="category-badge">{{ task.category || 'Uncategorized' }}</span>
-				<span v-if="task.isDeepWork" class="deep-work-badge" title="Deep Work task">
+
+				<p v-if="task.description && !isCompact && !isAutoCompact" class="description-text">
+					{{ task.description }}
+				</p>
+			</div>
+
+			<div class="header-actions">
+				<button class="edit-btn" @mousedown.stop @click="onEditClick" title="Edit Task">
+					<img :src="pencilSrc" class="task-icon small" alt="Edit" />
+				</button>
+			</div>
+
+			<div class="badges">
+				<span class="category-badge badge">{{ task.category || 'Uncategorized' }}</span>
+				<span v-if="task.isDeepWork" class="deep-work-badge badge" title="Deep Work task">
 					<img :src="brainSrc" class="task-icon small" alt="Deep Work" />
-					<span v-if="!isCompact">DEEP</span>
+					<span>DEEP</span>
 				</span>
 			</div>
-			<p v-if="task.description && !isCompact" class="description-text">
-				{{ task.description }}
-			</p>
-			<div class="meta">
-				<span class="time-badge" v-if="task.startTime !== null && task.startTime !== undefined">
-					{{ formatTime(task.startTime) }} - {{ endTime !== null ? formatTime(endTime) : '?' }}
-				</span>
-				<span class="duration-badge">
-					{{ formatDuration(task.duration) }}
-				</span>
-			</div>
-			<span class="category-badge for-compact">{{ task.category || 'Uncategorized' }}</span>
 		</div>
 	</div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .task-item {
+	// 1. Typography & Colors
 	--category-color: var(--color-default);
+	--font-size-title: 1.125rem;
+	--font-size-description: 1rem;
+	--font-size-badge: 0.75rem;
+	--font-size-meta: 0.875rem;
+	--font-size-tag: 0.625rem;
+
 	background: rgba(255, 255, 255, 0.08);
 	border-radius: 6px;
 	cursor: grab;
@@ -112,228 +127,282 @@ const onEditClick = (e: Event) => {
 	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
-}
 
-.task-item.on-air {
-	background: color-mix(in srgb, var(--category-color), transparent 50%);
-	border-width: 2px;
-	z-index: 5;
-}
+	// 2. Base Components
+	.color-stripe {
+		width: 0.25rem;
+		height: 100%;
+		flex-shrink: 0;
+		background: var(--category-color);
+		border-radius: 6px 0 0 6px;
+	}
 
-.on-air-tag {
-	position: absolute;
-	top: -0.5rem;
-	right: 0.5rem;
-	background: var(--color-urgent);
-	color: #fff;
-	font-size: 0.625rem;
-	font-weight: 800;
-	padding: 0.125rem 0.5rem;
-	border-radius: 3px;
-	z-index: 10;
-	letter-spacing: 0.5px;
-	box-shadow: 0 0 10px rgba(255, 75, 31, 0.4);
-	pointer-events: none;
-	z-index: 999;
-}
+	.content {
+		padding: 0.5rem 0.675rem;
+		flex: 1;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		overflow: hidden;
 
-.task-item.in-past {
-	opacity: 0.75;
-	filter: grayscale(0.5);
-	background: rgba(255, 255, 255, 0.04);
-}
+		.main-info {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+			justify-content: center;
+			row-gap: 0;
+			flex: 1;
+			min-width: 0; // Allow shrinking for ellipsis
 
-.task-item.in-past .color-stripe {
-	opacity: 0.8;
-}
+			.title {
+				font-size: var(--font-size-title);
+				line-height: 1.25;
+				font-weight: 600;
+				color: #fff;
+				margin: 0;
+				// 0.5rem 0 0.25rem 0;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				width: 100%;
+			}
 
-.task-item.dragging {
-	background: rgba(255, 255, 255, 0.2);
-	backdrop-filter: blur(4px);
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-	cursor: grabbing;
-}
+			.meta {
+				display: flex;
+				gap: 0.75rem;
+				white-space: nowrap;
 
-.task-item:active {
-	cursor: grabbing;
-}
+				.time-badge,
+				.duration-badge {
+					font-size: var(--font-size-meta);
+					color: rgba(255, 255, 255, 0.6);
+					font-weight: 500;
+				}
+			}
 
-.color-stripe {
-	width: 0.25rem;
-	height: 100%;
-	flex-shrink: 0;
-	background: var(--category-color);
-	border-radius: 6px 0 0 6px;
-}
+			.description-text {
+				font-size: var(--font-size-description);
+				color: rgba(255, 255, 255, 0.45);
+				margin: 0;
+				display: -webkit-box;
+				-webkit-line-clamp: 2;
+				line-clamp: 2;
+				-webkit-box-orient: vertical;
+				overflow: hidden;
+				line-height: 1.2;
+				width: 100%;
+			}
+		}
 
-.content {
-	padding: 4px 10px;
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	overflow: hidden;
-	gap: 2px;
-}
+		.header-actions {
+			display: flex;
+			align-items: center;
+			margin-left: auto;
+			gap: 4px;
+			opacity: 0.25;
+			transition: opacity 0.2s ease;
 
-.for-compact {
-	display: none;
-}
+			.edit-btn {
+				background: rgba(255, 255, 255, 0.1);
+				border: 1px solid rgba(255, 255, 255, 0.2);
+				border-radius: 4px;
+				color: #fff;
+				width: 1.25rem;
+				height: 1.25rem;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				margin: 0 0.5rem;
 
-.is-compact .content {
-	flex-direction: row;
-	justify-content: flex-start;
-}
+				&:hover {
+					background: var(--category-color);
+					border-color: #fff;
+					transform: scale(1.1);
+				}
+			}
+		}
 
-.is-compact .category-badge {
-	display: none;
-}
+		.badges {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
 
-.is-compact .category-badge.for-compact {
-	display: inline-block;
-	border-width: 0 0 0 1px;
-	border-radius: 0;
-	margin-right: 3px;
-	margin-left: auto;
-	/* height: 20px; */
-	/* line-height: ; */
-	place-self: center;
-}
+			.badge {
+				font-size: var(--font-size-badge);
+				border-radius: 4px;
+				padding: 0 0.25rem;
+				font-weight: 700;
+				white-space: nowrap;
+				text-transform: uppercase;
+				flex-shrink: 0;
 
-.main-info {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: 8px;
-	overflow: hidden;
-}
+				&.category-badge {
+					opacity: 0.9;
+					border: 1px solid var(--category-color);
+					color: var(--category-color);
+				}
 
-.title {
-	font-size: 0.85rem;
-	font-weight: 600;
-	color: #fff;
-	margin: 0;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	flex: 1;
-}
+				&.deep-work-badge {
+					display: flex;
+					align-items: center;
+					gap: 3px;
+					background: #7c3aed;
+					color: #fff;
+					letter-spacing: 0.5px;
+				}
+			}
 
-.header-actions {
-	display: flex;
-	gap: 4px;
-	opacity: 0;
-	transition: opacity 0.2s ease;
-}
+			.task-icon.small {
+				width: 0.8rem;
+				height: 0.8rem;
+			}
+		}
+	}
 
-.task-item:hover .header-actions {
-	opacity: 1;
-}
+	.on-air-tag {
+		position: absolute;
+		top: -0.5rem;
+		right: 0.5rem;
+		background: var(--color-urgent);
+		color: #fff;
+		font-size: var(--font-size-tag);
+		font-weight: 800;
+		padding: 0.125rem 0.5rem;
+		border-radius: 3px;
+		z-index: 999;
+		letter-spacing: 0.5px;
+		box-shadow: 0 0 10px rgba(255, 75, 31, 0.4);
+		pointer-events: none;
+	}
 
-.edit-btn {
-	background: rgba(255, 255, 255, 0.1);
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	border-radius: 4px;
-	color: #fff;
-	width: 1.25rem;
-	height: 1.25rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
+	// 3. State-based Overrides
+	&.is-compact {
+		--font-size-title: 0.875rem;
+		--font-size-meta: 0.75rem;
+		--font-size-badge: 0.7rem;
 
-.edit-btn:hover {
-	background: var(--category-color);
-	border-color: #fff;
-	transform: scale(1.1);
-}
+		.content {
+			padding: 0.375rem 0.5rem;
 
-.task-item.is-compact .title {
-	font-size: 0.75rem;
-}
+			.main-info {
+				.meta {
+					gap: 0.4rem;
+					.time-badge {
+						display: none;
+					}
+				}
+			}
 
-.description-text {
-	font-size: 0.65rem;
-	color: rgba(255, 255, 255, 0.45);
-	margin: 0;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-	line-height: 1.2;
-}
+			.badges {
+				margin-left: auto;
+				gap: 0.25rem;
+			}
+		}
+	}
 
-.meta {
-	display: flex;
-	gap: 10px;
-	align-items: center;
-}
+	&.time-size-30,
+	&.is-auto-compact {
+		--font-size-title: 0.8rem;
+		--font-size-meta: 0.75rem;
+		--font-size-tag: 0.625rem;
 
-.category-badge {
-	font-size: 0.6rem;
-	opacity: 0.9;
-	border: 1px solid var(--category-color);
-	color: var(--category-color);
-	border-radius: 4px;
-	padding: 0 4px;
-	font-weight: 700;
-	white-space: nowrap;
-	text-transform: uppercase;
-	flex-shrink: 0;
-}
+		.content .main-info {
+			row-gap: 0;
+		}
+	}
 
-.deep-work-badge {
-	display: flex;
-	align-items: center;
-	gap: 3px;
-	background: #7c3aed;
-	/* Purple */
-	color: #fff;
-	font-size: 0.6rem;
-	font-weight: 800;
-	padding: 1px 6px;
-	border-radius: 4px;
-	letter-spacing: 0.5px;
-	box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
-	pointer-events: none;
-}
+	&.time-size-15 {
+		--font-size-title: 0.8rem;
+		--font-size-meta: 0.75rem;
+		--font-size-tag: 0.625rem;
 
-.task-icon.small {
-	width: 0.8rem;
-	height: 0.8rem;
-}
+		.content {
+			padding: 0 0 0 10px;
+			position: relative;
+			overflow: hidden;
+			border-radius: 5px;
 
-.time-badge,
-.duration-badge {
-	font-size: 0.65rem;
-	color: rgba(255, 255, 255, 0.6);
-	font-weight: 500;
-}
+			.main-info {
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+				gap: 0.5rem;
+				flex: none;
 
-.task-item.on-air .time-badge,
-.task-item.on-air .duration-badge {
-	color: #fff;
-	opacity: 0.9;
+				.meta {
+					margin-left: auto;
+				}
+			}
+
+			.edit-btn {
+				transform: scale(0.8);
+			}
+		}
+	}
+
+	&.on-air {
+		background: color-mix(in srgb, var(--category-color), transparent 50%);
+		border-width: 2px;
+		z-index: 5;
+
+		.content {
+			.meta .time-badge,
+			.meta .duration-badge {
+				color: #fff;
+				opacity: 0.75;
+			}
+
+			.badges .category-badge {
+				background-color: var(--category-color);
+				color: #fff;
+			}
+		}
+	}
+
+	&.in-past {
+		opacity: 0.75;
+		filter: grayscale(0.5);
+		background: rgba(255, 255, 255, 0.04);
+
+		.color-stripe {
+			opacity: 0.8;
+		}
+	}
+
+	&.dragging {
+		background: rgba(255, 255, 255, 0.2);
+		backdrop-filter: blur(4px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+		cursor: grabbing;
+	}
+
+	&.shaking {
+		animation: shake 0.4s infinite ease-in-out;
+	}
+
+	// 4. Interactions
+	&:active {
+		cursor: grabbing;
+	}
+
+	&:hover {
+		.content .header-actions {
+			opacity: 1;
+		}
+	}
 }
 
 @keyframes shake {
 	0% {
 		transform: scaleX(1);
 	}
-
 	50% {
 		transform: scaleX(1.03);
 	}
-
 	100% {
 		transform: scaleX(1);
 	}
-}
-
-.shaking {
-	animation: shake 0.4s infinite ease-in-out;
 }
 </style>

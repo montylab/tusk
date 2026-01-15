@@ -186,21 +186,16 @@ const handleAddDay = () => {
 
 .sidebar.left {
 	width: calc(5% + var(--ui-scale) * 5%);
-	/* width: 20%; */
 	min-width: 150px;
 	max-width: 500px;
-	/* border-right: 1px solid var(--border-color); */
-	/* background: rgba(0, 0, 0, 0.2); */
 }
 
 .sidebar.right {
 	width: 20%;
-	width: calc(15% + var(--ui-scale) * 5%);
 
-	min-width: 200px;
-	max-width: 40%;
-	/* border-left: 1px solid var(--border-color); */
-	/* background: rgba(0, 0, 0, 0.15); */
+	width: calc(20% + var(--ui-scale) * 5%);
+	min-width: 250px;
+	max-width: 500px;
 }
 
 .main-content {
