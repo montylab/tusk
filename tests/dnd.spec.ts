@@ -156,4 +156,88 @@ test.describe('Drag and Drop & Resize', () => {
 		// Verify it's gone from calendar
 		await expect(page.locator('.task-wrapper-absolute').filter({ hasText: taskName })).not.toBeVisible()
 	})
+
+	test('should delete calendar task by pressing Delete key while dragging', async ({ page }: { page: Page }) => {
+		const task = page.locator('.task-wrapper-absolute').filter({ hasText: taskName }).first()
+		await task.scrollIntoViewIfNeeded()
+		const initialBox = await task.boundingBox()
+		if (!initialBox) throw new Error('Task box not found')
+
+		// Start Drag
+		await page.mouse.move(initialBox.x + initialBox.width / 2, initialBox.y + initialBox.height / 2)
+		await page.mouse.down()
+		// Move a bit to ensure drag starts
+		await page.mouse.move(initialBox.x + initialBox.width / 2, initialBox.y + initialBox.height / 2 + 50, { steps: 5 })
+
+		// Press Delete
+		await page.keyboard.press('Delete')
+
+		// Release mouse
+		await page.mouse.up()
+
+		// Wait for UI update
+		await page.waitForTimeout(500)
+
+		// Verify task is gone
+		await expect(task).not.toBeVisible()
+	})
+
+	test('should delete todo task by pressing Delete key while dragging', async ({ page }: { page: Page }) => {
+		const todoName = `Delete Todo ${Date.now()}`
+		await setupTestTask(page, todoName, { isTodo: true })
+
+		const task = page.locator('.task-pile:has-text("To Do") .task-item').filter({ hasText: todoName }).first()
+		await task.scrollIntoViewIfNeeded()
+		const initialBox = await task.boundingBox()
+		if (!initialBox) throw new Error('Task box not found')
+
+		// Start Drag
+		await page.mouse.move(initialBox.x + initialBox.width / 2, initialBox.y + initialBox.height / 2)
+		await page.mouse.down()
+		// Move out of the pile just to be sure we are "dragging" somewhere
+		await page.mouse.move(initialBox.x - 200, initialBox.y + 100, { steps: 10 })
+
+		// Press Delete
+		await page.keyboard.press('Delete')
+
+		// Release mouse
+		await page.mouse.up()
+
+		// Wait for UI update
+		await page.waitForTimeout(500)
+
+		// Verify task is gone
+		await expect(task).not.toBeVisible()
+	})
+
+	test('should delete shortcut task by pressing Delete key while dragging', async ({ page }: { page: Page }) => {
+		const shortcutName = `Delete Shortcut ${Date.now()}`
+		await setupTestTask(page, shortcutName, { isShortcut: true })
+
+		const task = page.locator('.task-pile:has-text("Shortcuts") .task-item').filter({ hasText: shortcutName }).first()
+		await task.scrollIntoViewIfNeeded()
+		const initialBox = await task.boundingBox()
+		if (!initialBox) throw new Error('Task box not found')
+
+		// Start Drag
+		await page.mouse.move(initialBox.x + initialBox.width / 2, initialBox.y + initialBox.height / 2)
+		await page.mouse.down()
+		// Move out of the pile
+		await page.mouse.move(initialBox.x - 200, initialBox.y + 100, { steps: 20 })
+
+		// Wait a bit to ensure drag is recognized
+		await page.waitForTimeout(200)
+
+		// Press Delete
+		await page.keyboard.press('Delete')
+
+		// Release mouse
+		await page.mouse.up()
+
+		// Wait for UI update
+		await page.waitForTimeout(1500)
+
+		// Verify task is gone
+		await expect(task).not.toBeVisible({ timeout: 5000 })
+	})
 })

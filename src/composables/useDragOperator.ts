@@ -166,6 +166,12 @@ async function handleEnd(event: MouseEvent | TouchEvent) {
 function handleKeyDown(event: KeyboardEvent) {
 	if (event.key === 'Escape') {
 		cleanup()
+	} else if (event.key === 'Delete' || event.key === 'Backspace') {
+		if (isDragging.value && draggedTask.value && sourceZone.value) {
+			manageTaskRelocation(sourceZone.value, 'trash', draggedTask.value, null).then(() => {
+				cleanup()
+			})
+		}
 	}
 }
 

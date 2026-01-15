@@ -182,7 +182,7 @@ export const useTasksStore = defineStore('tasks', () => {
 				duration: 60,
 				isShortcut: true,
 				order: maxOrder + 10000,
-				date: undefined,
+				date: null,
 				isDeepWork: false
 			}
 
