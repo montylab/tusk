@@ -38,7 +38,7 @@ const updateBounds = () => {
 }
 
 // Calculate drop data (insertion index and order)
-const calculateDropData = (x: number, y: number, task: Task) => {
+const calculateDropData = (_x: number, y: number, _task: Task) => {
 	if (!contentRef.value) return { index: 0, order: 0 }
 
 	const tasks = Array.from(contentRef.value.querySelectorAll('.task-group:not(.bottom-indicator-group)')) as HTMLElement[]

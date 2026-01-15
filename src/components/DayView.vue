@@ -213,8 +213,25 @@ watch(uiScale, () => {
 
 watch(() => props.tasksByDate, updateTaskStatuses, { immediate: true, deep: true })
 
+const scrollToDate = (date: string) => {
+	if (!scrollAreaRef.value || !tasksContainerRef.value) return
+
+	const columns = Array.from(tasksContainerRef.value.querySelectorAll('.day-column-outer'))
+	const targetColumn = columns.find((col, index) => props.dates[index] === date) as HTMLElement
+
+	if (targetColumn) {
+		const containerWidth = scrollAreaRef.value.clientWidth
+		const columnLeft = targetColumn.offsetLeft
+		const columnWidth = targetColumn.offsetWidth
+		const scrollTo = columnLeft - containerWidth / 2 + columnWidth / 2
+		scrollAreaRef.value.scrollTo({ left: scrollTo, behavior: 'smooth' })
+		console.log(scrollTo)
+	}
+}
+
 defineExpose({
-	scrollToTop
+	scrollToTop,
+	scrollToDate
 })
 </script>
 

@@ -1,64 +1,128 @@
 <script setup lang="ts">
-  import { ref, watch } from 'vue'
-  import { useRoute } from 'vue-router'
+import { ref, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import DayView from '../components/DayView.vue'
+import TaskPageLayout from '../components/TaskPageLayout.vue'
+import TaskEditorPopup from '../components/TaskEditorPopup.vue'
+import { useTasksStore } from '../stores/tasks'
+import { useTimeBoundaries } from '../composables/useTimeBoundaries'
+import { useTaskEditor } from '../composables/useTaskEditor'
+import { formatDate, getMonday, getWeekDays } from '../utils/dateUtils'
 
-  const route = useRoute()
-  const currentDate = ref<string>('')
+const route = useRoute()
+const router = useRouter()
+const tasksStore = useTasksStore()
+const { onDayChange } = useTimeBoundaries()
 
-  watch(
-    () => route.params.date,
-    (newDate) => {
-      if (newDate && typeof newDate === 'string') {
-        currentDate.value = newDate
-      } else {
-        const today = new Date().toISOString().split('T')[0]
-        currentDate.value = today
-      }
-    },
-    { immediate: true }
-  )
+onDayChange((newDate) => {
+	router.push({ name: 'week', params: { date: newDate } })
+})
+const { currentDates, scheduledTasks } = storeToRefs(tasksStore)
+
+// Reference to DayView
+const dayViewRef = ref<any>(null)
+
+// Shared Task Logic
+const {
+	showEditorPopup,
+	initialStartTime,
+	taskToEdit,
+	popupTaskType,
+	popupTargetDate,
+	handleOpenCreatePopup,
+	handleEditTask,
+	handleTaskCreate,
+	handleTaskUpdate,
+	handlePopupClose
+} = useTaskEditor()
+
+// Watch for date parameter changes
+watch(
+	() => route.params.date,
+	(paramDate) => {
+		let baseDate: Date
+		if (paramDate && typeof paramDate === 'string') {
+			baseDate = new Date(paramDate)
+		} else {
+			baseDate = new Date()
+		}
+
+		const monday = getMonday(baseDate)
+		const weekDays = getWeekDays(monday)
+		tasksStore.currentDates = weekDays
+
+		setTimeout(() => {
+			dayViewRef.value?.scrollToTop()
+			const today = formatDate(new Date())
+			if (weekDays.includes(today)) {
+				dayViewRef.value?.scrollToDate(today)
+			}
+		}, 330)
+	},
+	{ immediate: true }
+)
 </script>
 
 <template>
-  <div class="week-view-page">
-    <div class="placeholder-content">
-      <h1>Week View</h1>
-      <p v-if="currentDate">Showing week for: {{ currentDate }}</p>
-      <p class="note">Week view component will be implemented here</p>
-    </div>
-  </div>
+	<TaskPageLayout @edit="handleEditTask">
+		<template #header>
+			<div class="header-actions-row">
+				<button class="create-btn" @click="handleOpenCreatePopup()">Create Task</button>
+				<h2 class="week-title">Week View ({{ currentDates[0] }} - {{ currentDates[6] }})</h2>
+			</div>
+		</template>
+
+		<DayView
+			ref="dayViewRef"
+			:dates="currentDates"
+			:tasks-by-date="scheduledTasks"
+			:start-hour="0"
+			:end-hour="24"
+			@create-task="handleOpenCreatePopup"
+			@edit="handleEditTask"
+		/>
+
+		<template #popups>
+			<TaskEditorPopup
+				:show="showEditorPopup"
+				:task="taskToEdit"
+				:task-type="popupTaskType"
+				:initial-start-time="initialStartTime"
+				:initial-date="popupTargetDate"
+				@close="handlePopupClose"
+				@create="handleTaskCreate"
+				@update="handleTaskUpdate"
+			/>
+		</template>
+	</TaskPageLayout>
 </template>
 
 <style scoped>
-  .week-view-page {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+.header-actions-row {
+	display: flex;
+	align-items: center;
+	gap: 2rem;
+	margin-bottom: 1rem;
+}
 
-  .placeholder-content {
-    text-align: center;
-    padding: 2rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-  }
+.week-title {
+	margin: 0;
+	color: var(--text-light);
+	font-size: 1.2rem;
+}
 
-  .placeholder-content h1 {
-    font-size: 2rem;
-    margin-bottom: 1rem;
-    color: var(--text-light);
-  }
+.create-btn {
+	padding: 0.5rem 1rem;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #fff;
+	border: none;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
 
-  .placeholder-content p {
-    color: var(--text-muted);
-    margin-bottom: 0.5rem;
-  }
-
-  .note {
-    font-style: italic;
-    font-size: 0.9rem;
-  }
+.create-btn:hover {
+	filter: brightness(1.1);
+	transform: translateY(-1px);
+}
 </style>

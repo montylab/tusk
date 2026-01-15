@@ -3,13 +3,12 @@ import { ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import DayView from '../components/DayView.vue'
-import TrashBasket from '../components/TrashBasket.vue'
-import TaskPile from '../components/TaskPile.vue'
+import TaskPageLayout from '../components/TaskPageLayout.vue'
 import TaskEditorPopup from '../components/TaskEditorPopup.vue'
 import { useTasksStore } from '../stores/tasks'
 import { useTimeBoundaries } from '../composables/useTimeBoundaries'
+import { useTaskEditor } from '../composables/useTaskEditor'
 import { formatDate } from '../utils/dateUtils'
-import type { Task } from '../types'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,10 +18,24 @@ const { onDayChange } = useTimeBoundaries()
 onDayChange((newDate) => {
 	router.push({ name: 'day', params: { date: newDate } })
 })
-const { currentDates, scheduledTasks, todoTasks, shortcutTasks } = storeToRefs(tasksStore)
+const { currentDates, scheduledTasks } = storeToRefs(tasksStore)
 
 // Reference to DayView
 const dayViewRef = ref<any>(null)
+
+// Shared Task Logic
+const {
+	showEditorPopup,
+	initialStartTime,
+	taskToEdit,
+	popupTaskType,
+	popupTargetDate,
+	handleOpenCreatePopup,
+	handleEditTask,
+	handleTaskCreate,
+	handleTaskUpdate,
+	handlePopupClose
+} = useTaskEditor()
 
 // Watch for date parameter changes
 watch(
@@ -44,78 +57,6 @@ watch(
 	{ immediate: true }
 )
 
-// Popup visibility state
-const showEditorPopup = ref(false)
-const initialStartTime = ref<number | null>(null)
-const taskToEdit = ref<Task | null>(null)
-const popupTaskType = ref<'scheduled' | 'todo' | 'shortcut'>('scheduled')
-const popupTargetDate = ref<string | null>(null)
-
-// Handlers
-const handleOpenCreatePopup = (payload?: { startTime: number; date?: string }) => {
-	taskToEdit.value = null
-	initialStartTime.value = payload?.startTime ?? null
-	popupTargetDate.value = payload?.date ?? tasksStore.currentDates[0]
-	popupTaskType.value = 'scheduled'
-	showEditorPopup.value = true
-}
-
-const handleEditTask = (task: Task) => {
-	taskToEdit.value = task
-	if (task.startTime !== null && task.startTime !== undefined) {
-		popupTaskType.value = 'scheduled'
-	} else if (task.isShortcut) {
-		popupTaskType.value = 'shortcut'
-	} else {
-		popupTaskType.value = 'todo'
-	}
-	showEditorPopup.value = true
-}
-
-const handleTaskCreate = (payload: {
-	text: string
-	description: string
-	category: string
-	isDeepWork: boolean
-	startTime?: number | null
-	duration?: number
-	date?: string | null
-}) => {
-	tasksStore.createScheduledTask({
-		text: payload.text,
-		description: payload.description,
-		category: payload.category,
-		completed: false,
-		startTime: payload.startTime ?? null,
-		duration: payload.duration ?? 60,
-		date: payload.date || popupTargetDate.value || tasksStore.currentDates[0],
-		isShortcut: false,
-		isDeepWork: payload.isDeepWork,
-		order: 0,
-		color: null
-	} as any)
-	showEditorPopup.value = false
-}
-
-const handleTaskUpdate = (payload: { id: string | number; updates: Partial<Task> }) => {
-	const task = tasksStore.getTaskById(payload.id)
-	if (!task) return
-	if (task.startTime !== null && task.startTime !== undefined) {
-		tasksStore.updateScheduledTask(task.id, task.date!, payload.updates)
-	} else if (task.isShortcut) {
-		tasksStore.updateShortcut(task.id, payload.updates)
-	} else {
-		tasksStore.updateTodo(task.id, payload.updates)
-	}
-	showEditorPopup.value = false
-}
-
-const handlePopupClose = () => {
-	showEditorPopup.value = false
-	taskToEdit.value = null
-	popupTargetDate.value = null
-}
-
 const handleAddDay = () => {
 	const lastDateStr = currentDates.value[currentDates.value.length - 1]
 	const lastDate = new Date(lastDateStr)
@@ -127,38 +68,23 @@ const handleAddDay = () => {
 </script>
 
 <template>
-	<div class="page-layout">
-		<aside class="sidebar left">
-			<TrashBasket />
-		</aside>
+	<TaskPageLayout @edit="handleEditTask">
+		<template #header>
+			<button class="create-btn" @click="handleOpenCreatePopup()">Create Task</button>
+		</template>
 
-		<main class="main-content">
-			<button
-				class="create-btn"
-				@click="handleOpenCreatePopup()"
-				style="
-					margin-bottom: 1rem;
-					padding: 0.5rem 1rem;
-					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-					color: #fff;
-					border: none;
-					border-radius: 8px;
-					cursor: pointer;
-				"
-			>
-				Create Task
-			</button>
-			<DayView
-				ref="dayViewRef"
-				:dates="currentDates"
-				:tasks-by-date="scheduledTasks"
-				:start-hour="0"
-				:end-hour="24"
-				@create-task="handleOpenCreatePopup"
-				@edit="handleEditTask"
-				@add-day="handleAddDay"
-			/>
+		<DayView
+			ref="dayViewRef"
+			:dates="currentDates"
+			:tasks-by-date="scheduledTasks"
+			:start-hour="0"
+			:end-hour="24"
+			@create-task="handleOpenCreatePopup"
+			@edit="handleEditTask"
+			@add-day="handleAddDay"
+		/>
 
+		<template #popups>
 			<TaskEditorPopup
 				:show="showEditorPopup"
 				:task="taskToEdit"
@@ -169,73 +95,24 @@ const handleAddDay = () => {
 				@create="handleTaskCreate"
 				@update="handleTaskUpdate"
 			/>
-		</main>
-
-		<aside class="sidebar right">
-			<div class="pile-container">
-				<TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" @edit="handleEditTask" />
-				<TaskPile title="To Do" :tasks="todoTasks" list-type="todo" @edit="handleEditTask" />
-			</div>
-		</aside>
-	</div>
+		</template>
+	</TaskPageLayout>
 </template>
 
 <style scoped>
-.page-layout {
-	display: flex;
-	width: 100%;
-	height: 100%;
-	overflow: hidden;
-}
-
-.sidebar.left {
-	width: calc(5% + var(--ui-scale) * 5%);
-	min-width: 150px;
-	max-width: 500px;
-}
-
-.sidebar.right {
-	width: 20%;
-
-	width: calc(20% + var(--ui-scale) * 5%);
-	min-width: 250px;
-	max-width: 500px;
-}
-
-.main-content {
-	flex: 1;
-	margin: 0 auto;
-	display: flex;
-	flex-direction: column;
-	padding: 1rem;
-	overflow: hidden;
-	/* min-width: 50vw; */
-}
-
-.pile-container {
-	display: flex;
-	flex-direction: column;
-	height: 100%;
-}
-
-.pile-container > * {
-	flex: 1;
-	min-height: 0;
-}
-
 .create-btn {
+	margin-bottom: 1rem;
+	padding: 0.5rem 1rem;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
 	transition: all 0.2s ease;
 }
 
-.create-btn.over {
-	transform: scale(1.1);
-	filter: brightness(1.2);
-	box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
-}
-
-@media (min-width: 1440px) {
-	.main-content {
-		/* min-width: 70vw; */
-	}
+.create-btn:hover {
+	filter: brightness(1.1);
+	transform: translateY(-1px);
 }
 </style>
