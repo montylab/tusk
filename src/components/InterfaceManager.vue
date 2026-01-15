@@ -1,28 +1,10 @@
 <script setup lang="ts">
-import { watch, onMounted, onUnmounted } from 'vue'
+import { watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSettingsStore } from '../stores/settings'
 
 const settingsStore = useSettingsStore()
 const { settings, hourHeight, headerHeight, uiScale } = storeToRefs(settingsStore)
-
-const scales: Record<string, number> = { '1': 100, '2': 150, '3': 200 }
-
-const handleKeyDown = (e: KeyboardEvent) => {
-	if (e.altKey) {
-		if (scales[e.key]) {
-			settingsStore.updateSettings({ interfaceScale: scales[e.key] })
-			e.preventDefault()
-		} else if (e.code === 'Backquote') {
-			const newTheme = settings.value.theme === 'light' ? 'dark' : 'light'
-			settingsStore.updateSettings({ theme: newTheme })
-			e.preventDefault()
-		}
-	}
-}
-
-onMounted(() => window.addEventListener('keydown', handleKeyDown))
-onUnmounted(() => window.removeEventListener('keydown', handleKeyDown))
 
 // Apply settings to document
 watch(

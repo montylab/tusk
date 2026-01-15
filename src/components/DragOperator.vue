@@ -17,10 +17,10 @@ const ghostStyle = computed(() => {
 
 	// Default dimensions
 	let width = `${220 * uiScale.value}px`
-	let height = `${hourHeight.value}px` // Let TaskItem determine height for piles (compact) as  hourHeight is scaled
+	let height = `${hourHeight.value}px`
 	let left = `${ghostPosition.value.x}px`
 	let top = `${ghostPosition.value.y}px`
-	let transform = 'translate(-50%, -50%)' // Center on cursor by default
+	let transform = 'translate(-50%, -50%)'
 
 	// If over calendar and we have snapped coordinates, use them!
 	if (isOverCalendar.value && dropData.value?.snappedRect) {
