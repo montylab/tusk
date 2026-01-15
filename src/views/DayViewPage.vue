@@ -76,8 +76,10 @@ const handleTaskCreate = (payload: {
 	text: string
 	description: string
 	category: string
+	isDeepWork: boolean
 	startTime?: number | null
 	duration?: number
+	date?: string | null
 }) => {
 	tasksStore.createScheduledTask({
 		text: payload.text,
@@ -86,8 +88,9 @@ const handleTaskCreate = (payload: {
 		completed: false,
 		startTime: payload.startTime ?? null,
 		duration: payload.duration ?? 60,
-		date: popupTargetDate.value || tasksStore.currentDates[0],
+		date: payload.date || popupTargetDate.value || tasksStore.currentDates[0],
 		isShortcut: false,
+		isDeepWork: payload.isDeepWork,
 		order: 0,
 		color: null
 	} as any)
@@ -161,6 +164,7 @@ const handleAddDay = () => {
 				:task="taskToEdit"
 				:task-type="popupTaskType"
 				:initial-start-time="initialStartTime"
+				:initial-date="popupTargetDate"
 				@close="handlePopupClose"
 				@create="handleTaskCreate"
 				@update="handleTaskUpdate"
