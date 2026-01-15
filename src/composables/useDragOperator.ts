@@ -92,10 +92,22 @@ function getZoneAtPoint(x: number, y: number): { name: string; info: ZoneInfo } 
 }
 
 // Event handlers
+// Event handlers
 let cleanupListeners: (() => void) | null = null
+const dragStartTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+let pendingDragCleanup: (() => void) | null = null
 
 // Cleanup function
 function cleanup() {
+	if (dragStartTimer.value) {
+		clearTimeout(dragStartTimer.value)
+		dragStartTimer.value = null
+	}
+	if (pendingDragCleanup) {
+		pendingDragCleanup()
+		pendingDragCleanup = null
+	}
+
 	isDragging.value = false
 	draggedTask.value = null
 	activeDraggedTaskId.value = null
@@ -199,16 +211,18 @@ export function useDragOperator() {
 		if (isDragging.value) return
 		if (event) event.preventDefault()
 
-		isDragging.value = true
-		draggedTask.value = task
-		activeDraggedTaskId.value = task.id
-		sourceZone.value = source
+		// Cleanup any pending drag
+		if (dragStartTimer.value) {
+			clearTimeout(dragStartTimer.value)
+			dragStartTimer.value = null
+		}
+		if (pendingDragCleanup) {
+			pendingDragCleanup()
+			pendingDragCleanup = null
+		}
 
-		// Use event coords or current cursor position
-		const coords = event ? getEventCoordinates(event) : { ...cursorPosition.value }
-		ghostPosition.value = coords
-
-		// Calculate offset relative to the task element to ensure snapping respects the "grab point"
+		// Calculate initial coords and offset immediately
+		const startCoords = event ? getEventCoordinates(event) : { ...cursorPosition.value }
 		let offsetX = 0
 		let offsetY = 0
 
@@ -218,44 +232,76 @@ export function useDragOperator() {
 
 			if (taskEl) {
 				const rect = taskEl.getBoundingClientRect()
-				offsetX = coords.x - rect.left
-				offsetY = coords.y - rect.top
+				offsetX = startCoords.x - rect.left
+				offsetY = startCoords.y - rect.top
 			}
 		} else {
-			// For keyboard-triggered drags, center the ghost roughly
 			offsetX = 100
 			offsetY = 20
 		}
 
-		dragOffset.value = { x: offsetX, y: offsetY }
+		const actualStartDrag = () => {
+			dragStartTimer.value = null
+			if (pendingDragCleanup) {
+				pendingDragCleanup()
+				pendingDragCleanup = null
+			}
 
-		// Attach global listeners
-		const handleMouseMove = (e: MouseEvent) => handleMove(e)
-		const handleTouchMove = (e: TouchEvent) => handleMove(e)
-		const handleMouseUp = (e: MouseEvent) => handleEnd(e)
-		const handleTouchEnd = (e: TouchEvent) => handleEnd(e)
-		const handleKey = (e: KeyboardEvent) => handleKeyDown(e)
+			isDragging.value = true
+			draggedTask.value = task
+			activeDraggedTaskId.value = task.id
+			sourceZone.value = source
 
-		document.addEventListener('mousemove', handleMouseMove)
-		document.addEventListener('touchmove', handleTouchMove)
-		document.addEventListener('mouseup', handleMouseUp)
-		document.addEventListener('touchend', handleTouchEnd)
-		document.addEventListener('keydown', handleKey)
+			// Update ghost position to current cursor position
+			ghostPosition.value = { ...cursorPosition.value }
+			dragOffset.value = { x: offsetX, y: offsetY }
 
-		cleanupListeners = () => {
-			document.removeEventListener('mousemove', handleMouseMove)
-			document.removeEventListener('touchmove', handleTouchMove)
-			document.removeEventListener('mouseup', handleMouseUp)
-			document.removeEventListener('touchend', handleTouchEnd)
-			document.removeEventListener('keydown', handleKey)
+			// Attach global listeners
+			const handleMouseMove = (e: MouseEvent) => handleMove(e)
+			const handleTouchMove = (e: TouchEvent) => handleMove(e)
+			const handleMouseUp = (e: MouseEvent) => handleEnd(e)
+			const handleTouchEnd = (e: TouchEvent) => handleEnd(e)
+			const handleKey = (e: KeyboardEvent) => handleKeyDown(e)
+
+			document.addEventListener('mousemove', handleMouseMove)
+			document.addEventListener('touchmove', handleTouchMove)
+			document.addEventListener('mouseup', handleMouseUp)
+			document.addEventListener('touchend', handleTouchEnd)
+			document.addEventListener('keydown', handleKey)
+
+			cleanupListeners = () => {
+				document.removeEventListener('mousemove', handleMouseMove)
+				document.removeEventListener('touchmove', handleTouchMove)
+				document.removeEventListener('mouseup', handleMouseUp)
+				document.removeEventListener('touchend', handleTouchEnd)
+				document.removeEventListener('keydown', handleKey)
+			}
+
+			// Trigger initial move
+			handleMove({ clientX: cursorPosition.value.x, clientY: cursorPosition.value.y } as MouseEvent)
 		}
 
-		// Trigger initial move to set ghost info immediately
-		if (event) {
-			handleMove(event)
-		} else {
-			// Fake move to update zone/dropData
-			handleMove({ clientX: coords.x, clientY: coords.y } as MouseEvent)
+		// Set timer for 150ms
+		dragStartTimer.value = setTimeout(actualStartDrag, 150)
+
+		// Watch for mouse up to cancel
+		const cancelHandler = () => {
+			if (dragStartTimer.value) {
+				clearTimeout(dragStartTimer.value)
+				dragStartTimer.value = null
+			}
+			if (pendingDragCleanup) {
+				pendingDragCleanup()
+				pendingDragCleanup = null
+			}
+		}
+
+		document.addEventListener('mouseup', cancelHandler)
+		document.addEventListener('touchend', cancelHandler)
+
+		pendingDragCleanup = () => {
+			document.removeEventListener('mouseup', cancelHandler)
+			document.removeEventListener('touchend', cancelHandler)
 		}
 	}
 
