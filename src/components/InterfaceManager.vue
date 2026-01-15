@@ -13,6 +13,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
 		if (scales[e.key]) {
 			settingsStore.updateSettings({ interfaceScale: scales[e.key] })
 			e.preventDefault()
+		} else if (e.code === 'Backquote') {
+			const newTheme = settings.value.theme === 'light' ? 'dark' : 'light'
+			settingsStore.updateSettings({ theme: newTheme })
+			e.preventDefault()
 		}
 	}
 }
