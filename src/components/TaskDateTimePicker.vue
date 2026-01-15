@@ -146,16 +146,16 @@ const handleWheel = (e: WheelEvent) => {
 :deep(.p-datepicker) {
 	background: rgba(30, 30, 45, 0.98) !important;
 	border: 1px solid rgba(255, 255, 255, 0.1) !important;
-	border-radius: 12px !important;
-	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
-	backdrop-filter: blur(10px) !important;
+	border-radius: 0.75rem !important;
+	box-shadow: 0 calc(var(--ui-scale) * 10px) calc(var(--ui-scale) * 30px) rgba(0, 0, 0, 0.5) !important;
+	backdrop-filter: blur(calc(var(--ui-scale) * 10px)) !important;
 }
 
 :deep(.p-datepicker-input) {
 	background: rgba(255, 255, 255, 0.05) !important;
 	border: 1px solid rgba(255, 255, 255, 0.1) !important;
 	color: #fff !important;
-	border-radius: 8px !important;
+	border-radius: 0.5rem !important;
 	padding: 0.75rem 1rem !important;
 	transition: all 0.2s ease !important;
 }
@@ -163,7 +163,7 @@ const handleWheel = (e: WheelEvent) => {
 :deep(.p-datepicker-input:focus) {
 	background: rgba(255, 255, 255, 0.08) !important;
 	border-color: rgba(102, 126, 234, 0.5) !important;
-	box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+	box-shadow: 0 0 0 calc(var(--ui-scale) * 3px) rgba(102, 126, 234, 0.1) !important;
 }
 
 :deep(.p-datepicker-input-icon) {

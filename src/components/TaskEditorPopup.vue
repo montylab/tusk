@@ -261,8 +261,8 @@ onUnmounted(() => {
 	color: #a78bfa;
 	font-weight: 600;
 	background: rgba(167, 139, 250, 0.1);
-	padding: 2px 8px;
-	border-radius: 4px;
+	padding: 0.125rem 0.5rem;
+	border-radius: 0.25rem;
 }
 
 .popup-overlay {
@@ -272,21 +272,24 @@ onUnmounted(() => {
 	right: 0;
 	bottom: 0;
 	background: rgba(0, 0, 0, 0.7);
-	backdrop-filter: blur(8px);
+	backdrop-filter: blur(calc(var(--ui-scale) * 8px));
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	z-index: 1000;
-	padding: 20px;
+	padding: 1.25rem;
 }
 
 .popup-container {
 	background: linear-gradient(135deg, rgba(30, 30, 45, 0.98), rgba(20, 20, 35, 0.98));
 	border: 1px solid rgba(255, 255, 255, 0.1);
-	border-radius: 16px;
-	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+	border-radius: 1rem;
+	box-shadow: 0 calc(var(--ui-scale) * 20px) calc(var(--ui-scale) * 60px) rgba(0, 0, 0, 0.5);
 	width: 100%;
-	max-width: 500px;
+	max-width: 31.25rem;
+	max-height: 90vh;
+	display: flex;
+	flex-direction: column;
 	overflow: hidden;
 	animation: slideUp 0.3s ease-out;
 }
@@ -294,7 +297,7 @@ onUnmounted(() => {
 @keyframes slideUp {
 	from {
 		opacity: 0;
-		transform: translateY(30px);
+		transform: translateY(calc(var(--ui-scale) * 30px));
 	}
 
 	to {
@@ -310,6 +313,7 @@ onUnmounted(() => {
 	padding: 1.5rem 2rem;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	background: rgba(255, 255, 255, 0.03);
+	flex-shrink: 0;
 }
 
 .popup-header h2 {
@@ -331,7 +335,7 @@ onUnmounted(() => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 8px;
+	border-radius: 0.5rem;
 	transition: all 0.2s ease;
 }
 
@@ -345,6 +349,23 @@ onUnmounted(() => {
 	display: flex;
 	flex-direction: column;
 	gap: 1.5rem;
+	overflow-y: auto;
+	flex: 1;
+
+	/* Custom Scrollbar */
+	&::-webkit-scrollbar {
+		width: 6px;
+	}
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	&::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 10px;
+	}
+	&::-webkit-scrollbar-thumb:hover {
+		background: rgba(255, 255, 255, 0.2);
+	}
 }
 
 .form-group {
@@ -365,7 +386,7 @@ onUnmounted(() => {
 .form-input {
 	background: rgba(255, 255, 255, 0.05);
 	border: 1px solid rgba(255, 255, 255, 0.1);
-	border-radius: 8px;
+	border-radius: 0.5rem;
 	padding: 0.75rem 1rem;
 	color: #fff;
 	font-size: 1rem;
@@ -376,7 +397,7 @@ onUnmounted(() => {
 .form-input:focus {
 	background: rgba(255, 255, 255, 0.08);
 	border-color: rgba(102, 126, 234, 0.5);
-	box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+	box-shadow: 0 0 0 calc(var(--ui-scale) * 3px) rgba(102, 126, 234, 0.1);
 }
 
 .form-input::placeholder {
@@ -395,7 +416,7 @@ onUnmounted(() => {
 	gap: 0.75rem;
 	background: rgba(255, 255, 255, 0.03);
 	padding: 0.75rem 1rem;
-	border-radius: 8px;
+	border-radius: 0.5rem;
 	border: 1px solid rgba(255, 255, 255, 0.05);
 	transition: all 0.2s ease;
 }
@@ -411,11 +432,11 @@ onUnmounted(() => {
 }
 
 .form-checkbox {
-	width: 22px;
-	height: 22px;
+	width: 1.375rem;
+	height: 1.375rem;
 	cursor: pointer;
 	accent-color: #7c3aed;
-	border-radius: 6px;
+	border-radius: 0.375rem;
 	transition: all 0.2s ease;
 }
 
@@ -445,7 +466,7 @@ onUnmounted(() => {
 	flex: 1;
 	padding: 0.875rem 1.5rem;
 	border: none;
-	border-radius: 8px;
+	border-radius: 0.5rem;
 	font-size: 1rem;
 	font-weight: 600;
 	cursor: pointer;
@@ -468,12 +489,12 @@ onUnmounted(() => {
 .btn-primary {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: #fff;
-	box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+	box-shadow: 0 4px calc(var(--ui-scale) * 15px) rgba(102, 126, 234, 0.3);
 }
 
 .btn-primary:hover {
-	box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-	transform: translateY(-1px);
+	box-shadow: 0 6px calc(var(--ui-scale) * 20px) rgba(102, 126, 234, 0.4);
+	transform: translateY(calc(var(--ui-scale) * -1px));
 }
 
 .btn-primary:active {
