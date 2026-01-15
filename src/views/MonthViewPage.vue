@@ -1,64 +1,134 @@
 <script setup lang="ts">
-  import { ref, watch } from 'vue'
-  import { useRoute } from 'vue-router'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import TaskPageLayout from '../components/TaskPageLayout.vue'
+import TaskEditorPopup from '../components/TaskEditorPopup.vue'
+import MonthCalendar from '../components/MonthCalendar.vue'
+import { useTasksStore } from '../stores/tasks'
+import { useTaskEditor } from '../composables/useTaskEditor'
+import { getMonthCalendarGrid } from '../utils/dateUtils'
 
-  const route = useRoute()
-  const currentDate = ref<string>('')
+const route = useRoute()
+const router = useRouter()
+const tasksStore = useTasksStore()
+const { scheduledTasks } = storeToRefs(tasksStore)
 
-  watch(
-    () => route.params.date,
-    (newDate) => {
-      if (newDate && typeof newDate === 'string') {
-        currentDate.value = newDate
-      } else {
-        const today = new Date().toISOString().split('T')[0]
-        currentDate.value = today
-      }
-    },
-    { immediate: true }
-  )
+// Current viewing year/month
+const viewYear = ref(new Date().getFullYear())
+const viewMonth = ref(new Date().getMonth())
+
+// Task editor composable
+const {
+	showEditorPopup,
+	initialStartTime,
+	taskToEdit,
+	popupTaskType,
+	popupTargetDate,
+	handleOpenCreatePopup,
+	handleEditTask,
+	handleTaskCreate,
+	handleTaskUpdate,
+	handlePopupClose
+} = useTaskEditor()
+
+// Parse route params to get year/month
+const parseRouteDate = () => {
+	const { date, year, month, day } = route.params
+
+	if (year && month) {
+		// /month/2025/01 or /month/2025/01/26
+		viewYear.value = parseInt(year as string, 10)
+		viewMonth.value = parseInt(month as string, 10) - 1 // Convert to 0-indexed
+	} else {
+		// /month (no params - use current date)
+		const now = new Date()
+		viewYear.value = now.getFullYear()
+		viewMonth.value = now.getMonth()
+	}
+}
+
+// Update store's currentDates to include all days in the calendar grid
+const updateCurrentDates = () => {
+	const grid = getMonthCalendarGrid(viewYear.value, viewMonth.value)
+	const allDates = grid.flat()
+	tasksStore.currentDates = allDates
+}
+
+// Navigation
+const goToPrevMonth = () => {
+	if (viewMonth.value === 0) {
+		viewMonth.value = 11
+		viewYear.value--
+	} else {
+		viewMonth.value--
+	}
+	updateRoute()
+}
+
+const goToNextMonth = () => {
+	if (viewMonth.value === 11) {
+		viewMonth.value = 0
+		viewYear.value++
+	} else {
+		viewMonth.value++
+	}
+	updateRoute()
+}
+
+const updateRoute = () => {
+	router.push({
+		name: 'month-ym',
+		params: {
+			year: viewYear.value.toString(),
+			month: (viewMonth.value + 1).toString().padStart(2, '0')
+		}
+	})
+}
+
+// Create task handler
+const handleCreateTask = (payload: { date: string }) => {
+	handleOpenCreatePopup({ startTime: 9, date: payload.date })
+}
+
+// Watch route changes
+watch(
+	() => [route.params.date, route.params.year, route.params.month, route.params.day],
+	() => {
+		parseRouteDate()
+		updateCurrentDates()
+	},
+	{ immediate: true }
+)
 </script>
 
 <template>
-  <div class="month-view-page">
-    <div class="placeholder-content">
-      <h1>Month View</h1>
-      <p v-if="currentDate">Showing month for: {{ currentDate }}</p>
-      <p class="note">Month view component will be implemented here</p>
-    </div>
-  </div>
+	<TaskPageLayout @edit="handleEditTask">
+		<MonthCalendar
+			:year="viewYear"
+			:month="viewMonth"
+			:tasks-by-date="scheduledTasks"
+			@create-task="handleCreateTask"
+			@edit-task="handleEditTask"
+			@prev-month="goToPrevMonth"
+			@next-month="goToNextMonth"
+		/>
+
+		<template #popups>
+			<TaskEditorPopup
+				:show="showEditorPopup"
+				:task="taskToEdit"
+				:task-type="popupTaskType"
+				:initial-start-time="initialStartTime"
+				:initial-date="popupTargetDate"
+				@close="handlePopupClose"
+				@create="handleTaskCreate"
+				@update="handleTaskUpdate"
+			/>
+		</template>
+	</TaskPageLayout>
 </template>
 
 <style scoped>
-  .month-view-page {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .placeholder-content {
-    text-align: center;
-    padding: 2rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-  }
-
-  .placeholder-content h1 {
-    font-size: 2rem;
-    margin-bottom: 1rem;
-    color: var(--text-light);
-  }
-
-  .placeholder-content p {
-    color: var(--text-muted);
-    margin-bottom: 0.5rem;
-  }
-
-  .note {
-    font-style: italic;
-    font-size: 0.9rem;
-  }
+/* Month view uses full layout from TaskPageLayout and MonthCalendar */
 </style>
