@@ -1,0 +1,67 @@
+:root {
+	/* Semantic Tokens - Defaults (Dark) */
+	--bg-page: #0f172a;
+	--bg-card: #1e293b;
+	--text-primary: #f8fafc;
+	--text-muted: #94a3b8;
+	--border-color: rgba(255, 255, 255, 0.1);
+	--accent: #38bdf8;
+	--accent-hover: #7dd3fc;
+	--surface-hover: rgba(255, 255, 255, 0.05);
+
+	/* Shadows */
+	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Light Theme */
+[data-theme='light'] {
+	--bg-page: #f8fafc;
+	--bg-card: #ffffff;
+	--text-primary: #0f172a;
+	--text-muted: #64748b;
+	--border-color: #e2e8f0;
+	--accent: #0284c7;
+	--accent-hover: #0369a1;
+	--surface-hover: rgba(0, 0, 0, 0.03);
+}
+
+/* Pinky Theme */
+[data-theme='pinky'] {
+	--bg-page: #fff1f2;
+	--bg-card: #ffffff;
+	--text-primary: #881337;
+	--text-muted: #be123c;
+	--border-color: #fecdd3;
+	--accent: #db2777;
+	--accent-hover: #be185d;
+	--surface-hover: rgba(219, 39, 119, 0.05);
+}
+
+/* Vivid Theme (Joyful & Neon Energy) */
+[data-theme='vivid'] {
+	--bg-page: #78e3ef;
+	--bg-card: #8f00ff;
+	--text-primary: #ffffff;
+	--text-muted: #e0b7ff;
+	--border-color: rgba(255, 255, 255, 0.3);
+	--accent: #ff6b00;
+	--accent-hover: #ff8533;
+	--surface-hover: rgba(255, 255, 255, 0.2);
+}
+
+/* Color Schemes (Accent Overrides) */
+[data-scheme='pastel'] {
+	--accent: #f093fb;
+	--accent-hover: #f5befe;
+}
+
+[data-scheme='brisky'] {
+	--accent: #38bdf8;
+	--accent-hover: #7dd3fc;
+}
+
+[data-scheme='royal'] {
+	--accent: #f59e0b;
+	--accent-hover: #fbbf24;
+}

@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import './style.css'
+import './assets/themes.css'
 import App from './App.vue'
 import router from './router'
 import 'primeicons/primeicons.css'
@@ -19,9 +20,9 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 app.use(PrimeVue, {
-  theme: {
-    preset: Aura
-  }
+	theme: {
+		preset: Aura
+	}
 })
 
 // Register global components if needed
@@ -33,5 +34,5 @@ app.mount('#app')
 
 // Expose pinia for testing
 if (import.meta.env.DEV) {
-  ;(window as any).pinia = pinia
+	;(window as any).pinia = pinia
 }

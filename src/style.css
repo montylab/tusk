@@ -3,52 +3,10 @@
 	font-size: calc(var(--ui-scale, 1) * 16px);
 	line-height: 1.25rem;
 
-	/* Default variables (Dark Theme, Brisky Scheme) */
-	--primary: #38bdf8;
-	--primary-hover: #7dd3fc;
-	--bg-dark: #121212;
-	--bg-card: #1e1e1e;
-	--text-main: #ffffff;
-	--text-muted: rgba(255, 255, 255, 0.7);
-	--border-color: #333;
 	--radius: 12px;
 	--font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
 
-	/* Category Colors */
-	--color-work: #4facfe;
-	--color-personal: #43e97b;
-	--color-urgent: #ff4b1f;
-	--color-learning: #f093fb;
-	--color-default: #666;
-}
-
-/* Themes */
-[data-theme='light'] {
-	--bg-dark: #f1f5f9;
-	--bg-card: #ffffff;
-	--text-main: #0f172a;
-	--text-muted: rgba(15, 23, 42, 0.6);
-	--border-color: #e2e8f0;
-}
-
-/* Color Schemes */
-[data-scheme='pastel'] {
-	--primary: #f093fb;
-	--primary-hover: #f5befe;
-}
-
-[data-scheme='brisky'] {
-	--primary: #38bdf8;
-	--primary-hover: #7dd3fc;
-}
-
-[data-scheme='royal'] {
-	--primary: #f59e0b;
-	--primary-hover: #fbbf24;
-}
-
-/* Spacing Variables */
-:root {
+	/* Spacing Variables */
 	--spacing-sm: 0.5rem;
 	--spacing-md: 1rem;
 	--spacing-lg: 2rem;
@@ -62,8 +20,8 @@
 
 body {
 	font-family: var(--font-family);
-	background-color: var(--bg-dark);
-	color: var(--text-main);
+	background-color: var(--bg-page);
+	color: var(--text-primary);
 	min-height: 100vh;
 	display: flex;
 	justify-content: center;
@@ -98,19 +56,19 @@ input {
 }
 
 ::-webkit-scrollbar-track {
-	background: var(--bg-dark);
+	background: var(--bg-page);
 	border-left: 1px solid var(--border-color);
 }
 
 ::-webkit-scrollbar-thumb {
-	background: #333;
+	background: var(--border-color);
 	border-radius: 5px;
-	border: 2px solid var(--bg-dark);
+	border: 2px solid var(--bg-page);
 	transition: background 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: var(--primary);
+	background: var(--accent);
 }
 
 /* Firefox Support */

@@ -5,7 +5,7 @@ import * as firebaseService from '../services/firebaseService'
 
 export interface UserSettings {
 	defaultStartHour?: number
-	theme?: 'light' | 'dark'
+	theme?: 'light' | 'dark' | 'pinky' | 'vivid'
 	colorScheme?: 'pastel' | 'brisky' | 'royal'
 	interfaceScale?: number
 	hourHeight?: number

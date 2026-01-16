@@ -163,9 +163,9 @@ const handleDrop = (targetDate: string) => {
 		flex-shrink: 0;
 
 		.nav-btn {
-			background: rgba(255, 255, 255, 0.08);
-			border: 1px solid rgba(255, 255, 255, 0.1);
-			color: #fff;
+			background: var(--surface-hover);
+			border: 1px solid var(--border-color);
+			color: var(--text-primary);
 			width: 32px;
 			height: 32px;
 			border-radius: 6px;
@@ -177,15 +177,15 @@ const handleDrop = (targetDate: string) => {
 			justify-content: center;
 
 			&:hover {
-				background: rgba(255, 255, 255, 0.15);
-				border-color: rgba(255, 255, 255, 0.2);
+				background: var(--surface-hover);
+				border-color: var(--accent);
 			}
 		}
 
 		.month-title {
 			font-size: 1.25rem;
 			font-weight: 600;
-			color: #fff;
+			color: var(--text-primary);
 			margin: 0;
 			min-width: 180px;
 			text-align: center;
@@ -201,8 +201,8 @@ const handleDrop = (targetDate: string) => {
 		.day-names {
 			display: grid;
 			grid-template-columns: repeat(7, 1fr);
-			background: rgba(255, 255, 255, 0.03);
-			border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+			background: var(--surface-hover);
+			border-bottom: 1px solid var(--border-color);
 			flex-shrink: 0;
 
 			.day-name {
@@ -210,7 +210,7 @@ const handleDrop = (targetDate: string) => {
 				text-align: center;
 				font-size: 0.75rem;
 				font-weight: 600;
-				color: rgba(255, 255, 255, 0.5);
+				color: var(--text-muted);
 				text-transform: uppercase;
 				letter-spacing: 0.5px;
 			}

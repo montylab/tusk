@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import { useUIStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 import logoSrc from '../assets/icons/logo.svg'
 import settingsSrc from '../assets/icons/settings.svg'
@@ -9,6 +10,7 @@ import logoutSrc from '../assets/icons/logout.svg'
 
 const route = useRoute()
 const userStore = useUserStore()
+const uiStore = useUIStore()
 const { user } = storeToRefs(userStore)
 
 const viewMap: Record<string, string> = {
@@ -39,6 +41,15 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 		</div>
 
 		<div class="header-right" v-if="user">
+			<button
+				class="icon-btn theme-btn-toggle"
+				:class="{ active: uiStore.isThemePanelOpen }"
+				@click="uiStore.toggleThemePanel"
+				title="Theme"
+			>
+				<i class="pi pi-palette"></i>
+			</button>
+
 			<router-link :to="{ name: 'settings' }" class="icon-btn" title="Settings">
 				<img :src="settingsSrc" class="header-icon" alt="Settings" />
 			</router-link>
@@ -170,7 +181,17 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 
 .icon-btn:hover {
 	background: rgba(255, 255, 255, 0.1);
-	border-color: var(--primary-color);
+	border-color: var(--accent);
+}
+
+.icon-btn.active {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: white;
+}
+
+.theme-btn-toggle i {
+	font-size: 0.9rem;
 }
 
 .logout-btn:hover {

@@ -366,7 +366,7 @@ defineExpose({
 	padding: 0 1rem;
 	font-size: 0.8rem;
 	color: var(--text-muted);
-	border-bottom: 1px solid #333;
+	border-bottom: 1px solid var(--border-color);
 	display: flex;
 	align-items: flex-start;
 }
@@ -376,9 +376,9 @@ defineExpose({
 	right: 0;
 	height: auto;
 	font-size: 0.65rem;
-	color: rgba(255, 255, 255, 0.4);
+	color: var(--text-muted);
 	border-bottom: none;
-	border-top: 1px solid #333;
+	border-top: 1px solid var(--border-color);
 	font-weight: 400;
 	padding: 0 0.5rem;
 	pointer-events: none;
@@ -408,7 +408,7 @@ defineExpose({
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+	border-bottom: 2px solid var(--border-color);
 	background: color-mix(in srgb, var(--bg-card) 60%, transparent);
 	position: sticky;
 	inset: 0;
@@ -462,7 +462,7 @@ defineExpose({
 .day-name {
 	font-size: 0.85rem;
 	font-weight: 700;
-	color: #fff;
+	color: var(--text-primary);
 }
 
 .date-num {

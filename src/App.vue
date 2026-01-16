@@ -4,6 +4,7 @@ import { useUserStore } from './stores/user'
 import AppHeader from './components/AppHeader.vue'
 import DragOperator from './components/DragOperator.vue'
 import InterfaceManager from './components/InterfaceManager.vue'
+import ThemePanel from './components/ThemePanel.vue'
 import { useGlobalShortcuts } from './composables/useGlobalShortcuts'
 
 const userStore = useUserStore()
@@ -15,6 +16,7 @@ useGlobalShortcuts()
 
 <template>
 	<InterfaceManager />
+	<ThemePanel v-if="user" />
 	<div class="app-layout">
 		<div v-if="authLoading" class="loading-overlay">
 			<div class="loader"></div>
@@ -37,8 +39,9 @@ useGlobalShortcuts()
 	flex-direction: column;
 	width: 100%;
 	height: 100vh;
-	background: var(--bg-dark);
+	background: var(--bg-page);
 	overflow: hidden;
+	position: relative;
 }
 
 .app-main {
@@ -58,9 +61,9 @@ useGlobalShortcuts()
 }
 
 .loader {
-	border: 3px solid rgba(255, 255, 255, 0.1);
+	border: 3px solid var(--border-color);
 	border-radius: 50%;
-	border-top: 3px solid var(--primary-color);
+	border-top: 3px solid var(--accent);
 	width: 40px;
 	height: 40px;
 	animation: spin 1s linear infinite;
