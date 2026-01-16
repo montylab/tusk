@@ -9,6 +9,7 @@ import { useTasksStore } from '../stores/tasks'
 import { useTimeBoundaries } from '../composables/useTimeBoundaries'
 import { useTaskEditor } from '../composables/useTaskEditor'
 import { formatDate } from '../utils/dateUtils'
+import TrashBasketRound from '../components/TrashBasketRound.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -83,6 +84,8 @@ const handleAddDay = () => {
 			@edit="handleEditTask"
 			@add-day="handleAddDay"
 		/>
+
+		<TrashBasketRound />
 
 		<template #popups>
 			<TaskEditorPopup

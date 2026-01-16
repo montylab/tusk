@@ -23,7 +23,7 @@ const handleEditTask = (task: Task) => {
 
 <template>
 	<div class="page-layout">
-		<aside class="sidebar left">
+		<aside class="sidebar left" style="display: none">
 			<TrashBasket />
 		</aside>
 
