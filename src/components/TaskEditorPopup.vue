@@ -306,9 +306,9 @@ onUnmounted(() => {
 
 .end-time-preview {
 	font-size: 0.75rem;
-	color: #a78bfa;
+	color: var(--accent);
 	font-weight: 600;
-	background: rgba(167, 139, 250, 0.1);
+	background: color-mix(in srgb, var(--accent), transparent 90%);
 	padding: 0.125rem 0.5rem;
 	border-radius: 0.25rem;
 }
@@ -360,7 +360,7 @@ onUnmounted(() => {
 	align-items: center;
 	padding: var(--spacing-lg) var(--spacing-xl);
 	border-bottom: 1px solid var(--border-color);
-	background: rgba(255, 255, 255, 0.03);
+	background: color-mix(in srgb, var(--text-primary), transparent 97%);
 	flex-shrink: 0;
 }
 
@@ -377,7 +377,7 @@ onUnmounted(() => {
 .close-btn {
 	background: transparent;
 	border: none;
-	color: rgba(255, 255, 255, 0.6);
+	color: var(--text-meta);
 	cursor: pointer;
 	padding: 0.5rem;
 	display: flex;
@@ -388,8 +388,8 @@ onUnmounted(() => {
 }
 
 .close-btn:hover {
-	background: rgba(255, 255, 255, 0.1);
-	color: #fff;
+	background: var(--surface-hover);
+	color: var(--text-primary);
 }
 
 .popup-form {
@@ -408,11 +408,11 @@ onUnmounted(() => {
 		background: transparent;
 	}
 	&::-webkit-scrollbar-thumb {
-		background: rgba(255, 255, 255, 0.1);
+		background: color-mix(in srgb, var(--text-primary), transparent 90%);
 		border-radius: 10px;
 	}
 	&::-webkit-scrollbar-thumb:hover {
-		background: rgba(255, 255, 255, 0.2);
+		background: color-mix(in srgb, var(--text-primary), transparent 80%);
 	}
 }
 
@@ -426,7 +426,7 @@ onUnmounted(() => {
 .form-group label {
 	font-size: var(--font-sm);
 	font-weight: 600;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--text-meta);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 }
@@ -443,18 +443,19 @@ onUnmounted(() => {
 }
 
 .form-input:focus {
-	background: rgba(255, 255, 255, 0.08);
-	border-color: rgba(102, 126, 234, 0.5);
-	box-shadow: 0 0 0 calc(var(--ui-scale) * 3px) rgba(102, 126, 234, 0.1);
+	background: color-mix(in srgb, var(--text-primary), transparent 92%);
+	border-color: color-mix(in srgb, var(--accent), transparent 50%);
+	box-shadow: 0 0 0 calc(var(--ui-scale) * 3px) color-mix(in srgb, var(--accent), transparent 90%);
 }
 
 .form-input::placeholder {
-	color: rgba(255, 255, 255, 0.3);
+	color: var(--text-muted);
+	opacity: 0.4;
 }
 
 .time-preview {
 	font-size: 0.875rem;
-	color: rgba(255, 255, 255, 0.6);
+	color: var(--text-meta);
 	margin-top: 0.25rem;
 }
 
@@ -470,13 +471,13 @@ onUnmounted(() => {
 }
 
 .checkbox-group:hover {
-	background: rgba(255, 255, 255, 0.05);
-	border-color: rgba(124, 58, 237, 0.3);
+	background: var(--surface-hover);
+	border-color: color-mix(in srgb, var(--accent), transparent 70%);
 }
 
 .checkbox-group:has(.form-checkbox:checked) {
-	background: rgba(124, 58, 237, 0.1);
-	border-color: rgba(124, 58, 237, 0.4);
+	background: color-mix(in srgb, var(--accent), transparent 90%);
+	border-color: color-mix(in srgb, var(--accent), transparent 60%);
 }
 
 .form-checkbox {
@@ -491,7 +492,7 @@ onUnmounted(() => {
 .checkbox-label {
 	font-size: 1rem;
 	font-weight: 600;
-	color: #fff;
+	color: var(--text-primary);
 	cursor: pointer;
 	margin: 0 !important;
 	text-transform: none !important;
@@ -500,7 +501,8 @@ onUnmounted(() => {
 .deep-work-hint {
 	margin-left: auto;
 	font-size: 0.75rem;
-	color: rgba(255, 255, 255, 0.4);
+	color: var(--text-muted);
+	opacity: 0.6;
 	font-style: italic;
 }
 
@@ -524,14 +526,14 @@ onUnmounted(() => {
 }
 
 .btn-secondary {
-	background: rgba(255, 255, 255, 0.08);
-	color: rgba(255, 255, 255, 0.8);
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: var(--surface-hover);
+	color: var(--text-primary);
+	border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-	background: rgba(255, 255, 255, 0.12);
-	color: #fff;
+	background: color-mix(in srgb, var(--text-primary), transparent 90%);
+	border-color: var(--accent);
 }
 
 .btn-primary {
@@ -581,7 +583,7 @@ onUnmounted(() => {
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-lg);
-	background: rgba(255, 255, 255, 0.03);
+	background: color-mix(in srgb, var(--text-primary), transparent 97%);
 	padding: 0.625rem var(--spacing-sm);
 	border-radius: var(--radius-md);
 	border: 1px solid var(--border-color);
@@ -596,13 +598,13 @@ onUnmounted(() => {
 .meta-label {
 	font-size: 0.75rem;
 	font-weight: 600;
-	color: rgba(255, 255, 255, 0.4);
+	color: var(--text-meta);
 	text-transform: uppercase;
 }
 
 .meta-value {
 	font-size: 0.8125rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--text-primary);
 	font-weight: 500;
 }
 
@@ -625,7 +627,7 @@ onUnmounted(() => {
 
 .checkbox-small label {
 	font-size: 0.8125rem;
-	color: rgba(255, 255, 255, 0.7);
+	color: var(--text-meta);
 	cursor: pointer;
 	text-transform: none !important;
 	font-weight: 500 !important;

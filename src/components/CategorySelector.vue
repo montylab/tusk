@@ -313,7 +313,8 @@ const handlePickerClick = () => {
 }
 
 :deep(.form-input::placeholder) {
-	color: rgba(255, 255, 255, 0.3);
+	color: var(--text-muted);
+	opacity: 0.4;
 }
 
 .deep-work-toggle {
