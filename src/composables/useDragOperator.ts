@@ -176,7 +176,7 @@ async function handleEnd(event: MouseEvent | TouchEvent) {
 			// Wait for animation + short pause for "impact" feel
 			setTimeout(() => {
 				cleanup()
-			}, 700)
+			}, 1700)
 			return
 		}
 

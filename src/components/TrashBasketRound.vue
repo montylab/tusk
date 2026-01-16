@@ -12,6 +12,7 @@ const isOver = computed(() => currentZone.value === 'trash')
 const { isDestroying } = useDragOperator()
 
 const updateBounds = () => {
+	console.count()
 	if (basketRef.value) {
 		updateZoneBounds('trash', basketRef.value.getBoundingClientRect())
 	}
@@ -39,7 +40,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-	<div ref="basketRef" class="trash-basket-round" :class="{ 'is-over': isOver, 'is-destroying': isDestroying }">
+	<div @mouseover="updateBounds" ref="basketRef" class="trash-basket-round" :class="{ 'is-over': isOver, 'is-destroying': isDestroying }">
 		<div class="icon-wrapper">
 			<AppIcon name="trash" size="3rem" color="white" />
 		</div>
@@ -62,7 +63,6 @@ onUnmounted(() => {
 	justify-content: center;
 	z-index: 1000;
 	/* Start from a base transform to ensure stable transitions */
-	transform: scale(1) translate(0, 0);
 	transition:
 		transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
 		background-color 0.4s ease,
@@ -71,6 +71,10 @@ onUnmounted(() => {
 	box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
 	cursor: pointer;
 	will-change: transform;
+}
+
+.trash-basket-round:hover {
+	transform: scale(1.1);
 }
 
 .trash-basket-round.is-over {
@@ -93,7 +97,7 @@ onUnmounted(() => {
 		transform: scale(2.3) translate(-15%, -15%);
 	}
 	100% {
-		transform: scale(1) translate(-10%, -10%);
+		transform: scale(1) translate(0, 0);
 	}
 }
 
@@ -101,10 +105,14 @@ onUnmounted(() => {
 	/* Adjust icon position since basket is partially off-screen */
 	margin-top: calc(var(--basket-size) * -0.15);
 	margin-left: calc(var(--basket-size) * -0.15);
-	transition: transform 0.3s ease;
+	transition: transform 0.2s ease;
 }
 
 .is-over .icon-wrapper {
 	transform: scale(1.2) rotate(-15deg);
+}
+
+.trash-basket-round:hover .icon-wrapper {
+	transform: scale(1.1) rotate(-5deg);
 }
 </style>
