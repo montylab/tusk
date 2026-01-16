@@ -48,7 +48,7 @@ export const getWeekDays = (monday: Date): string[] => {
 }
 
 /**
- * Returns a 6x7 grid of date strings for a month calendar view
+ * Returns a 6x7 or 5x7 grid of date strings for a month calendar view
  * Weeks start on Monday. Includes padding days from prev/next months.
  */
 export const getMonthCalendarGrid = (year: number, month: number): string[][] => {
@@ -64,6 +64,10 @@ export const getMonthCalendarGrid = (year: number, month: number): string[][] =>
 	currentDate.setDate(currentDate.getDate() - startDayOfWeek)
 
 	for (let week = 0; week < 6; week++) {
+		if (week === 5 && currentDate.getMonth() !== month) {
+			break
+		}
+
 		const weekDays: string[] = []
 		for (let day = 0; day < 7; day++) {
 			weekDays.push(formatDate(currentDate))

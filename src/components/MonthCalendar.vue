@@ -219,13 +219,17 @@ const handleDrop = (targetDate: string) => {
 		.weeks {
 			flex: 1;
 			display: grid;
-			grid-template-rows: repeat(6, 1fr);
 			min-height: 0; // Allow shrinking
 
 			.week-row {
 				display: grid;
 				grid-template-columns: repeat(7, 1fr);
 				min-height: 0;
+				min-height: 4rem;
+
+				.month-day-cell {
+					min-width: 100%;
+				}
 			}
 		}
 	}

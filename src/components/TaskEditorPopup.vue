@@ -12,6 +12,7 @@ const props = defineProps<{
 	initialDate?: string | null
 	taskType?: 'todo' | 'shortcut' | 'scheduled'
 	task?: Task | null // Prop for editing
+	startCompact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -40,6 +41,7 @@ const categoryInput = ref('')
 const selectedColor = ref('')
 const isDeepWork = ref(false)
 const duration = ref(1.0) // Store as decimal hours (1.0 = 60 mins)
+const isExpanded = ref(false)
 
 const getTodayString = () => {
 	const d = new Date()
@@ -50,6 +52,7 @@ const startTime = ref<number | null>(props.initialStartTime ?? null)
 const taskDate = ref<string | null>(props.initialDate ?? getTodayString())
 
 const isEditMode = computed(() => !!props.task)
+const isCompactView = computed(() => props.startCompact && !isExpanded.value && !isEditMode.value)
 
 const formatTime = (time: number) => {
 	const h = Math.floor(time)
@@ -62,8 +65,14 @@ const projectedEndTime = computed(() => {
 	return startTime.value + duration.value
 })
 
+const displayDate = computed(() => {
+	if (!taskDate.value) return ''
+	return new Date(taskDate.value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+})
+
 // Initialize form from props/task
 const resetForm = () => {
+	isExpanded.value = false
 	if (props.task) {
 		taskText.value = props.task.text
 		taskDescription.value = props.task.description || ''
@@ -165,7 +174,7 @@ onUnmounted(() => {
 	<Teleport to="body">
 		<Transition name="popup">
 			<div v-if="show" class="popup-overlay" @mousedown.self="handleClose">
-				<div class="popup-container">
+				<div class="popup-container" :class="{ compact: isCompactView }">
 					<div class="popup-header">
 						<h2>{{ isEditMode ? 'Edit Task' : 'Create New Task' }}</h2>
 						<button class="close-btn" @click="handleClose">
@@ -188,19 +197,53 @@ onUnmounted(() => {
 							/>
 						</div>
 
-						<!-- Category with Autocomplete -->
-						<div class="form-group">
-							<label for="category">Category</label>
-							<CategorySelector v-model:name="categoryInput" v-model:color="selectedColor" v-model:isDeepWork="isDeepWork" />
+						<div class="compact-row" v-if="isCompactView">
+							<!-- Category with Autocomplete -->
+							<div class="form-group flex-1">
+								<label for="category">Category</label>
+								<CategorySelector v-model:name="categoryInput" v-model:color="selectedColor" v-model:isDeepWork="isDeepWork" />
+							</div>
+
+							<!-- Duration -->
+							<div class="form-group duration-group" v-if="taskType !== 'todo'">
+								<label for="duration">Duration</label>
+								<TaskDateTimePicker v-model:time="duration" view="time-only" />
+							</div>
 						</div>
 
-						<!-- Duration -->
-						<div class="form-group" v-if="taskType !== 'todo' || isEditMode">
-							<label for="duration">Duration (HH:mm)</label>
-							<TaskDateTimePicker v-model:time="duration" view="time-only" />
+						<div v-else>
+							<!-- Category with Autocomplete -->
+							<div class="form-group">
+								<label for="category">Category</label>
+								<CategorySelector v-model:name="categoryInput" v-model:color="selectedColor" v-model:isDeepWork="isDeepWork" />
+							</div>
+
+							<!-- Duration -->
+							<div class="form-group" v-if="taskType !== 'todo' || isEditMode">
+								<label for="duration">Duration (HH:mm)</label>
+								<TaskDateTimePicker v-model:time="duration" view="time-only" />
+							</div>
 						</div>
 
-						<div v-if="taskType === 'scheduled' || (isEditMode && startTime !== null)" class="form-group">
+						<!-- Compact Read-only Metadata -->
+						<div v-if="isCompactView && taskType === 'scheduled'" class="compact-meta">
+							<div class="meta-item">
+								<span class="meta-label">Date:</span>
+								<span class="meta-value">{{ displayDate }}</span>
+							</div>
+							<div class="meta-item" v-if="startTime !== null">
+								<span class="meta-label">Start:</span>
+								<span class="meta-value">{{ formatTime(startTime) }}</span>
+							</div>
+							<div class="meta-item ml-auto">
+								<div class="checkbox-small">
+									<input id="deep-work-compact" v-model="isDeepWork" type="checkbox" />
+									<label for="deep-work-compact">Deep Work</label>
+								</div>
+							</div>
+						</div>
+
+						<div v-if="!isCompactView && (taskType === 'scheduled' || (isEditMode && startTime !== null))" class="form-group">
 							<div class="label-with-preview">
 								<label>Date & Time</label>
 								<span v-if="projectedEndTime !== null" class="end-time-preview"> Ends at {{ formatTime(projectedEndTime) }} </span>
@@ -208,8 +251,8 @@ onUnmounted(() => {
 							<TaskDateTimePicker v-model:date="taskDate" v-model:time="startTime" />
 						</div>
 
-						<!-- Deep Work Toggle -->
-						<div class="form-group">
+						<!-- Deep Work Toggle (Full) -->
+						<div class="form-group" v-if="!isCompactView">
 							<div class="checkbox-group">
 								<input id="deep-work" v-model="isDeepWork" type="checkbox" class="form-checkbox" />
 								<label for="deep-work" class="checkbox-label">Deep Work</label>
@@ -218,7 +261,7 @@ onUnmounted(() => {
 						</div>
 
 						<!-- Task Description -->
-						<div class="form-group">
+						<div class="form-group" v-if="!isCompactView">
 							<label for="task-description">Description</label>
 							<textarea
 								id="task-description"
@@ -228,6 +271,11 @@ onUnmounted(() => {
 								rows="3"
 								style="resize: vertical; min-height: 80px"
 							></textarea>
+						</div>
+
+						<!-- Expand Button -->
+						<div v-if="isCompactView" class="expand-container">
+							<button type="button" class="expand-btn" @click="isExpanded = true">Show more options</button>
 						</div>
 
 						<!-- Actions -->
@@ -499,6 +547,112 @@ onUnmounted(() => {
 
 .btn-primary:active {
 	transform: translateY(0);
+}
+
+/* Compact View Styles */
+.popup-container.compact {
+	max-width: 28.125rem;
+}
+
+.popup-container.compact .popup-header {
+	padding: 1rem 1.5rem;
+}
+
+.popup-container.compact .popup-form {
+	padding: 1.5rem;
+	gap: 1rem;
+}
+
+.compact-row {
+	display: flex;
+	gap: 1rem;
+	align-items: flex-start;
+}
+
+.flex-1 {
+	flex: 1;
+}
+
+.duration-group {
+	width: 120px;
+}
+
+.compact-meta {
+	display: flex;
+	align-items: center;
+	gap: 1.25rem;
+	background: rgba(255, 255, 255, 0.03);
+	padding: 0.625rem 0.875rem;
+	border-radius: 0.5rem;
+	border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.meta-item {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+}
+
+.meta-label {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.4);
+	text-transform: uppercase;
+}
+
+.meta-value {
+	font-size: 0.8125rem;
+	color: rgba(255, 255, 255, 0.8);
+	font-weight: 500;
+}
+
+.ml-auto {
+	margin-left: auto;
+}
+
+.checkbox-small {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.checkbox-small input {
+	width: 1rem;
+	height: 1rem;
+	cursor: pointer;
+	accent-color: #7c3aed;
+}
+
+.checkbox-small label {
+	font-size: 0.8125rem;
+	color: rgba(255, 255, 255, 0.7);
+	cursor: pointer;
+	text-transform: none !important;
+	font-weight: 500 !important;
+	margin: 0 !important;
+}
+
+.expand-container {
+	display: flex;
+	justify-content: center;
+	margin: 0.25rem 0;
+}
+
+.expand-btn {
+	background: transparent;
+	border: none;
+	color: var(--color-primary, #667eea);
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+	padding: 0.5rem 1rem;
+	border-radius: 0.375rem;
+	transition: all 0.2s ease;
+}
+
+.expand-btn:hover {
+	background: rgba(102, 126, 234, 0.1);
+	text-decoration: underline;
 }
 
 /* Transitions */

@@ -64,12 +64,11 @@ const handleDragStart = (e: DragEvent) => {
 	display: flex;
 	align-items: center;
 	gap: 0.375rem;
-	padding: 0.125rem 0.25rem;
+	padding: 0 0.25rem 0;
 	border-radius: 3px;
 	cursor: pointer;
 	user-select: none;
 	transition: background-color 0.15s ease;
-	min-width: 0;
 
 	&:hover {
 		background: rgba(255, 255, 255, 0.1);
@@ -80,8 +79,8 @@ const handleDragStart = (e: DragEvent) => {
 	}
 
 	.bullet {
-		width: 6px;
-		height: 6px;
+		width: 0.5rem;
+		height: 0.5rem;
 		border-radius: 50%;
 		flex-shrink: 0;
 	}

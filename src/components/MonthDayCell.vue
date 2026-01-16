@@ -126,8 +126,6 @@ const handleDrop = (e: DragEvent) => {
 			background: var(--color-primary, #667eea);
 			color: #fff;
 			border-radius: 50%;
-			width: 24px;
-			height: 24px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -144,9 +142,15 @@ const handleDrop = (e: DragEvent) => {
 		flex-shrink: 0;
 
 		.day-number {
+			width: 1.25rem;
+			height: 1.25rem;
+
 			font-size: 0.8rem;
+			line-height: 1.25rem;
 			font-weight: 600;
 			color: rgba(255, 255, 255, 0.7);
+			text-align: center;
+			text-indent: -1px;
 		}
 	}
 

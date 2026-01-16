@@ -69,7 +69,7 @@ const onCategorySelect = (event: any) => {
 }
 
 // Internal model for AutoComplete
-const nameInput = ref(props.name)
+const nameInput = ref<string | any>(props.name)
 watch(
 	() => props.name,
 	(newValue) => {
@@ -78,23 +78,23 @@ watch(
 )
 
 watch(nameInput, (newValue) => {
-	if (typeof newValue !== 'string') return
-	emit('update:name', newValue)
+	const nameStr = typeof newValue === 'string' ? newValue : newValue?.name || ''
 
-	if (!newValue) {
+	emit('update:name', nameStr)
+
+	if (!nameStr) {
 		emit('update:color', '')
 		emit('update:isDeepWork', false)
 		return
 	}
 
-	const query = newValue.toLowerCase()
+	const query = nameStr.toLowerCase()
 	const foundCategory = categoriesStore.categoriesArray.find((cat) => cat.name.toLowerCase() === query)
 
 	if (foundCategory) {
 		emit('update:color', foundCategory.color)
 		emit('update:isDeepWork', !!foundCategory.isDeepWork)
-	} else if (newValue.trim()) {
-		//emit('update:color', generateColorForCategory());
+	} else if (nameStr.trim()) {
 		emit('update:isDeepWork', false)
 	} else {
 		emit('update:color', '')
@@ -106,8 +106,17 @@ const colorInput = ref(props.color)
 watch(
 	() => props.color,
 	(newValue) => {
-		if (!props.color) {
-			colorInput.value = generateColorForCategory()
+		if (!newValue) {
+			// Check if current name already exists in store
+			const val = nameInput.value
+			const nameStr = typeof val === 'string' ? val : val?.name || ''
+			const existing = categoriesStore.categoriesArray.find((c) => c.name.toLowerCase() === nameStr.toLowerCase())
+
+			if (existing) {
+				colorInput.value = existing.color
+			} else {
+				colorInput.value = generateColorForCategory()
+			}
 			emit('update:color', colorInput.value)
 		} else {
 			colorInput.value = newValue
@@ -125,8 +134,9 @@ watch(colorInput, (newValue) => {
 })
 
 const isNewCategory = computed(() => {
-	//if (!nameInput.value || typeof nameInput.value !== 'string') return false
-	const query = nameInput.value?.trim().toLowerCase()
+	const val = nameInput.value
+	const nameStr = typeof val === 'string' ? val : val?.name || ''
+	const query = nameStr.trim().toLowerCase()
 	if (!query) return false
 	return !categoriesStore.categoriesArray.some((cat) => cat.name.toLowerCase() === query)
 })

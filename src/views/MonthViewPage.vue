@@ -120,6 +120,7 @@ watch(
 			:task-type="popupTaskType"
 			:initial-start-time="initialStartTime"
 			:initial-date="popupTargetDate"
+			:start-compact="!taskToEdit"
 			@close="handlePopupClose"
 			@create="handleTaskCreate"
 			@update="handleTaskUpdate"
