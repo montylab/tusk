@@ -6,14 +6,29 @@ import { useSettingsStore } from '../stores/settings'
 import { storeToRefs } from 'pinia'
 import TaskItem from './TaskItem.vue'
 
-const { isDragging, draggedTask, ghostPosition, currentZone, dropData } = useDragOperator()
+const { isDragging, draggedTask, ghostPosition, currentZone, dropData, isDestroying } = useDragOperator()
 const settingsStore = useSettingsStore()
 const { hourHeight, uiScale } = storeToRefs(settingsStore)
+
+const isVisible = computed(() => isDragging.value || isDestroying.value)
 
 const isOverCalendar = computed(() => currentZone.value?.startsWith('calendar-day-'))
 
 const ghostStyle = computed(() => {
 	if (!ghostPosition.value) return {}
+
+	// If destroying, animate towards the trash basket corner
+	if (isDestroying.value) {
+		return {
+			top: '100%',
+			left: '100%',
+			width: '0px',
+			height: '0px',
+			opacity: '0',
+			transform: 'translate(-100%, -100%) scale(0) rotate(20deg)',
+			transition: 'all 0.3s cubic-bezier(0.55, 0, 1, 0.45)'
+		}
+	}
 
 	// Default dimensions
 	let width = `${220 * uiScale.value}px`
@@ -42,7 +57,8 @@ const ghostStyle = computed(() => {
 		left,
 		width,
 		height,
-		transform
+		transform,
+		transition: 'none'
 	}
 })
 
@@ -74,7 +90,7 @@ const ghostTask = computed(() => {
 
 <template>
 	<Teleport to="body">
-		<div v-if="isDragging && ghostTask" class="drag-ghost" :style="ghostStyle">
+		<div v-if="isVisible && ghostTask" class="drag-ghost" :style="ghostStyle" :class="{ 'is-destroying': isDestroying }">
 			<TaskItem :task="ghostTask" :is-dragging="true" :status="ghostTask.status" />
 		</div>
 	</Teleport>
@@ -83,10 +99,15 @@ const ghostTask = computed(() => {
 <style scoped>
 .drag-ghost {
 	z-index: 9999;
-	will-change: top, left, width, height;
+	will-change: top, left, width, height, transform, opacity;
 	border-radius: 6px;
 	box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
 	pointer-events: none;
 	position: fixed;
+}
+
+.drag-ghost.is-destroying {
+	overflow: hidden;
+	box-shadow: none;
 }
 </style>

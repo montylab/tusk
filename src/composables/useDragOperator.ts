@@ -29,6 +29,7 @@ const dragOffset = ref({ x: 0, y: 0 })
 const currentZone = ref<string | null>(null)
 const dropData = ref<any>(null)
 const sourceZone = ref<string | null>(null)
+const isDestroying = ref(false)
 
 // Zone registry
 const zones = new Map<string, ZoneInfo>()
@@ -116,6 +117,7 @@ function cleanup() {
 	currentZone.value = null
 	dropData.value = null
 	sourceZone.value = null
+	isDestroying.value = false
 
 	if (cleanupListeners) {
 		cleanupListeners()
@@ -167,12 +169,25 @@ async function handleEnd(event: MouseEvent | TouchEvent) {
 			dropData.value = zone.info.config.calculateDropData(coords.x, coords.y, draggedTask.value)
 		}
 
+		if (zone.name === 'trash') {
+			isDestroying.value = true
+			// Perform relocation without blocking the animation start
+			manageTaskRelocation(sourceZone.value, zone.name, draggedTask.value, dropData.value)
+			// Wait for animation + short pause for "impact" feel
+			setTimeout(() => {
+				cleanup()
+			}, 700)
+			return
+		}
+
 		// Call logic handler for relocation
 		await manageTaskRelocation(sourceZone.value, zone.name, draggedTask.value, dropData.value)
 	}
 
 	// Reset state
-	cleanup()
+	if (!isDestroying.value) {
+		cleanup()
+	}
 }
 
 function handleKeyDown(event: KeyboardEvent) {
@@ -180,9 +195,11 @@ function handleKeyDown(event: KeyboardEvent) {
 		cleanup()
 	} else if (event.key === 'Delete' || event.key === 'Backspace') {
 		if (isDragging.value && draggedTask.value && sourceZone.value) {
-			manageTaskRelocation(sourceZone.value, 'trash', draggedTask.value, null).then(() => {
+			isDestroying.value = true
+			manageTaskRelocation(sourceZone.value, 'trash', draggedTask.value, null)
+			setTimeout(() => {
 				cleanup()
-			})
+			}, 700)
 		}
 	}
 }
@@ -319,6 +336,7 @@ export function useDragOperator() {
 		dragOffset: readonly(dragOffset),
 		currentZone: readonly(currentZone),
 		dropData: readonly(dropData),
+		isDestroying: readonly(isDestroying),
 
 		// Methods
 		registerZone,
