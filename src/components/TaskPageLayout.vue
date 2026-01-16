@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import TrashBasket from './TrashBasket.vue'
 import TaskPile from './TaskPile.vue'
+import ResizablePanel from './ResizablePanel.vue'
 import { useTasksStore } from '../stores/tasks'
 import { storeToRefs } from 'pinia'
 import type { Task } from '../types'
@@ -23,22 +23,20 @@ const handleEditTask = (task: Task) => {
 
 <template>
 	<div class="page-layout">
-		<aside class="sidebar left" style="display: none">
-			<TrashBasket />
-		</aside>
-
 		<main class="main-content">
 			<slot name="header"></slot>
 			<slot></slot>
 			<slot name="popups"></slot>
 		</main>
 
-		<aside class="sidebar right">
-			<div class="pile-container">
-				<TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" @edit="handleEditTask" />
-				<TaskPile title="To Do" :tasks="todoTasks" list-type="todo" @edit="handleEditTask" />
-			</div>
-		</aside>
+		<ResizablePanel side="left" :min-width="250" :max-width="1600" :default-width="300" storage-key="right-sidebar-width">
+			<aside class="sidebar right">
+				<div class="pile-container">
+					<TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" @edit="handleEditTask" />
+					<TaskPile title="To Do" :tasks="todoTasks" list-type="todo" @edit="handleEditTask" />
+				</div>
+			</aside>
+		</ResizablePanel>
 	</div>
 </template>
 
@@ -50,16 +48,8 @@ const handleEditTask = (task: Task) => {
 	overflow: hidden;
 }
 
-.sidebar.left {
-	width: calc(5% + var(--ui-scale) * 5%);
-	min-width: 150px;
-	max-width: 500px;
-}
-
 .sidebar.right {
-	width: calc(20% + var(--ui-scale) * 5%);
-	min-width: 250px;
-	max-width: 500px;
+	height: 100%;
 }
 
 .main-content {
