@@ -1,17 +1,73 @@
 :root {
-	/* Semantic Tokens - Defaults (Dark) */
-	--bg-page: #0f172a;
-	--bg-card: #1e293b;
-	--text-primary: #f8fafc;
-	--text-muted: #94a3b8;
-	--border-color: rgba(255, 255, 255, 0.1);
-	--accent: #38bdf8;
-	--accent-hover: #7dd3fc;
-	--surface-hover: rgba(255, 255, 255, 0.05);
+	/* Core Palette */
+	--bg-page: #0f172a; /* Main app background */
+	--bg-card: #1e293b; /* Containers & surface elements */
+	--text-primary: #f8fafc; /* High-emphasis text */
+	--text-muted: #94a3b8; /* Low-emphasis/deemphasized text */
+	--border-color: rgba(255, 255, 255, 0.1); /* Standard element borders */
+	--accent: #38bdf8; /* Primary interactive brand color */
+	--accent-hover: #7dd3fc; /* Hover state for interactive items */
+	--surface-hover: rgba(255, 255, 255, 0.05); /* Hover tint for cards/cols */
 
-	/* Shadows */
+	/* Elevation */
 	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 	--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+	--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+	/* Layout & Sizing */
+	--spacing-xs: 0.25rem;
+	--spacing-sm: 0.5rem;
+	--spacing-md: 1rem;
+	--spacing-lg: 1.5rem;
+	--spacing-xl: 2rem;
+
+	--radius-xs: 2px;
+	--radius-sm: 4px;
+	--radius-md: 8px;
+	--radius-lg: 16px;
+	--radius-full: 9999px;
+
+	--font-xs: 0.65rem;
+	--font-sm: 0.875rem;
+	--font-base: 1rem;
+	--font-lg: 1.25rem;
+	--font-xl: 1.5rem;
+
+	/* Status Colors */
+	--color-danger: #ef4444; /* Destructive actions & errors */
+	--color-success: #10b981; /* Completions & valid states */
+	--color-warning: #f59e0b; /* Cautionary indicators */
+	--color-info: #3b82f6; /* Informational badges */
+
+	/* Scrollbars */
+	--scrollbar-size: 8px; /* Width/height of bar */
+	--scrollbar-thumb: color-mix(in srgb, var(--text-primary), transparent 80%);
+	--scrollbar-track: transparent;
+	--scrollbar-thumb-hover: color-mix(in srgb, var(--accent), transparent 20%);
+
+	/* UI Layout Roles */
+	--bg-header: rgba(0, 0, 0, 0.2); /* Top navigation bar background */
+	--bg-popover: var(--bg-card); /* Modals, popups, and panels */
+	--bg-task-item: color-mix(in srgb, var(--text-primary), transparent 92%); /* Task card bg */
+	--bg-column: color-mix(in srgb, var(--text-primary), transparent 98%); /* Grid column tint */
+	--bg-overlay: rgba(0, 0, 0, 0.7); /* Modal backdrop dimmer */
+	--bg-input: color-mix(in srgb, var(--text-primary), transparent 95%); /* Form field surface */
+
+	/* Typography Roles */
+	--text-header: #ffffff; /* Text color for nav and logo */
+	--text-description: color-mix(in srgb, var(--text-primary), transparent 40%); /* Task descriptions */
+	--text-meta: color-mix(in srgb, var(--text-primary), transparent 30%); /* Secondary meta-data */
+	--text-on-accent: #ffffff; /* High-contrast text on accent bgs */
+
+	/* Component Specific */
+	--bg-on-air: var(--color-danger); /* "Live" task indicator badge */
+	--bg-deep-work: #7c3aed; /* Deep work badge specific violet */
+	--bg-action-btn: var(--surface-hover); /* Edit/Close button backgrounds */
+	--color-basket-accent: #ef4444; /* Trash basket functional color */
+
+	/* Advanced Effects */
+	--accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Signature gradients */
+	--bg-today-highlight: color-mix(in srgb, var(--accent), transparent 90%); /* Calendar today highlight */
 }
 
 /* Light Theme */
@@ -19,11 +75,21 @@
 	--bg-page: #f8fafc;
 	--bg-card: #ffffff;
 	--text-primary: #0f172a;
-	--text-muted: #64748b;
+	--text-muted: #334155;
 	--border-color: #e2e8f0;
 	--accent: #0284c7;
 	--accent-hover: #0369a1;
-	--surface-hover: rgba(0, 0, 0, 0.03);
+	--surface-hover: rgba(15, 23, 42, 0.05);
+
+	/* Role Adjustments */
+	--bg-header: rgba(255, 255, 255, 0.95);
+	--text-header: var(--text-primary);
+	--bg-overlay: rgba(15, 23, 42, 0.4);
+	--accent-gradient: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+	--text-meta: color-mix(in srgb, var(--text-primary), transparent 50%);
+	--text-description: color-mix(in srgb, var(--text-primary), transparent 30%);
+	--bg-today-highlight: color-mix(in srgb, var(--accent), transparent 90%);
+	--bg-task-item: #f1f5f9;
 }
 
 /* Pinky Theme */
@@ -31,11 +97,18 @@
 	--bg-page: #fff1f2;
 	--bg-card: #ffffff;
 	--text-primary: #881337;
-	--text-muted: #be123c;
+	--text-muted: #9f1239;
 	--border-color: #fecdd3;
 	--accent: #db2777;
 	--accent-hover: #be185d;
-	--surface-hover: rgba(219, 39, 119, 0.05);
+	--surface-hover: rgba(219, 39, 119, 0.08);
+
+	/* Role Adjustments */
+	--bg-header: rgba(255, 241, 242, 0.9);
+	--text-header: var(--text-primary);
+	--accent-gradient: linear-gradient(135deg, #db2777 0%, #fb7185 100%);
+	--bg-deep-work: #db2777;
+	--text-meta: color-mix(in srgb, var(--text-primary), transparent 40%);
 }
 
 /* Vivid Theme (Joyful & Neon Energy) */
@@ -43,11 +116,19 @@
 	--bg-page: #78e3ef;
 	--bg-card: #8f00ff;
 	--text-primary: #ffffff;
-	--text-muted: #e0b7ff;
-	--border-color: rgba(255, 255, 255, 0.3);
+	--text-muted: #f3e8ff;
+	--border-color: rgba(255, 255, 255, 0.4);
 	--accent: #ff6b00;
 	--accent-hover: #ff8533;
-	--surface-hover: rgba(255, 255, 255, 0.2);
+	--surface-hover: rgba(255, 255, 255, 0.25);
+	--color-basket-accent: #ff4b1f;
+
+	/* Role Adjustments */
+	--bg-header: rgba(143, 0, 255, 0.7);
+	--accent-gradient: linear-gradient(135deg, #ff6b00 0%, #ff00ff 100%);
+	--bg-deep-work: #ff00ff;
+	--text-meta: rgba(255, 255, 255, 0.85);
+	--text-description: rgba(255, 255, 255, 0.9);
 }
 
 /* Color Schemes (Accent Overrides) */

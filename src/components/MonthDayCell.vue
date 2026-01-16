@@ -103,29 +103,29 @@ const handleDrop = (e: DragEvent) => {
 .month-day-cell {
 	display: flex;
 	flex-direction: column;
-	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(255, 255, 255, 0.05);
+	background: var(--bg-column);
+	border: 1px solid var(--border-color);
 	min-height: 0;
 	height: 100%;
 	transition: all 0.15s ease;
 
 	&:hover {
-		background: rgba(255, 255, 255, 0.04);
+		background: var(--surface-hover);
 	}
 
 	&.other-month {
 		opacity: 0.4;
-		background: rgba(0, 0, 0, 0.1);
+		background: color-mix(in srgb, var(--bg-page), transparent 80%);
 	}
 
 	&.is-today {
-		border-color: var(--color-primary, #667eea);
-		background: rgba(102, 126, 234, 0.08);
+		border-color: var(--accent);
+		background: var(--bg-today-highlight);
 
 		.day-number {
-			background: var(--color-primary, #667eea);
-			color: #fff;
-			border-radius: 50%;
+			background: var(--accent);
+			color: var(--text-on-accent);
+			border-radius: var(--radius-full);
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -133,8 +133,8 @@ const handleDrop = (e: DragEvent) => {
 	}
 
 	&.drag-over {
-		background: rgba(102, 126, 234, 0.15);
-		border-color: var(--color-primary, #667eea);
+		background: color-mix(in srgb, var(--accent), transparent 85%);
+		border-color: var(--accent);
 	}
 
 	.day-header {
@@ -145,10 +145,10 @@ const handleDrop = (e: DragEvent) => {
 			width: 1.25rem;
 			height: 1.25rem;
 
-			font-size: 0.8rem;
+			font-size: var(--font-sm);
 			line-height: 1.25rem;
 			font-weight: 600;
-			color: rgba(255, 255, 255, 0.7);
+			color: var(--text-meta);
 			text-align: center;
 			text-indent: -1px;
 		}
@@ -166,19 +166,19 @@ const handleDrop = (e: DragEvent) => {
 			overflow-y: auto;
 			max-height: 100%;
 			scrollbar-width: thin;
-			scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+			scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 
 			&::-webkit-scrollbar {
 				width: 4px;
 			}
 
 			&::-webkit-scrollbar-track {
-				background: transparent;
+				background: var(--scrollbar-track);
 			}
 
 			&::-webkit-scrollbar-thumb {
-				background: rgba(255, 255, 255, 0.2);
-				border-radius: 2px;
+				background: var(--scrollbar-thumb);
+				border-radius: var(--radius-xs);
 			}
 		}
 	}

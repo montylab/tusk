@@ -4,9 +4,8 @@ import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useUIStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
-import logoSrc from '../assets/icons/logo.svg'
-import settingsSrc from '../assets/icons/settings.svg'
-import logoutSrc from '../assets/icons/logout.svg'
+import AppLogo from './common/AppLogo.vue'
+import AppIcon from './common/AppIcon.vue'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -27,7 +26,9 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 	<header class="app-header">
 		<div class="header-left">
 			<router-link to="/" class="logo-container">
-				<img :src="logoSrc" class="logo-svg" alt="Tusk Logo" />
+				<div class="logo-svg">
+					<AppLogo />
+				</div>
 				<span class="brand-name">Tusk</span>
 			</router-link>
 		</div>
@@ -51,11 +52,11 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 			</button>
 
 			<router-link :to="{ name: 'settings' }" class="icon-btn" title="Settings">
-				<img :src="settingsSrc" class="header-icon" alt="Settings" />
+				<AppIcon name="settings" size="1rem" />
 			</router-link>
 
 			<router-link :to="{ name: 'signout' }" class="icon-btn logout-btn" title="Logout">
-				<img :src="logoutSrc" class="header-icon" alt="Logout" />
+				<AppIcon name="logout" size="1rem" />
 			</router-link>
 
 			<img v-if="user.photoURL" :src="user.photoURL" class="user-avatar" :alt="user.displayName || 'User'" />
@@ -72,8 +73,8 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 0.5rem 1.5rem;
-	background: rgba(0, 0, 0, 0.3);
+	padding: var(--spacing-sm) var(--spacing-lg);
+	background: var(--bg-header);
 	border-bottom: 1px solid var(--border-color);
 	backdrop-filter: blur(10px);
 	flex-shrink: 0;
@@ -90,7 +91,7 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 .logo-container {
 	display: flex;
 	align-items: center;
-	gap: 0.75rem;
+	gap: var(--spacing-sm);
 	/* Spacing inside sub-component */
 	cursor: pointer;
 	transition: opacity 0.2s;
@@ -104,14 +105,15 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 .logo-svg {
 	width: 2rem;
 	height: 2rem;
-	color: white;
+	color: var(--text-header);
 }
 
 .brand-name {
-	font-size: 1.5rem;
+	font-size: var(--font-xl);
+	line-height: 1;
 	font-weight: 800;
 	letter-spacing: -0.02em;
-	background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.6) 100%);
+	background: var(--text-header);
 	-webkit-background-clip: text;
 	background-clip: text;
 	-webkit-text-fill-color: transparent;
@@ -123,7 +125,7 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 
 .header-right {
 	justify-content: flex-end;
-	gap: 0.75rem;
+	gap: var(--spacing-sm);
 	/* Layout gap */
 }
 
@@ -135,28 +137,30 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 }
 
 .view-btn {
-	padding: 0.5rem 1.25rem;
+	padding: var(--spacing-sm) var(--spacing-lg);
 	/* Internal spacing */
 	background: transparent;
 	border: none;
-	color: var(--text-muted);
-	font-size: 1rem;
+	color: var(--text-header);
+	opacity: 0.7;
+	font-size: var(--font-base);
 	line-height: 1.25rem;
 	font-weight: 500;
-	border-radius: 6px;
+	border-radius: var(--radius-md);
 	cursor: pointer;
 	transition: all 0.2s;
 	text-decoration: none;
 }
 
 .view-btn:hover {
-	color: var(--text-light);
-	background: rgba(255, 255, 255, 0.05);
+	opacity: 1;
+	background: var(--surface-hover);
 }
 
 .view-btn.active {
-	background: #fff2;
-	color: white;
+	opacity: 1;
+	background: var(--surface-hover);
+	color: var(--accent);
 }
 
 .icon-btn {
@@ -165,18 +169,13 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: rgba(255, 255, 255, 0.05);
+	background: var(--surface-hover);
 	border: 1px solid var(--border-color);
-	border-radius: 6px;
-	color: var(--text-light);
+	border-radius: var(--radius-md);
+	color: var(--text-header);
 	cursor: pointer;
 	transition: all 0.2s;
 	text-decoration: none;
-}
-
-.header-icon {
-	width: 1rem;
-	height: 1rem;
 }
 
 .icon-btn:hover {
@@ -218,7 +217,7 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 	align-items: center;
 	justify-content: center;
 	font-weight: 600;
-	color: white;
+	color: var(--text-on-accent);
 	font-size: 1rem;
 }
 </style>

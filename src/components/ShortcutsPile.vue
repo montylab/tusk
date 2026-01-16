@@ -128,6 +128,8 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 					</div>
 				</template>
 
+				<div v-if="shortcutTasks.length === 0" class="empty-state">No shortcuts yet</div>
+
 				<!-- Bottom separator -->
 				<div v-if="insertionIndex === shortcutTasks.length" :key="'indicator-end'" class="insertion-indicator">
 					<div class="line"></div>
@@ -142,12 +144,12 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	padding: 1rem;
+	padding: var(--spacing-md);
 	background: rgba(255, 255, 255, 0.02);
 	border-bottom: 1px solid var(--border-color);
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	border: 1px solid transparent;
-	border-radius: 12px;
+	border-radius: var(--radius-lg);
 }
 
 .shortcuts-pile.is-highlighted {
@@ -158,17 +160,17 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 }
 
 .pile-title {
-	font-size: 0.9rem;
+	font-size: var(--font-sm);
 	color: var(--text-muted);
 	text-transform: uppercase;
 	letter-spacing: 1px;
-	margin-bottom: 1rem;
+	margin-bottom: var(--spacing-md);
 }
 
 .pile-content {
 	flex: 1;
 	overflow-y: auto;
-	padding: 10px;
+	padding: var(--spacing-sm);
 }
 
 .pile-task {
@@ -176,7 +178,7 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 	backface-visibility: hidden;
 	-webkit-font-smoothing: antialiased;
 	will-change: transform;
-	border-radius: 6px;
+	border-radius: var(--radius-md);
 	overflow: hidden;
 	transition:
 		opacity 0.3s ease,
@@ -193,8 +195,16 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 	box-shadow: none;
 }
 
+.empty-state {
+	text-align: center;
+	color: var(--text-muted);
+	font-style: italic;
+	padding: var(--spacing-lg);
+	font-size: var(--font-sm);
+}
+
 .insertion-indicator {
-	height: 20px;
+	height: 1.25rem;
 	display: flex;
 	align-items: center;
 	overflow: hidden;
@@ -204,9 +214,9 @@ const handleMouseDown = (e: MouseEvent, task: Task) => {
 .insertion-indicator .line {
 	height: 4px;
 	width: 100%;
-	background: var(--accent-color, #4facfe);
-	border-radius: 2px;
-	box-shadow: 0 0 8px rgba(79, 172, 254, 0.5);
+	background: var(--accent);
+	border-radius: var(--radius-sm);
+	box-shadow: 0 0 8px var(--accent);
 }
 
 /* Entering indicator starts at 0 height */

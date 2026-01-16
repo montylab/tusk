@@ -200,7 +200,7 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
 	position: relative;
 	border-left: 1px solid var(--border-color);
 	min-width: clamp(200px, 12.5rem, 12.5rem);
-	background: rgba(255, 255, 255, 0.01);
+	background: var(--bg-column);
 }
 
 .column-grid {
@@ -226,7 +226,7 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
 }
 
 .quarter-slot:hover {
-	background: rgba(255, 255, 255, 0.03);
+	background: var(--surface-hover);
 }
 
 .tasks-container {

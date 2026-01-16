@@ -1,15 +1,8 @@
 :root {
 	--ui-scale: 1;
 	font-size: calc(var(--ui-scale, 1) * 16px);
-	line-height: 1.25rem;
-
-	--radius: 12px;
+	line-height: var(--font-base);
 	--font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-
-	/* Spacing Variables */
-	--spacing-sm: 0.5rem;
-	--spacing-md: 1rem;
-	--spacing-lg: 2rem;
 }
 
 * {
@@ -51,28 +44,26 @@ input {
 
 /* Custom Scrollbar Styles */
 ::-webkit-scrollbar {
-	width: 10px;
-	height: 10px;
+	width: var(--scrollbar-size);
+	height: var(--scrollbar-size);
 }
 
 ::-webkit-scrollbar-track {
-	background: var(--bg-page);
-	border-left: 1px solid var(--border-color);
+	background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-	background: var(--border-color);
-	border-radius: 5px;
-	border: 2px solid var(--bg-page);
+	background: var(--scrollbar-thumb);
+	border-radius: var(--radius-full);
 	transition: background 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: var(--accent);
+	background: var(--scrollbar-thumb-hover);
 }
 
 /* Firefox Support */
 * {
 	scrollbar-width: thin;
-	scrollbar-color: #333 transparent;
+	scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }

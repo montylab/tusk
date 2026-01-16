@@ -145,30 +145,30 @@ onUnmounted(() => {
 	z-index: 1000;
 	min-width: 200px;
 	max-width: 280px;
-	background: var(--bg-secondary, #1e1e2e);
-	border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-	border-radius: 8px;
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+	background: var(--bg-popover);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-lg);
 	overflow: hidden;
 
 	.popover-header {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.75rem;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+		gap: var(--spacing-sm);
+		padding: var(--spacing-sm) var(--spacing-md);
+		border-bottom: 1px solid var(--border-color);
 
 		.color-bar {
-			width: 4px;
-			height: 24px;
-			border-radius: 2px;
+			width: var(--spacing-xs);
+			height: 1.5rem;
+			border-radius: var(--radius-xs);
 			flex-shrink: 0;
 		}
 
 		.title {
-			font-size: 0.9rem;
+			font-size: var(--font-sm);
 			font-weight: 600;
-			color: #fff;
+			color: var(--text-primary);
 			margin: 0;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -177,22 +177,22 @@ onUnmounted(() => {
 	}
 
 	.popover-body {
-		padding: 0.75rem;
+		padding: var(--spacing-md);
 
 		.info-row {
 			display: flex;
 			align-items: center;
-			gap: 0.5rem;
-			margin-bottom: 0.375rem;
+			gap: var(--spacing-sm);
+			margin-bottom: var(--spacing-xs);
 
 			.label {
-				font-size: 0.75rem;
-				color: rgba(255, 255, 255, 0.5);
+				font-size: var(--font-xs);
+				color: var(--text-meta);
 			}
 
 			.value {
-				font-size: 0.8rem;
-				color: rgba(255, 255, 255, 0.85);
+				font-size: var(--font-sm);
+				color: var(--text-primary);
 				font-weight: 500;
 
 				&.category {
@@ -204,31 +204,31 @@ onUnmounted(() => {
 		}
 
 		.description {
-			font-size: 0.75rem;
-			color: rgba(255, 255, 255, 0.6);
-			margin: 0.5rem 0 0;
+			font-size: var(--font-sm);
+			color: var(--text-description);
+			margin: var(--spacing-sm) 0 0;
 			line-height: 1.4;
 		}
 	}
 
 	.popover-actions {
 		display: flex;
-		gap: 0.5rem;
-		padding: 0.5rem 0.75rem 0.75rem;
+		gap: var(--spacing-sm);
+		padding: 0 var(--spacing-md) var(--spacing-md);
 
 		.btn {
 			flex: 1;
-			padding: 0.375rem 0.75rem;
+			padding: var(--spacing-xs) var(--spacing-sm);
 			border: none;
-			border-radius: 4px;
-			font-size: 0.75rem;
+			border-radius: var(--radius-sm);
+			font-size: var(--font-xs);
 			font-weight: 600;
 			cursor: pointer;
 			transition: all 0.15s ease;
 
 			&.edit {
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				color: #fff;
+				background: var(--accent-gradient);
+				color: var(--text-on-accent);
 
 				&:hover {
 					filter: brightness(1.1);
@@ -236,9 +236,9 @@ onUnmounted(() => {
 			}
 
 			&.delete {
-				background: rgba(255, 75, 75, 0.15);
-				color: #ff4b4b;
-				border: 1px solid rgba(255, 75, 75, 0.3);
+				background: color-mix(in srgb, var(--color-danger), transparent 85%);
+				color: var(--color-danger);
+				border: 1px solid color-mix(in srgb, var(--color-danger), transparent 70%);
 
 				&:hover {
 					background: rgba(255, 75, 75, 0.25);

@@ -216,15 +216,15 @@ const handlePickerClick = () => {
 }
 
 :deep(.p-autocomplete-panel-custom) {
-	background: rgba(30, 30, 45, 0.98) !important;
-	border: 1px solid rgba(255, 255, 255, 0.1) !important;
-	border-radius: 0.5rem !important;
+	background: var(--bg-popover) !important;
+	border: 1px solid var(--border-color) !important;
+	border-radius: var(--radius-md) !important;
 	max-height: 15rem;
 	overflow-y: auto;
 	z-index: 10001;
-	box-shadow: 0 calc(var(--ui-scale) * 10px) calc(var(--ui-scale) * 30px) rgba(0, 0, 0, 0.5);
+	box-shadow: var(--shadow-lg);
 	backdrop-filter: blur(calc(var(--ui-scale) * 10px));
-	margin-top: 0.5rem;
+	margin-top: var(--spacing-sm);
 	padding: 0;
 }
 
@@ -244,10 +244,10 @@ const handlePickerClick = () => {
 .option-color-preview {
 	width: 1.5rem;
 	height: 1.5rem;
-	border-radius: 0.375rem;
-	border: 2px solid rgba(255, 255, 255, 0.2);
+	border-radius: var(--radius-sm);
+	border: 2px solid var(--border-color);
 	pointer-events: none;
-	box-shadow: 0 2px calc(var(--ui-scale) * 8px) rgba(0, 0, 0, 0.3);
+	box-shadow: var(--shadow-sm);
 }
 
 .color-preview {
@@ -266,14 +266,14 @@ const handlePickerClick = () => {
 	position: absolute;
 	bottom: 110%;
 	right: 0;
-	background: rgba(30, 30, 45, 0.98);
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	color: #fff;
-	padding: 0.5rem 0.75rem;
-	border-radius: 0.5rem;
-	font-size: 0.75rem;
+	background: var(--bg-popover);
+	border: 1px solid var(--border-color);
+	color: var(--text-primary);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-radius: var(--radius-md);
+	font-size: var(--font-xs);
 	white-space: nowrap;
-	box-shadow: 0 calc(var(--ui-scale) * 10px) calc(var(--ui-scale) * 25px) rgba(0, 0, 0, 0.5);
+	box-shadow: var(--shadow-md);
 	z-index: 10002;
 	pointer-events: none;
 	backdrop-filter: blur(calc(var(--ui-scale) * 10px));
@@ -295,21 +295,21 @@ const handlePickerClick = () => {
 /* Reusing form-input style from parent or defining it here if needed */
 /* Since it's a separate component, it should probably have its own definition or rely on global styles */
 :deep(.form-input) {
-	background: rgba(255, 255, 255, 0.05);
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	border-radius: 0.5rem;
-	padding: 0.75rem 1rem;
-	color: #fff;
-	font-size: 1rem;
+	background: var(--bg-input);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-md);
+	padding: 0.75rem var(--spacing-md);
+	color: var(--text-primary);
+	font-size: var(--font-base);
 	transition: all 0.2s ease;
 	outline: none;
 	width: 100%;
 }
 
 :deep(.form-input:focus) {
-	background: rgba(255, 255, 255, 0.08);
-	border-color: rgba(102, 126, 234, 0.5);
-	box-shadow: 0 0 0 calc(var(--ui-scale) * 3px) rgba(102, 126, 234, 0.1);
+	background: color-mix(in srgb, var(--text-primary), transparent 92%);
+	border-color: color-mix(in srgb, var(--accent), transparent 50%);
+	box-shadow: 0 0 0 calc(var(--ui-scale) * 3px) color-mix(in srgb, var(--accent), transparent 90%);
 }
 
 :deep(.form-input::placeholder) {
@@ -343,6 +343,6 @@ const handlePickerClick = () => {
 }
 
 .toggle-container:hover .toggle-label {
-	color: #fff;
+	color: var(--text-primary);
 }
 </style>

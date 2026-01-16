@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import clockSrc from '../assets/icons/clock.svg'
+import AppIcon from './common/AppIcon.vue'
 
 const props = defineProps<{
 	date?: string | null
@@ -125,7 +125,7 @@ const handleWheel = (e: WheelEvent) => {
 				class="custom-datepicker"
 			>
 				<template #inputicon="slotProps">
-					<img :src="clockSrc" class="datetime-icon" @click="slotProps.clickCallback" alt="Clock" />
+					<AppIcon name="clock" size="1rem" style="cursor: pointer" @click="slotProps.clickCallback" />
 				</template>
 			</DatePicker>
 		</div>
@@ -135,7 +135,7 @@ const handleWheel = (e: WheelEvent) => {
 <style scoped>
 .datetime-picker-wrapper {
 	display: flex;
-	gap: 1rem;
+	gap: var(--spacing-md);
 	width: 100%;
 }
 
@@ -144,35 +144,29 @@ const handleWheel = (e: WheelEvent) => {
 }
 
 :deep(.p-datepicker) {
-	background: rgba(30, 30, 45, 0.98) !important;
-	border: 1px solid rgba(255, 255, 255, 0.1) !important;
-	border-radius: 0.75rem !important;
-	box-shadow: 0 calc(var(--ui-scale) * 10px) calc(var(--ui-scale) * 30px) rgba(0, 0, 0, 0.5) !important;
+	background: var(--bg-popover) !important;
+	border: 1px solid var(--border-color) !important;
+	border-radius: var(--radius-lg) !important;
+	box-shadow: var(--shadow-lg) !important;
 	backdrop-filter: blur(calc(var(--ui-scale) * 10px)) !important;
 }
 
 :deep(.p-datepicker-input) {
-	background: rgba(255, 255, 255, 0.05) !important;
-	border: 1px solid rgba(255, 255, 255, 0.1) !important;
-	color: #fff !important;
-	border-radius: 0.5rem !important;
-	padding: 0.75rem 1rem !important;
+	background: var(--bg-input) !important;
+	border: 1px solid var(--border-color) !important;
+	color: var(--text-primary) !important;
+	border-radius: var(--radius-md) !important;
+	padding: 0.75rem var(--spacing-md) !important;
 	transition: all 0.2s ease !important;
 }
 
 :deep(.p-datepicker-input:focus) {
-	background: rgba(255, 255, 255, 0.08) !important;
-	border-color: rgba(102, 126, 234, 0.5) !important;
-	box-shadow: 0 0 0 calc(var(--ui-scale) * 3px) rgba(102, 126, 234, 0.1) !important;
+	background: color-mix(in srgb, var(--text-primary), transparent 92%) !important;
+	border-color: color-mix(in srgb, var(--accent), transparent 50%) !important;
+	box-shadow: 0 0 0 calc(var(--ui-scale) * 3px) color-mix(in srgb, var(--accent), transparent 90%) !important;
 }
 
 :deep(.p-datepicker-input-icon) {
-	color: rgba(255, 255, 255, 0.6) !important;
-}
-
-.datetime-icon {
-	width: 1rem;
-	height: 1rem;
-	cursor: pointer;
+	color: var(--text-meta) !important;
 }
 </style>

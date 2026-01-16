@@ -136,8 +136,8 @@ const updateInterfaceScale = (event: Event) => {
 .page-header h1 {
 	font-size: 2.5rem;
 	font-weight: 800;
-	margin-bottom: 0.5rem;
-	background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+	margin-bottom: var(--spacing-sm);
+	background: var(--accent-gradient);
 	-webkit-background-clip: text;
 	background-clip: text;
 	-webkit-text-fill-color: transparent;
@@ -171,26 +171,26 @@ const updateInterfaceScale = (event: Event) => {
 }
 
 .settings-section h2 {
-	font-size: 1.5rem;
-	margin-bottom: 1.5rem;
-	color: var(--text-main);
-	border-left: 4px solid var(--primary);
-	padding-left: 1rem;
+	font-size: var(--font-lg);
+	margin-bottom: var(--spacing-md);
+	color: var(--text-primary);
+	border-left: 4px solid var(--accent);
+	padding-left: var(--spacing-md);
 }
 
 .setting-item {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 1.5rem;
+	padding: var(--spacing-md);
 	background: var(--bg-card);
-	border-radius: var(--radius);
+	border-radius: var(--radius-md);
 	border: 1px solid var(--border-color);
 	transition: border-color 0.2s;
 }
 
 .setting-item:hover {
-	border-color: var(--primary);
+	border-color: var(--accent);
 }
 
 .setting-info {
@@ -211,20 +211,20 @@ const updateInterfaceScale = (event: Event) => {
 }
 
 .setting-input {
-	padding: 0.8rem;
-	border-radius: 8px;
+	padding: var(--spacing-sm);
+	border-radius: var(--radius-sm);
 	border: 1px solid var(--border-color);
-	background: var(--bg-dark);
-	color: var(--text-main);
+	background: var(--bg-input);
+	color: var(--text-primary);
 	width: 100px;
-	font-size: 1.1rem;
+	font-size: var(--font-base);
 	text-align: center;
 }
 
 .setting-input:focus {
 	outline: none;
-	border-color: var(--primary);
-	box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+	border-color: var(--accent);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent), transparent 80%);
 }
 
 .setting-input.select {

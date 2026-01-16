@@ -4,7 +4,7 @@ import { useCategoriesStore } from '../stores/categories'
 import type { Task } from '../types'
 import CategorySelector from './CategorySelector.vue'
 import TaskDateTimePicker from './TaskDateTimePicker.vue'
-import closeSrc from '../assets/icons/close.svg'
+import AppIcon from './common/AppIcon.vue'
 
 const props = defineProps<{
 	show: boolean
@@ -178,7 +178,7 @@ onUnmounted(() => {
 					<div class="popup-header">
 						<h2>{{ isEditMode ? 'Edit Task' : 'Create New Task' }}</h2>
 						<button class="close-btn" @click="handleClose">
-							<img :src="closeSrc" class="close-icon" alt="Close" />
+							<AppIcon name="close" size="1.25rem" />
 						</button>
 					</div>
 
@@ -319,20 +319,20 @@ onUnmounted(() => {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background: rgba(0, 0, 0, 0.7);
+	background: var(--bg-overlay);
 	backdrop-filter: blur(calc(var(--ui-scale) * 8px));
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	z-index: 1000;
-	padding: 1.25rem;
+	padding: var(--spacing-lg);
 }
 
 .popup-container {
-	background: linear-gradient(135deg, rgba(30, 30, 45, 0.98), rgba(20, 20, 35, 0.98));
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	border-radius: 1rem;
-	box-shadow: 0 calc(var(--ui-scale) * 20px) calc(var(--ui-scale) * 60px) rgba(0, 0, 0, 0.5);
+	background: var(--bg-popover);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
 	width: 100%;
 	max-width: 31.25rem;
 	max-height: 90vh;
@@ -358,15 +358,15 @@ onUnmounted(() => {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 1.5rem 2rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	padding: var(--spacing-lg) var(--spacing-xl);
+	border-bottom: 1px solid var(--border-color);
 	background: rgba(255, 255, 255, 0.03);
 	flex-shrink: 0;
 }
 
 .popup-header h2 {
 	margin: 0;
-	font-size: 1.5rem;
+	font-size: var(--font-xl);
 	font-weight: 700;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	-webkit-background-clip: text;
@@ -393,10 +393,10 @@ onUnmounted(() => {
 }
 
 .popup-form {
-	padding: 2rem;
+	padding: var(--spacing-xl);
 	display: flex;
 	flex-direction: column;
-	gap: 1.5rem;
+	gap: var(--spacing-lg);
 	overflow-y: auto;
 	flex: 1;
 
@@ -419,12 +419,12 @@ onUnmounted(() => {
 .form-group {
 	display: flex;
 	flex-direction: column;
-	gap: 0.5rem;
+	gap: var(--spacing-xs);
 	position: relative;
 }
 
 .form-group label {
-	font-size: 0.875rem;
+	font-size: var(--font-sm);
 	font-weight: 600;
 	color: rgba(255, 255, 255, 0.8);
 	text-transform: uppercase;
@@ -432,12 +432,12 @@ onUnmounted(() => {
 }
 
 .form-input {
-	background: rgba(255, 255, 255, 0.05);
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	border-radius: 0.5rem;
-	padding: 0.75rem 1rem;
-	color: #fff;
-	font-size: 1rem;
+	background: var(--bg-input);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-md);
+	padding: 0.75rem var(--spacing-md);
+	color: var(--text-primary);
+	font-size: var(--font-base);
 	transition: all 0.2s ease;
 	outline: none;
 }
@@ -461,11 +461,11 @@ onUnmounted(() => {
 .checkbox-group {
 	display: flex;
 	align-items: center;
-	gap: 0.75rem;
-	background: rgba(255, 255, 255, 0.03);
-	padding: 0.75rem 1rem;
-	border-radius: 0.5rem;
-	border: 1px solid rgba(255, 255, 255, 0.05);
+	gap: var(--spacing-sm);
+	background: var(--bg-input);
+	padding: 0.75rem var(--spacing-md);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--border-color);
 	transition: all 0.2s ease;
 }
 
@@ -512,10 +512,10 @@ onUnmounted(() => {
 
 .btn {
 	flex: 1;
-	padding: 0.875rem 1.5rem;
+	padding: 0.875rem var(--spacing-lg);
 	border: none;
-	border-radius: 0.5rem;
-	font-size: 1rem;
+	border-radius: var(--radius-md);
+	font-size: var(--font-base);
 	font-weight: 600;
 	cursor: pointer;
 	transition: all 0.2s ease;
@@ -536,7 +536,7 @@ onUnmounted(() => {
 
 .btn-primary {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: #fff;
+	color: var(--text-on-accent);
 	box-shadow: 0 4px calc(var(--ui-scale) * 15px) rgba(102, 126, 234, 0.3);
 }
 
@@ -580,11 +580,11 @@ onUnmounted(() => {
 .compact-meta {
 	display: flex;
 	align-items: center;
-	gap: 1.25rem;
+	gap: var(--spacing-lg);
 	background: rgba(255, 255, 255, 0.03);
-	padding: 0.625rem 0.875rem;
-	border-radius: 0.5rem;
-	border: 1px solid rgba(255, 255, 255, 0.05);
+	padding: 0.625rem var(--spacing-sm);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--border-color);
 }
 
 .meta-item {

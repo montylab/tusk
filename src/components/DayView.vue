@@ -7,8 +7,7 @@ import type { Task } from '../types'
 import { useDragOperator } from '../composables/useDragOperator'
 import { getTaskStatus } from '../logic/taskStatus'
 import { useSettingsStore } from '../stores/settings'
-import checkSrc from '../assets/icons/check.svg'
-import brainSrc from '../assets/icons/brain.svg'
+import AppIcon from './common/AppIcon.vue'
 
 const props = withDefaults(
 	defineProps<{
@@ -217,7 +216,7 @@ const scrollToDate = (date: string) => {
 	if (!scrollAreaRef.value || !tasksContainerRef.value) return
 
 	const columns = Array.from(tasksContainerRef.value.querySelectorAll('.day-column-outer'))
-	const targetColumn = columns.find((col, index) => props.dates[index] === date) as HTMLElement
+	const targetColumn = columns.find((_, index) => props.dates[index] === date) as HTMLElement
 
 	if (targetColumn) {
 		const containerWidth = scrollAreaRef.value.clientWidth
@@ -271,11 +270,11 @@ defineExpose({
 								</div>
 								<div class="header-right">
 									<div class="stat-row">
-										<img :src="checkSrc" class="stat-icon" alt="Completed" />
+										<AppIcon name="check" size="0.75rem" />
 										<span>{{ getDayStats(date).tasks }}</span>
 									</div>
 									<div v-if="getDayStats(date).hasDeep" class="stat-row deep">
-										<img :src="brainSrc" class="stat-icon" alt="Deep Work" />
+										<AppIcon name="brain" size="0.75rem" />
 										<span>{{ getDayStats(date).deep }}</span>
 									</div>
 								</div>
@@ -363,9 +362,9 @@ defineExpose({
 
 .time-label {
 	height: var(--hour-height);
-	padding: 0 1rem;
-	font-size: 0.8rem;
-	color: var(--text-muted);
+	padding: 0 var(--spacing-md);
+	font-size: var(--font-sm);
+	color: var(--text-meta);
 	border-bottom: 1px solid var(--border-color);
 	display: flex;
 	align-items: flex-start;
@@ -375,12 +374,12 @@ defineExpose({
 	position: absolute;
 	right: 0;
 	height: auto;
-	font-size: 0.65rem;
-	color: var(--text-muted);
+	font-size: var(--font-xs);
+	color: var(--text-meta);
 	border-bottom: none;
 	border-top: 1px solid var(--border-color);
 	font-weight: 400;
-	padding: 0 0.5rem;
+	padding: 0 var(--spacing-sm);
 	pointer-events: none;
 	display: flex;
 	align-items: flex-start;
@@ -440,7 +439,7 @@ defineExpose({
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	font-size: 0.65rem;
+	font-size: var(--font-xs);
 	font-weight: 600;
 	color: var(--text-muted);
 }
@@ -449,24 +448,14 @@ defineExpose({
 	color: #a78bfa;
 }
 
-.stat-icon {
-	width: 0.75rem;
-	height: 0.75rem;
-	opacity: 0.8;
-}
-
-.stat-row.deep .stat-icon {
-	opacity: 1;
-}
-
 .day-name {
-	font-size: 0.85rem;
+	font-size: var(--font-base);
 	font-weight: 700;
 	color: var(--text-primary);
 }
 
 .date-num {
-	font-size: 0.7rem;
+	font-size: var(--font-sm);
 	color: var(--text-muted);
 }
 
@@ -475,10 +464,10 @@ defineExpose({
 	left: 0;
 	right: 0;
 	height: 2px;
-	background: var(--color-urgent);
+	background: var(--color-danger);
 	z-index: 100;
 	pointer-events: none;
-	box-shadow: 0 0 calc(var(--ui-scale) * 10px) var(--color-urgent);
+	box-shadow: 0 0 calc(var(--ui-scale) * 10px) var(--color-danger);
 }
 
 .time-dot {
@@ -489,6 +478,6 @@ defineExpose({
 	width: var(--dot-size);
 	height: var(--dot-size);
 	border-radius: 50%;
-	background: var(--color-urgent);
+	background: var(--color-danger);
 }
 </style>

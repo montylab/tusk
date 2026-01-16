@@ -71,10 +71,10 @@ const toggleScheme = (s: (typeof schemes)[number]) => {
 	right: 1.5rem;
 	display: flex;
 	flex-direction: column;
-	gap: 1.25rem;
-	background: var(--bg-card);
-	padding: 1.25rem;
-	border-radius: 12px;
+	gap: var(--spacing-lg);
+	background: var(--bg-popover);
+	padding: var(--spacing-lg);
+	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow-md);
 	border: 1px solid var(--border-color);
 	z-index: 1000;
@@ -90,7 +90,7 @@ const toggleScheme = (s: (typeof schemes)[number]) => {
 }
 
 .panel-title {
-	font-size: 0.9rem;
+	font-size: var(--font-sm);
 	font-weight: 700;
 	color: var(--text-primary);
 }
@@ -116,11 +116,11 @@ const toggleScheme = (s: (typeof schemes)[number]) => {
 .switcher-group {
 	display: flex;
 	flex-direction: column;
-	gap: 0.5rem;
+	gap: var(--spacing-sm);
 }
 
 .switcher-label {
-	font-size: 0.65rem;
+	font-size: var(--font-xs);
 	text-transform: uppercase;
 	font-weight: 800;
 	color: var(--text-muted);
@@ -129,17 +129,17 @@ const toggleScheme = (s: (typeof schemes)[number]) => {
 
 .switcher-row {
 	display: flex;
-	gap: 0.5rem;
+	gap: var(--spacing-sm);
 }
 
 .theme-btn {
 	width: 2.25rem;
 	height: 2.25rem;
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 0.8rem;
+	font-size: var(--font-sm);
 	font-weight: bold;
 	background: var(--bg-page);
 	color: var(--text-muted);

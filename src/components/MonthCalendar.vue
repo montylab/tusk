@@ -166,10 +166,10 @@ const handleDrop = (targetDate: string) => {
 			background: var(--surface-hover);
 			border: 1px solid var(--border-color);
 			color: var(--text-primary);
-			width: 32px;
-			height: 32px;
-			border-radius: 6px;
-			font-size: 1.25rem;
+			width: 2rem;
+			height: 2rem;
+			border-radius: var(--radius-sm);
+			font-size: var(--font-lg);
 			cursor: pointer;
 			transition: all 0.15s ease;
 			display: flex;
@@ -183,7 +183,7 @@ const handleDrop = (targetDate: string) => {
 		}
 
 		.month-title {
-			font-size: 1.25rem;
+			font-size: var(--font-lg);
 			font-weight: 600;
 			color: var(--text-primary);
 			margin: 0;
@@ -206,9 +206,9 @@ const handleDrop = (targetDate: string) => {
 			flex-shrink: 0;
 
 			.day-name {
-				padding: 0.5rem;
+				padding: var(--spacing-sm);
 				text-align: center;
-				font-size: 0.75rem;
+				font-size: var(--font-base);
 				font-weight: 600;
 				color: var(--text-muted);
 				text-transform: uppercase;

@@ -2,8 +2,7 @@
 import { computed } from 'vue'
 import type { Task } from '../types'
 import { useCategoriesStore } from '../stores/categories'
-import pencilSrc from '../assets/icons/pencil.svg'
-import brainSrc from '../assets/icons/brain.svg'
+import AppIcon from './common/AppIcon.vue'
 
 const props = defineProps<{
 	task: Task
@@ -92,14 +91,14 @@ const onEditClick = (e: Event) => {
 
 			<div class="header-actions">
 				<button class="edit-btn" @mousedown.stop @click="onEditClick" title="Edit Task">
-					<img :src="pencilSrc" class="task-icon small" alt="Edit" />
+					<AppIcon name="pencil" size="0.8rem" />
 				</button>
 			</div>
 
 			<div class="badges">
 				<span class="category-badge badge">{{ task.category || 'Uncategorized' }}</span>
 				<span v-if="task.isDeepWork" class="deep-work-badge badge" title="Deep Work task">
-					<img :src="brainSrc" class="task-icon small" alt="Deep Work" />
+					<AppIcon name="brain" size="0.8rem" />
 					<span>DEEP</span>
 				</span>
 			</div>
@@ -112,25 +111,26 @@ const onEditClick = (e: Event) => {
 .task-item {
 	// 1. Typography & Colors
 	--category-color: var(--color-default);
-	--font-size-title: 1.125rem;
-	--font-size-description: 1rem;
-	--font-size-badge: 0.75rem;
-	--font-size-meta: 0.875rem;
-	--font-size-tag: 0.625rem;
+	--font-size-title: var(--font-lg);
+	--font-size-description: var(--font-base);
+	--font-size-badge: var(--font-sm);
+	--font-size-meta: var(--font-sm);
+	--font-size-tag: var(--font-xs);
 
-	background: rgba(255, 255, 255, 0.08);
-	border-radius: 6px;
+	background: var(--bg-task-item);
+	border-radius: var(--radius-md);
 	cursor: grab;
 	user-select: none;
 	display: flex;
 	border: 1px solid var(--category-color);
 	width: 100%;
 	height: 100%;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+	box-shadow: var(--shadow-sm);
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
 
 	&:hover {
+		background: var(--surface-hover);
 		.shortcut-badge {
 			opacity: 1;
 			visibility: visible;
@@ -139,15 +139,15 @@ const onEditClick = (e: Event) => {
 
 	// 2. Base Components
 	.color-stripe {
-		width: 0.25rem;
+		width: var(--spacing-xs);
 		height: 100%;
 		flex-shrink: 0;
 		background: var(--category-color);
-		border-radius: 6px 0 0 6px;
+		border-radius: var(--radius-md) 0 0 var(--radius-md);
 	}
 
 	.content {
-		padding: 0.5rem 0.675rem;
+		padding: var(--spacing-sm) var(--spacing-sm);
 		flex: 1;
 		display: flex;
 		flex-direction: row;
@@ -167,9 +167,8 @@ const onEditClick = (e: Event) => {
 				font-size: var(--font-size-title);
 				line-height: 1.25;
 				font-weight: 600;
-				color: #fff;
+				color: var(--text-primary);
 				margin: 0;
-				// 0.5rem 0 0.25rem 0;
 				white-space: nowrap;
 				overflow: hidden;
 				text-overflow: ellipsis;
@@ -184,14 +183,14 @@ const onEditClick = (e: Event) => {
 				.time-badge,
 				.duration-badge {
 					font-size: var(--font-size-meta);
-					color: rgba(255, 255, 255, 0.6);
+					color: var(--text-meta);
 					font-weight: 500;
 				}
 			}
 
 			.description-text {
 				font-size: var(--font-size-description);
-				color: rgba(255, 255, 255, 0.45);
+				color: var(--text-description);
 				margin: 0;
 				display: -webkit-box;
 				-webkit-line-clamp: 2;
@@ -207,15 +206,15 @@ const onEditClick = (e: Event) => {
 			display: flex;
 			align-items: center;
 			margin-left: auto;
-			gap: 4px;
+			gap: var(--spacing-xs);
 			opacity: 0.25;
 			transition: opacity 0.2s ease;
 
 			.edit-btn {
-				background: rgba(255, 255, 255, 0.1);
-				border: 1px solid rgba(255, 255, 255, 0.2);
-				border-radius: 4px;
-				color: #fff;
+				background: var(--bg-action-btn);
+				border: 1px solid var(--border-color);
+				border-radius: var(--radius-sm);
+				color: var(--text-primary);
 				width: 1.25rem;
 				height: 1.25rem;
 				display: flex;
@@ -236,12 +235,12 @@ const onEditClick = (e: Event) => {
 		.badges {
 			display: flex;
 			align-items: center;
-			gap: 0.5rem;
+			gap: var(--spacing-sm);
 
 			.badge {
 				font-size: var(--font-size-badge);
-				border-radius: 4px;
-				padding: 0 0.25rem;
+				border-radius: var(--radius-sm);
+				padding: 0 var(--spacing-xs);
 				font-weight: 700;
 				white-space: nowrap;
 				text-transform: uppercase;
@@ -257,32 +256,27 @@ const onEditClick = (e: Event) => {
 					display: flex;
 					align-items: center;
 					gap: 3px;
-					background: #7c3aed;
-					color: #fff;
+					background: var(--bg-deep-work);
+					color: var(--text-on-accent);
 					letter-spacing: 0.5px;
 				}
-			}
-
-			.task-icon.small {
-				width: 0.8rem;
-				height: 0.8rem;
 			}
 		}
 	}
 
 	.on-air-tag {
 		position: absolute;
-		top: -0.5rem;
-		right: 0.5rem;
-		background: var(--color-urgent);
-		color: #fff;
+		top: calc(var(--spacing-sm) * -1);
+		right: var(--spacing-sm);
+		background: var(--bg-on-air);
+		color: var(--text-on-accent);
 		font-size: var(--font-size-tag);
 		font-weight: 800;
-		padding: 0.125rem 0.5rem;
-		border-radius: 3px;
-		z-index: 999;
+		padding: 0.125rem var(--spacing-sm);
+		border-radius: var(--radius-sm);
+		z-index: 1000;
 		letter-spacing: 0.5px;
-		box-shadow: 0 0 10px rgba(255, 75, 31, 0.4);
+		box-shadow: 0 0 10px var(--bg-on-air);
 		pointer-events: none;
 	}
 
@@ -359,8 +353,8 @@ const onEditClick = (e: Event) => {
 		.content {
 			.meta .time-badge,
 			.meta .duration-badge {
-				color: #fff;
-				opacity: 0.75;
+				color: var(--text-on-accent);
+				opacity: 0.9;
 			}
 
 			.badges .category-badge {
@@ -407,7 +401,7 @@ const onEditClick = (e: Event) => {
 		right: 0;
 		transform: translateY(-100%);
 		// background: var(--category-color);
-		color: #fff;
+		color: var(--text-on-accent);
 		font-size: 0.7rem;
 		line-height: 1.4;
 		font-weight: 700;

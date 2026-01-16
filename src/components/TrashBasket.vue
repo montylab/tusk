@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useDragOperator } from '../composables/useDragOperator'
-import trashSrc from '../assets/icons/trash.svg'
+import AppIcon from './common/AppIcon.vue'
 
 const { currentZone, registerZone, unregisterZone, updateZoneBounds } = useDragOperator()
 
@@ -42,7 +42,7 @@ onUnmounted(() => {
 <template>
 	<div ref="basketRef" class="trash-basket" :class="{ active: isActive }">
 		<div class="icon-container">
-			<img :src="trashSrc" class="trash-icon" alt="Delete" />
+			<AppIcon name="trash" size="1.75rem" />
 		</div>
 		<span class="label">Delete</span>
 	</div>
@@ -58,29 +58,36 @@ onUnmounted(() => {
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	background: linear-gradient(90deg, rgba(255, 67, 67, 0.2) 0%, rgba(255, 67, 67, 0.1) 60%, transparent 100%) no-repeat;
+	background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--color-basket-accent), transparent 80%) 0%,
+			color-mix(in srgb, var(--color-basket-accent), transparent 90%) 60%,
+			transparent 100%
+		)
+		no-repeat;
 	transition: all 0.3s ease;
-	color: #ff4343;
-	gap: 0.5rem;
+	color: var(--color-basket-accent);
+	gap: var(--spacing-sm);
 }
 
 .trash-basket.active {
-	background: rgba(255, 67, 67, 0.5);
-	background: linear-gradient(90deg, rgba(255, 67, 67, 0.8) 0%, rgba(255, 67, 67, 0.5) 60%, transparent 100%) no-repeat;
+	background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--color-basket-accent), transparent 20%) 0%,
+			color-mix(in srgb, var(--color-basket-accent), transparent 50%) 60%,
+			transparent 100%
+		)
+		no-repeat;
 	border: none;
-	transform: scale(1.25);
+	transform: scale(1.1);
 	transform-origin: center center;
 	color: #fff;
 }
 
-.trash-basket.active .icon-container {
-	filter: brightness(0) invert(1);
-}
-
 .icon-container {
-	padding: 0.75rem;
-	border-radius: 50%;
-	background: rgba(255, 67, 67, 0.1);
+	padding: var(--spacing-sm);
+	border-radius: var(--radius-full);
+	background: color-mix(in srgb, var(--color-basket-accent), transparent 90%);
 	transition: transform 0.2s ease;
 	display: flex;
 	align-items: center;
@@ -89,10 +96,11 @@ onUnmounted(() => {
 
 .active .icon-container {
 	transform: scale(1.2) rotate(5deg);
+	background: rgba(255, 255, 255, 0.2);
 }
 
 .label {
-	font-size: 0.75rem;
+	font-size: var(--font-xs);
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
@@ -101,10 +109,5 @@ onUnmounted(() => {
 
 .active .label {
 	opacity: 1;
-}
-
-.trash-icon {
-	width: 1.75rem;
-	height: 1.75rem;
 }
 </style>

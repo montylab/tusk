@@ -65,13 +65,13 @@ const handleDragStart = (e: DragEvent) => {
 	align-items: center;
 	gap: 0.375rem;
 	padding: 0 0.25rem 0;
-	border-radius: 3px;
+	border-radius: var(--radius-xs);
 	cursor: pointer;
 	user-select: none;
 	transition: background-color 0.15s ease;
 
 	&:hover {
-		background: rgba(255, 255, 255, 0.1);
+		background: var(--surface-hover);
 	}
 
 	&.dragging {
@@ -87,14 +87,14 @@ const handleDragStart = (e: DragEvent) => {
 
 	.time {
 		font-size: 0.7rem;
-		color: rgba(255, 255, 255, 0.6);
+		color: var(--text-meta);
 		font-weight: 500;
 		flex-shrink: 0;
 	}
 
 	.title {
 		font-size: 0.75rem;
-		color: rgba(255, 255, 255, 0.9);
+		color: var(--text-primary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
