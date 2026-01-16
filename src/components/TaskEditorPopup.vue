@@ -211,7 +211,7 @@ onUnmounted(() => {
 							</div>
 						</div>
 
-						<div v-else>
+						<template v-else>
 							<!-- Category with Autocomplete -->
 							<div class="form-group">
 								<label for="category">Category</label>
@@ -223,7 +223,7 @@ onUnmounted(() => {
 								<label for="duration">Duration (HH:mm)</label>
 								<TaskDateTimePicker v-model:time="duration" view="time-only" />
 							</div>
-						</div>
+						</template>
 
 						<!-- Compact Read-only Metadata -->
 						<div v-if="isCompactView && taskType === 'scheduled'" class="compact-meta">

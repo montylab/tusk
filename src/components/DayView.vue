@@ -364,7 +364,7 @@ defineExpose({
 	height: var(--hour-height);
 	padding: 0 var(--spacing-md);
 	font-size: var(--font-sm);
-	color: var(--text-meta);
+	color: color-mix(in srgb, var(--text-primary), transparent 25%);
 	border-bottom: 1px solid var(--border-color);
 	display: flex;
 	align-items: flex-start;
@@ -375,11 +375,11 @@ defineExpose({
 	right: 0;
 	height: auto;
 	font-size: var(--font-xs);
-	color: var(--text-meta);
+	color: color-mix(in srgb, var(--text-primary), transparent 60%);
 	border-bottom: none;
 	border-top: 1px solid var(--border-color);
 	font-weight: 400;
-	padding: 0 var(--spacing-sm);
+	padding: 0 var(--spacing-xs);
 	pointer-events: none;
 	display: flex;
 	align-items: flex-start;
@@ -452,6 +452,7 @@ defineExpose({
 	font-size: var(--font-base);
 	font-weight: 700;
 	color: var(--text-primary);
+	line-height: 1.3;
 }
 
 .date-num {

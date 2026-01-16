@@ -353,13 +353,13 @@ const onEditClick = (e: Event) => {
 		.content {
 			.meta .time-badge,
 			.meta .duration-badge {
-				color: var(--text-on-accent);
-				opacity: 0.9;
+				color: var(--text-primary);
+				opacity: 0.8;
 			}
 
 			.badges .category-badge {
 				background-color: var(--category-color);
-				color: #fff;
+				color: var(--text-on-accent);
 			}
 		}
 	}

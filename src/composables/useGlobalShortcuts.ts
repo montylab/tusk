@@ -23,8 +23,11 @@ export function useGlobalShortcuts() {
 				settingsStore.updateSettings({ interfaceScale: scales[e.key] })
 				e.preventDefault()
 			} else if (e.code === 'Backquote') {
-				const theme = settingsStore.settings.theme === 'light' ? 'dark' : 'light'
-				settingsStore.updateSettings({ theme })
+				const themes: ('light' | 'dark' | 'pinky' | 'vivid')[] = ['dark', 'light', 'pinky', 'vivid']
+				const currentTheme = settingsStore.settings.theme || 'dark'
+				const currentIndex = themes.indexOf(currentTheme)
+				const nextTheme = themes[(currentIndex + 1) % themes.length]
+				settingsStore.updateSettings({ theme: nextTheme })
 				e.preventDefault()
 			}
 		}

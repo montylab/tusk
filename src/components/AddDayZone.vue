@@ -152,13 +152,13 @@ watch(isDragging, (val) => {
 .add-day-zone:hover,
 .add-day-zone.over {
 	width: 10rem;
-	background: rgba(255, 255, 255, 0.05);
+	background: var(--surface-hover);
 	border-left-style: solid;
 }
 
 .is-counting {
 	width: 10rem !important;
-	background: rgba(var(--color-primary-rgb), 0.1);
+	background: color-mix(in srgb, var(--accent), transparent 90%);
 }
 
 .add-content {
@@ -180,7 +180,7 @@ watch(isDragging, (val) => {
 .add-day-zone:hover .plus-icon,
 .add-day-zone.over .plus-icon {
 	transform: rotate(180deg) scale(calc(4 + var(--ui-scale) * 1));
-	color: #fff;
+	color: var(--accent);
 }
 
 .hover-label {
@@ -200,7 +200,7 @@ watch(isDragging, (val) => {
 .countdown-number {
 	font-size: 3rem;
 	font-weight: 800;
-	color: #fff;
+	color: var(--text-primary);
 	line-height: 1;
 	animation: pulse 1s infinite;
 }
@@ -217,7 +217,7 @@ watch(isDragging, (val) => {
 	bottom: 0;
 	left: 0;
 	right: 0;
-	background: #ffffff1a;
+	background: color-mix(in srgb, var(--accent), transparent 90%);
 	transition: height 0.8s linear;
 	z-index: 1;
 	pointer-events: none;
