@@ -53,50 +53,56 @@ const startY = ref(0)
 const initialStartTime = ref(0)
 const initialDuration = ref(0)
 
-const onMouseDown = (e: MouseEvent, handle: 'top' | 'bottom') => {
-	e.stopPropagation() // Prevent drag start
-	// e.preventDefault() // Allow focus? But text selection might be bad.
-	e.preventDefault()
+const getEventY = (e: MouseEvent | TouchEvent) => {
+	if ('touches' in e && e.touches.length > 0) return e.touches[0].clientY
+	if ('changedTouches' in e && e.changedTouches.length > 0) return e.changedTouches[0].clientY
+	return (e as MouseEvent).clientY
+}
+
+const onStart = (e: MouseEvent | TouchEvent, handle: 'top' | 'bottom') => {
+	e.stopPropagation()
+	if (e.cancelable) e.preventDefault()
 
 	isResizing.value = true
 	resizeHandle.value = handle
-	startY.value = e.clientY
+	startY.value = getEventY(e)
 
 	initialStartTime.value = props.task.startTime || 0
 	initialDuration.value = props.task.duration || 60
 
 	emit('start-resize')
 
-	window.addEventListener('mousemove', onMouseMove)
-	window.addEventListener('mouseup', onMouseUp)
+	if (e.type === 'touchstart') {
+		window.addEventListener('touchmove', onMove, { passive: false })
+		window.addEventListener('touchend', onEnd)
+	} else {
+		window.addEventListener('mousemove', onMove)
+		window.addEventListener('mouseup', onEnd)
+	}
 }
 
-const onMouseMove = (e: MouseEvent) => {
+const onMove = (e: MouseEvent | TouchEvent) => {
 	if (!isResizing.value) return
+	if (e.type === 'touchmove' && e.cancelable) e.preventDefault()
 
-	const dy = e.clientY - startY.value
+	const currentY = getEventY(e)
+	const dy = currentY - startY.value
 	const minutesDelta = (dy / hourHeight.value) * 60
 
 	const snap = settings.value.snapMinutes || 15
 
 	if (resizeHandle.value === 'bottom') {
 		let newDuration = initialDuration.value + minutesDelta
-		// Snap duration
 		newDuration = Math.round(newDuration / snap) * snap
-		// Min duration
 		newDuration = Math.max(snap, newDuration)
-
 		localDuration.value = newDuration
-		// localStartTime unchanged
 	} else if (resizeHandle.value === 'top') {
 		let newStartTime = initialStartTime.value + minutesDelta / 60
-		// Snap
 		newStartTime = Math.round(newStartTime * (60 / snap)) / (60 / snap)
 
 		const originalEndTime = initialStartTime.value + initialDuration.value / 60
 		let newDurationPixels = (originalEndTime - newStartTime) * 60
 
-		// Min duration check
 		if (newDurationPixels < snap) {
 			newDurationPixels = snap
 			newStartTime = originalEndTime - snap / 60
@@ -107,17 +113,18 @@ const onMouseMove = (e: MouseEvent) => {
 	}
 }
 
-const onMouseUp = async () => {
+const onEnd = async () => {
 	if (!isResizing.value) return
 
-	window.removeEventListener('mousemove', onMouseMove)
-	window.removeEventListener('mouseup', onMouseUp)
+	window.removeEventListener('mousemove', onMove)
+	window.removeEventListener('mouseup', onEnd)
+	window.removeEventListener('touchmove', onMove)
+	window.removeEventListener('touchend', onEnd)
 
 	const finalStartTime = localStartTime.value
 	const finalDuration = localDuration.value
 	const date = props.task.date
 
-	// Optimistic update waiting? No, we just commit.
 	if (date && (finalStartTime !== props.task.startTime || finalDuration !== props.task.duration)) {
 		await tasksStore.updateScheduledTask(props.task.id, date, {
 			startTime: finalStartTime,
@@ -149,8 +156,8 @@ const onMouseUp = async () => {
 		<slot :resizedTask="displayTask" :isResizing="isResizing"></slot>
 
 		<!-- Handles -->
-		<div class="resize-handle top" @mousedown="onMouseDown($event, 'top')"></div>
-		<div class="resize-handle bottom" @mousedown="onMouseDown($event, 'bottom')"></div>
+		<div class="resize-handle top" @mousedown="onStart($event, 'top')" @touchstart="onStart($event, 'top')"></div>
+		<div class="resize-handle bottom" @mousedown="onStart($event, 'bottom')" @touchstart="onStart($event, 'bottom')"></div>
 	</div>
 </template>
 

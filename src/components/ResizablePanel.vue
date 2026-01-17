@@ -37,27 +37,37 @@ onMounted(() => {
 	emit('resize', width.value)
 })
 
-const handleMouseDown = (e: MouseEvent) => {
-	e.preventDefault()
+const getEventX = (e: MouseEvent | TouchEvent) => {
+	if ('touches' in e && e.touches.length > 0) return e.touches[0].clientX
+	if ('changedTouches' in e && e.changedTouches.length > 0) return e.changedTouches[0].clientX
+	return (e as MouseEvent).clientX
+}
+
+const handleStart = (e: MouseEvent | TouchEvent) => {
+	if (e.cancelable) e.preventDefault()
 	isDragging.value = true
 
-	const startX = e.clientX
+	const startX = getEventX(e)
 	const startWidth = width.value
 
-	const handleMouseMove = (e: MouseEvent) => {
+	const handleMove = (e: MouseEvent | TouchEvent) => {
 		if (!isDragging.value) return
+		if (e.type === 'touchmove' && e.cancelable) e.preventDefault()
 
-		const delta = props.side === 'right' ? e.clientX - startX : startX - e.clientX
+		const currentX = getEventX(e)
+		const delta = props.side === 'right' ? currentX - startX : startX - currentX
 		const newWidth = Math.max(props.minWidth, Math.min(props.maxWidth, startWidth + delta))
 
 		width.value = newWidth
 		emit('resize', newWidth)
 	}
 
-	const handleMouseUp = () => {
+	const handleEnd = () => {
 		isDragging.value = false
-		document.removeEventListener('mousemove', handleMouseMove)
-		document.removeEventListener('mouseup', handleMouseUp)
+		document.removeEventListener('mousemove', handleMove)
+		document.removeEventListener('mouseup', handleEnd)
+		document.removeEventListener('touchmove', handleMove)
+		document.removeEventListener('touchend', handleEnd)
 
 		// Save to localStorage
 		if (props.storageKey) {
@@ -65,8 +75,13 @@ const handleMouseDown = (e: MouseEvent) => {
 		}
 	}
 
-	document.addEventListener('mousemove', handleMouseMove)
-	document.addEventListener('mouseup', handleMouseUp)
+	if (e.type === 'touchstart') {
+		document.addEventListener('touchmove', handleMove, { passive: false })
+		document.addEventListener('touchend', handleEnd)
+	} else {
+		document.addEventListener('mousemove', handleMove)
+		document.addEventListener('mouseup', handleEnd)
+	}
 }
 
 const handleStyle = computed(() => ({
@@ -77,7 +92,13 @@ const handleStyle = computed(() => ({
 <template>
 	<div class="resizable-panel" :style="{ width: `${width}px` }">
 		<slot></slot>
-		<div class="resize-handle" :class="{ dragging: isDragging, [side]: true }" :style="handleStyle" @mousedown="handleMouseDown">
+		<div
+			class="resize-handle"
+			:class="{ dragging: isDragging, [side]: true }"
+			:style="handleStyle"
+			@mousedown="handleStart"
+			@touchstart="handleStart"
+		>
 			<div class="handle-indicator"></div>
 		</div>
 	</div>

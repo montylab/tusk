@@ -59,10 +59,22 @@ function getZonePriority(zoneName: string): number {
 
 // Helper to get event coordinates
 function getEventCoordinates(event: MouseEvent | TouchEvent): { x: number; y: number } {
+	if ('targetTouches' in event && event.targetTouches.length > 0) {
+		return {
+			x: event.targetTouches[0].clientX,
+			y: event.targetTouches[0].clientY
+		}
+	}
 	if ('touches' in event && event.touches.length > 0) {
 		return {
 			x: event.touches[0].clientX,
 			y: event.touches[0].clientY
+		}
+	}
+	if ('changedTouches' in event && (event as TouchEvent).changedTouches.length > 0) {
+		return {
+			x: (event as TouchEvent).changedTouches[0].clientX,
+			y: (event as TouchEvent).changedTouches[0].clientY
 		}
 	}
 	return {
@@ -151,7 +163,9 @@ function handleMove(event: MouseEvent | TouchEvent) {
 async function handleEnd(event: MouseEvent | TouchEvent) {
 	if (!isDragging.value || isDestroying.value) return
 
-	event.preventDefault()
+	if (event.cancelable) {
+		event.preventDefault()
+	}
 
 	const coords = getEventCoordinates(event)
 	const zone = getZoneAtPoint(coords.x, coords.y)
