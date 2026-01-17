@@ -53,7 +53,7 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 				@click="uiStore.toggleThemePanel"
 				title="Theme"
 			>
-				<i class="pi pi-palette"></i>
+				<AppIcon name="theme" size="1rem" />
 			</button>
 
 			<router-link :to="{ name: 'settings' }" class="icon-btn" title="Settings">
@@ -173,8 +173,8 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 	align-items: center;
 	gap: 0.5rem;
 	padding: 0.5rem 1rem;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: #fff;
+	background: var(--accent-gradient);
+	color: var(--text-on-accent);
 	border: none;
 	border-radius: var(--radius-md);
 	font-size: var(--font-sm);

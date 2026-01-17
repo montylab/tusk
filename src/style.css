@@ -13,7 +13,7 @@
 
 body {
 	font-family: var(--font-family);
-	background-color: var(--bg-page);
+	background: linear-gradient(180deg, color-mix(in srgb, var(--bg-page), white 7%) 0%, var(--bg-page) 100%);
 	color: var(--text-primary);
 	min-height: 100vh;
 	display: flex;

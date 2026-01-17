@@ -39,7 +39,6 @@ useGlobalShortcuts()
 	flex-direction: column;
 	width: 100%;
 	height: 100vh;
-	background: var(--bg-page);
 	overflow: hidden;
 	position: relative;
 }

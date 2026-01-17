@@ -66,7 +66,7 @@
 	--color-basket-accent: #ef4444; /* Trash basket functional color */
 
 	/* Advanced Effects */
-	--accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Signature gradients */
+	--accent-gradient: linear-gradient(135deg, #38bdf8 0%, #3b82f6 100%); /* Signature gradients */
 	--bg-today-highlight: color-mix(in srgb, var(--accent), transparent 90%); /* Calendar today highlight */
 }
 
@@ -104,7 +104,7 @@
 	--surface-hover: rgba(219, 39, 119, 0.08);
 
 	/* Role Adjustments */
-	--bg-header: rgba(255, 241, 242, 0.9);
+	--bg-header: #fffcfd;
 	--text-header: var(--text-primary);
 	--accent-gradient: linear-gradient(135deg, #db2777 0%, #fb7185 100%);
 	--bg-deep-work: #db2777;

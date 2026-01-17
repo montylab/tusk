@@ -99,7 +99,7 @@ const handleSubmit = async () => {
 	if (!taskText.value.trim()) return
 
 	const finalCategoryName = categoryInput.value.trim() || 'Default'
-	const finalColor = selectedColor.value || '#667eea' // fallback
+	const finalColor = selectedColor.value || '#3b82f6' // fallback
 
 	// Persist category if new
 	await categoriesStore.ensureCategoryExists(finalCategoryName, finalColor, isDeepWork.value)
@@ -329,7 +329,7 @@ onUnmounted(() => {
 }
 
 .popup-container {
-	background: var(--bg-popover);
+	background: linear-gradient(180deg, color-mix(in srgb, var(--bg-popover), white 5%) 0%, var(--bg-popover) 100%);
 	border: 1px solid var(--border-color);
 	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow-lg);
@@ -368,7 +368,7 @@ onUnmounted(() => {
 	margin: 0;
 	font-size: var(--font-xl);
 	font-weight: 700;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: var(--accent-gradient);
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	background-clip: text;
@@ -537,7 +537,7 @@ onUnmounted(() => {
 }
 
 .btn-primary {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: var(--accent-gradient);
 	color: var(--text-on-accent);
 	box-shadow: 0 4px calc(var(--ui-scale) * 15px) rgba(102, 126, 234, 0.3);
 }
