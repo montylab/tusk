@@ -39,7 +39,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-	<div @mouseover="updateBounds" ref="basketRef" class="trash-basket-round" :class="{ 'is-over': isOver, 'is-destroying': isDestroying }">
+	<div
+		@mouseover="updateBounds"
+		ref="basketRef"
+		class="trash-basket trash-basket-round"
+		:class="{ 'is-over': isOver, 'is-destroying': isDestroying }"
+	>
 		<div class="icon-wrapper">
 			<AppIcon name="trash" size="3rem" color="white" />
 		</div>

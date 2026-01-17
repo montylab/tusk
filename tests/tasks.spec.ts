@@ -98,7 +98,7 @@ test.describe('Task Management & Persistence', () => {
 		await taskItem.scrollIntoViewIfNeeded()
 		await taskItem.waitFor({ state: 'visible' })
 
-		const trash = page.locator('.trash-basket')
+		const trash = page.locator('.trash-basket-round')
 		await trash.scrollIntoViewIfNeeded()
 		await trash.waitFor({ state: 'visible' })
 
