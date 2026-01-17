@@ -70,8 +70,6 @@ const handleAddDay = () => {
 
 <template>
 	<TaskPageLayout @edit="handleEditTask">
-		<!-- Create Task button moved to AppHeader -->
-
 		<DayView
 			ref="dayViewRef"
 			:dates="currentDates"

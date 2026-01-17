@@ -12,7 +12,6 @@ const isOver = computed(() => currentZone.value === 'trash')
 const { isDestroying } = useDragOperator()
 
 const updateBounds = () => {
-	console.count()
 	if (basketRef.value) {
 		updateZoneBounds('trash', basketRef.value.getBoundingClientRect())
 	}

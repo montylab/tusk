@@ -29,10 +29,12 @@ const handleEditTask = (task: Task) => {
 			<slot name="popups"></slot>
 		</main>
 
-		<ResizablePanel side="left" :min-width="250" :max-width="1600" :default-width="300" storage-key="right-sidebar-width">
+		<ResizablePanel side="left" :min-size="250" :max-size="1600" :default-size="300" storage-key="right-sidebar-width">
 			<aside class="sidebar right">
 				<div class="pile-container">
-					<TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" @edit="handleEditTask" />
+					<ResizablePanel side="bottom" :min-size="200" :default-size="400" storage-key="shortcuts-pile-height">
+						<TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" @edit="handleEditTask" />
+					</ResizablePanel>
 					<TaskPile title="To Do" :tasks="todoTasks" list-type="todo" @edit="handleEditTask" />
 				</div>
 			</aside>
@@ -68,7 +70,6 @@ const handleEditTask = (task: Task) => {
 }
 
 .pile-container > * {
-	flex: 1;
 	min-height: 0;
 }
 </style>

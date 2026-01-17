@@ -3,63 +3,65 @@ import { ref, onMounted, computed } from 'vue'
 
 const props = withDefaults(
 	defineProps<{
-		side: 'left' | 'right'
-		minWidth?: number
-		maxWidth?: number
-		defaultWidth?: number
+		side: 'left' | 'right' | 'top' | 'bottom'
+		minSize?: number
+		maxSize?: number
+		defaultSize?: number
 		storageKey?: string
 	}>(),
 	{
-		minWidth: 150,
-		maxWidth: 600,
-		defaultWidth: 300
+		minSize: 0,
+		maxSize: 9999,
+		defaultSize: 300
 	}
 )
 
 const emit = defineEmits<{
-	(e: 'resize', width: number): void
+	(e: 'resize', size: number): void
 }>()
 
-const width = ref(props.defaultWidth)
+const dimension = computed(() => (['left', 'right'].includes(props.side) ? 'width' : 'height'))
+const size = ref(props.defaultSize)
 const isDragging = ref(false)
 
-// Load saved width from localStorage
+// Load saved size from localStorage
 onMounted(() => {
 	if (props.storageKey) {
 		const saved = localStorage.getItem(props.storageKey)
 		if (saved) {
-			const parsedWidth = parseInt(saved, 10)
-			if (!isNaN(parsedWidth)) {
-				width.value = Math.max(props.minWidth, Math.min(props.maxWidth, parsedWidth))
+			const parsedSize = parseInt(saved, 10)
+			if (!isNaN(parsedSize)) {
+				size.value = Math.max(props.minSize, Math.min(props.maxSize, parsedSize))
 			}
 		}
 	}
-	emit('resize', width.value)
+	emit('resize', size.value)
 })
 
-const getEventX = (e: MouseEvent | TouchEvent) => {
-	if ('touches' in e && e.touches.length > 0) return e.touches[0].clientX
-	if ('changedTouches' in e && e.changedTouches.length > 0) return e.changedTouches[0].clientX
-	return (e as MouseEvent).clientX
+const getEventPos = (e: MouseEvent | TouchEvent) => {
+	const isWidth = dimension.value === 'width'
+	if ('touches' in e && e.touches.length > 0) return isWidth ? e.touches[0].clientX : e.touches[0].clientY
+	if ('changedTouches' in e && e.changedTouches.length > 0) return isWidth ? e.changedTouches[0].clientX : e.changedTouches[0].clientY
+	return isWidth ? (e as MouseEvent).clientX : (e as MouseEvent).clientY
 }
 
 const handleStart = (e: MouseEvent | TouchEvent) => {
 	if (e.cancelable) e.preventDefault()
 	isDragging.value = true
 
-	const startX = getEventX(e)
-	const startWidth = width.value
+	const startPos = getEventPos(e)
+	const startSize = size.value
 
 	const handleMove = (e: MouseEvent | TouchEvent) => {
 		if (!isDragging.value) return
 		if (e.type === 'touchmove' && e.cancelable) e.preventDefault()
 
-		const currentX = getEventX(e)
-		const delta = props.side === 'right' ? currentX - startX : startX - currentX
-		const newWidth = Math.max(props.minWidth, Math.min(props.maxWidth, startWidth + delta))
+		const currentPos = getEventPos(e)
+		const delta = props.side === 'right' || props.side === 'bottom' ? currentPos - startPos : startPos - currentPos
+		const newSize = Math.max(props.minSize, Math.min(props.maxSize, startSize + delta))
 
-		width.value = newWidth
-		emit('resize', newWidth)
+		size.value = newSize
+		emit('resize', newSize)
 	}
 
 	const handleEnd = () => {
@@ -71,7 +73,7 @@ const handleStart = (e: MouseEvent | TouchEvent) => {
 
 		// Save to localStorage
 		if (props.storageKey) {
-			localStorage.setItem(props.storageKey, width.value.toString())
+			localStorage.setItem(props.storageKey, size.value.toString())
 		}
 	}
 
@@ -90,11 +92,11 @@ const handleStyle = computed(() => ({
 </script>
 
 <template>
-	<div class="resizable-panel" :style="{ width: `${width}px` }">
+	<div class="resizable-panel" :class="[dimension]" :style="{ [dimension]: `${size}px` }">
 		<slot></slot>
 		<div
 			class="resize-handle"
-			:class="{ dragging: isDragging, [side]: true }"
+			:class="{ dragging: isDragging, [side]: true, [dimension]: true }"
 			:style="handleStyle"
 			@mousedown="handleStart"
 			@touchstart="handleStart"
@@ -108,20 +110,37 @@ const handleStyle = computed(() => ({
 .resizable-panel {
 	position: relative;
 	flex-shrink: 0;
+}
+
+.resizable-panel.width {
 	height: 100%;
+}
+
+.resizable-panel.height {
+	width: 100%;
 }
 
 .resize-handle {
 	position: absolute;
-	top: 0;
-	bottom: 0;
-	width: 8px;
-	cursor: col-resize;
 	z-index: 10;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	transition: background-color 0.2s ease;
+}
+
+.resize-handle.width {
+	top: 0;
+	bottom: 0;
+	width: 8px;
+	cursor: col-resize;
+}
+
+.resize-handle.height {
+	left: 0;
+	right: 0;
+	height: 8px;
+	cursor: row-resize;
 }
 
 .resize-handle:hover,
@@ -134,17 +153,34 @@ const handleStyle = computed(() => ({
 }
 
 .handle-indicator {
-	width: 2px;
-	height: 40px;
 	background: var(--border-color);
 	border-radius: 2px;
 	transition: all 0.2s ease;
 }
 
+.resize-handle.width .handle-indicator {
+	width: 2px;
+	height: 40px;
+}
+
+.resize-handle.height .handle-indicator {
+	width: 40px;
+	height: 2px;
+}
+
 .resize-handle:hover .handle-indicator,
 .resize-handle.dragging .handle-indicator {
 	background: var(--accent);
+}
+
+.resize-handle.width:hover .handle-indicator,
+.resize-handle.width.dragging .handle-indicator {
 	height: 60px;
+}
+
+.resize-handle.height:hover .handle-indicator,
+.resize-handle.height.dragging .handle-indicator {
+	width: 60px;
 }
 
 .resize-handle.dragging .handle-indicator {

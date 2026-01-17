@@ -133,17 +133,8 @@ const getChaoticStyle = (task: Task) => {
 	const rotation = (seed % 7) - 3
 	const xOffset = (seed % 4) * 3 - 6
 
-	// Dynamic height based on duration
-	let height = 68
-	if (task.duration <= 15) height = 42
-	else if (task.duration <= 30) height = 52
-
 	return {
-		transform: `rotate(${rotation}deg) translateX(${xOffset}px)`,
-		margin: '1rem 0',
-		width: '100%',
-		height: `${height}px`,
-		cursor: 'grab'
+		transform: `rotate(${rotation}deg) translateX(${xOffset}px)`
 	}
 }
 
@@ -220,16 +211,25 @@ const handleTouchStart = (e: TouchEvent, task: Task) => {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	padding: 1rem;
+	padding: 1rem 1rem 0;
 	background: rgba(255, 255, 255, 0.01);
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	border: 1px solid transparent;
-	border-radius: 12px;
+
+	&::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		height: 1rem;
+		background: linear-gradient(to bottom, transparent, var(--bg-page));
+	}
 }
 
 .is-shortcuts {
 	background: rgba(255, 255, 255, 0.02);
-	border-bottom: 1px solid var(--border-color);
+	// border-bottom: 1px solid var(--border-color);
 }
 
 .task-pile.is-highlighted {
@@ -264,6 +264,25 @@ const handleTouchStart = (e: TouchEvent, task: Task) => {
 	box-shadow:
 		0 0 2px 1px var(--category-color),
 		0 2px 5px rgba(0, 0, 0, 0.2);
+
+	margin: 1rem 0;
+	width: 100%;
+	height: calc(5rem - var(--ui-scale) * 1rem);
+	cursor: grab;
+}
+
+// @media (resolution: 1x) {
+.pile-task {
+	transform: none !important;
+	margin: 0.5rem 0 !important;
+}
+// }
+
+@media (resolution: 2x) {
+	.pile-task {
+		// transform: none !important;
+		// margin: 0.75rem 0 !important;
+	}
 }
 
 .pile-task.is-active-drag {
