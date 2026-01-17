@@ -109,3 +109,13 @@ export const getMonthName = (month: number): string => {
 	const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 	return names[month]
 }
+/**
+ * Get current time in decimal hours, snapped to the nearest interval
+ */
+export const getTimeSnapped = (date: Date = new Date(), intervalMinutes: number = 15): number => {
+	const hours = date.getHours()
+	const minutes = date.getMinutes()
+	const totalMinutes = hours * 60 + minutes
+	const snappedMinutes = Math.round(totalMinutes / intervalMinutes) * intervalMinutes
+	return snappedMinutes / 60
+}

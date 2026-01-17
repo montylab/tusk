@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import DayView from '../components/DayView.vue'
@@ -68,7 +68,6 @@ watch(
 	<TaskPageLayout @edit="handleEditTask">
 		<template #header>
 			<div class="header-actions-row">
-				<button class="create-btn" @click="handleOpenCreatePopup()">Create Task</button>
 				<h2 class="week-title">Week View ({{ currentDates[0] }} - {{ currentDates[6] }})</h2>
 			</div>
 		</template>
@@ -111,19 +110,5 @@ watch(
 	margin: 0;
 	color: var(--text-light);
 	font-size: 1.2rem;
-}
-
-.create-btn {
-	padding: 0.5rem 1rem;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: #fff;
-	border: none;
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
-
-.create-btn:hover {
-	filter: brightness(1.1);
-	transform: translateY(-1px);
 }
 </style>

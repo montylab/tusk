@@ -70,9 +70,7 @@ const handleAddDay = () => {
 
 <template>
 	<TaskPageLayout @edit="handleEditTask">
-		<template #header>
-			<button class="create-btn" @click="handleOpenCreatePopup()">Create Task</button>
-		</template>
+		<!-- Create Task button moved to AppHeader -->
 
 		<DayView
 			ref="dayViewRef"
@@ -103,20 +101,4 @@ const handleAddDay = () => {
 	</TaskPageLayout>
 </template>
 
-<style scoped>
-.create-btn {
-	margin-bottom: 1rem;
-	padding: 0.5rem 1rem;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: #fff;
-	border: none;
-	border-radius: 8px;
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
-
-.create-btn:hover {
-	filter: brightness(1.1);
-	transform: translateY(-1px);
-}
-</style>
+<style scoped></style>

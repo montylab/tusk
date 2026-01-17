@@ -42,6 +42,11 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 		</div>
 
 		<div class="header-right" v-if="user">
+			<button class="create-task-btn" @click="uiStore.triggerCreateTask()">
+				<i class="pi pi-plus"></i>
+				<span>Create Task</span>
+			</button>
+
 			<button
 				class="icon-btn theme-btn-toggle"
 				:class="{ active: uiStore.isThemePanelOpen }"
@@ -161,6 +166,32 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 	opacity: 1;
 	background: var(--surface-hover);
 	color: var(--accent);
+}
+
+.create-task-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 1rem;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #fff;
+	border: none;
+	border-radius: var(--radius-md);
+	font-size: var(--font-sm);
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	margin-right: var(--spacing-sm);
+}
+
+.create-task-btn:hover {
+	filter: brightness(1.1);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.create-task-btn i {
+	font-size: 0.8rem;
 }
 
 .icon-btn {

@@ -1,9 +1,12 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useTasksStore } from '../stores/tasks'
+import { useUIStore } from '../stores/ui'
+import { formatDate, getTimeSnapped } from '../utils/dateUtils'
 import type { Task } from '../types'
 
 export function useTaskEditor() {
 	const tasksStore = useTasksStore()
+	const uiStore = useUIStore()
 
 	// Popup visibility state
 	const showEditorPopup = ref(false)
@@ -12,11 +15,19 @@ export function useTaskEditor() {
 	const popupTaskType = ref<'scheduled' | 'todo' | 'shortcut'>('scheduled')
 	const popupTargetDate = ref<string | null>(null)
 
+	// Watch for global trigger
+	watch(
+		() => uiStore.createTaskTrigger,
+		() => {
+			handleOpenCreatePopup()
+		}
+	)
+
 	// Handlers
 	const handleOpenCreatePopup = (payload?: { startTime: number; date?: string }) => {
 		taskToEdit.value = null
-		initialStartTime.value = payload?.startTime ?? null
-		popupTargetDate.value = payload?.date ?? tasksStore.currentDates[0]
+		initialStartTime.value = payload?.startTime ?? getTimeSnapped()
+		popupTargetDate.value = payload?.date ?? formatDate(new Date())
 		popupTaskType.value = 'scheduled'
 		showEditorPopup.value = true
 	}
