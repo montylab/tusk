@@ -400,7 +400,7 @@ const onEditClick = (e: Event) => {
 		top: 0;
 		right: 0;
 		transform: translateY(-100%);
-		// background: var(--category-color);
+		background: var(--category-color);
 		color: var(--text-on-accent);
 		font-size: 0.7rem;
 		line-height: 1.4;

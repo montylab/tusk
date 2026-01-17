@@ -126,7 +126,7 @@ function cleanup() {
 }
 
 function handleMove(event: MouseEvent | TouchEvent) {
-	if (!isDragging.value) return
+	if (!isDragging.value || isDestroying.value) return
 
 	const coords = getEventCoordinates(event)
 	ghostPosition.value = coords
@@ -149,7 +149,7 @@ function handleMove(event: MouseEvent | TouchEvent) {
 }
 
 async function handleEnd(event: MouseEvent | TouchEvent) {
-	if (!isDragging.value) return
+	if (!isDragging.value || isDestroying.value) return
 
 	event.preventDefault()
 
@@ -194,8 +194,12 @@ function handleKeyDown(event: KeyboardEvent) {
 	if (event.key === 'Escape') {
 		cleanup()
 	} else if (event.key === 'Delete' || event.key === 'Backspace') {
-		if (isDragging.value && draggedTask.value && sourceZone.value) {
+		if (isDragging.value && draggedTask.value && sourceZone.value && !isDestroying.value) {
 			isDestroying.value = true
+			// Clear hover state immediately
+			currentZone.value = null
+			dropData.value = null
+
 			manageTaskRelocation(sourceZone.value, 'trash', draggedTask.value, null)
 			setTimeout(() => {
 				cleanup()
