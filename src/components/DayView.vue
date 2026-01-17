@@ -357,7 +357,11 @@ defineExpose({
 .time-labels {
 	width: 4rem;
 	flex-shrink: 0;
-	position: relative;
+	position: sticky;
+	left: 0;
+	z-index: 30;
+	background: var(--bg-card);
+	border-right: 1px solid var(--border-color);
 }
 
 .time-label {
@@ -410,8 +414,8 @@ defineExpose({
 	border-bottom: 2px solid var(--border-color);
 	background: color-mix(in srgb, var(--bg-card) 60%, transparent);
 	position: sticky;
-	inset: 0;
-	z-index: 20;
+	top: 0;
+	z-index: 40;
 	backdrop-filter: blur(4px);
 	transition: background 0.2s;
 }
