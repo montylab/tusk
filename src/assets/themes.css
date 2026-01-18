@@ -1,4 +1,5 @@
-:root {
+/* html is used here to boost specificity */
+html:root {
 	/* Core Palette */
 	--bg-page: #0f172a; /* Main app background */
 	--bg-card: #1e293b; /* Containers & surface elements */
@@ -68,10 +69,48 @@
 	/* Advanced Effects */
 	--accent-gradient: linear-gradient(135deg, #38bdf8 0%, #3b82f6 100%); /* Signature gradients */
 	--bg-today-highlight: color-mix(in srgb, var(--accent), transparent 90%); /* Calendar today highlight */
+
+	/* 	
+		PrimeVue 
+		Global & Component Tokens 
+	*/
+	--p-content-background: transparent;
+	--p-content-color: var(--text-primary);
+	--p-content-hover-background: var(--surface-hover);
+	--p-content-hover-color: var(--text-primary);
+	--p-content-active-background: color-mix(in srgb, var(--surface-hover), var(--text-primary) 10%);
+	--p-content-active-color: var(--text-primary);
+	--p-content-border-color: var(--border-color);
+
+	--p-primary-color: var(--accent);
+	--p-primary-hover-color: var(--accent-hover);
+	--p-primary-contrast-color: var(--text-on-accent);
+
+	--p-datepicker-panel-background: var(--bg-popover);
+	--p-datepicker-panel-shadow: var(--shadow-lg);
+	--p-datepicker-panel-border-radius: var(--radius-lg);
+
+	/* --p-datepicker-today-background: var(--bg-input); */
+
+	--p-button-text-secondary-hover-background: var(--p-content-hover-background);
+	--p-button-text-secondary-active-background: var(--p-content-active-background);
+	--p-button-text-secondary-color: var(--text-meta);
+	--p-button-text-secondary-hover-color: var(--text-primary);
+
+	--p-inputtext-background: var(--bg-input);
+	--p-inputtext-border-color: var(--border-color);
+	--p-inputtext-color: var(--text-primary);
+	--p-inputtext-focus-border-color: var(--accent);
+	--p-inputtext-border-radius: var(--radius-md);
+	--p-inputtext-focus-ring-shadow: 0 0 0 calc(var(--ui-scale) * 3px) color-mix(in srgb, var(--accent), transparent 90%);
+}
+
+html[data-theme='dark'] {
+	--p-datepicker-date-hover-background: #404d60;
 }
 
 /* Light Theme */
-[data-theme='light'] {
+html[data-theme='light'] {
 	--bg-page: #f8fafc;
 	--bg-card: #ffffff;
 	--text-primary: #2f374a;
@@ -80,6 +119,7 @@
 	--accent: #0284c7;
 	--accent-hover: #0369a1;
 	--surface-hover: rgba(15, 23, 42, 0.05);
+	--bg-input: rgba(15, 23, 42, 0.05);
 
 	/* Role Adjustments */
 	--bg-header: rgba(255, 255, 255, 0.95);
@@ -93,7 +133,7 @@
 }
 
 /* Pinky Theme */
-[data-theme='pinky'] {
+html[data-theme='pinky'] {
 	--bg-page: #fff1f2;
 	--bg-card: #ffffff;
 	--text-primary: #881337;
@@ -102,6 +142,7 @@
 	--accent: #db2777;
 	--accent-hover: #be185d;
 	--surface-hover: rgba(219, 39, 119, 0.08);
+	--bg-input: rgba(136, 19, 55, 0.05);
 
 	/* Role Adjustments */
 	--bg-header: #fffcfd;
@@ -113,7 +154,7 @@
 }
 
 /* Vivid Theme (Joyful & Neon Energy) */
-[data-theme='vivid'] {
+html[data-theme='vivid'] {
 	--bg-page: #78e3ef;
 	--bg-card: #8f00ff;
 	--text-primary: #ffffff;
@@ -122,6 +163,7 @@
 	--accent: #ff6b00;
 	--accent-hover: #ff8533;
 	--surface-hover: rgba(255, 255, 255, 0.25);
+	--bg-input: rgba(0, 0, 0, 0.2);
 	--color-basket-accent: #ff4b1f;
 
 	/* Role Adjustments */
