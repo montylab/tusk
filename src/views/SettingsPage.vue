@@ -118,7 +118,7 @@ const updateInterfaceScale = (event: Event) => {
 	width: 100%;
 	height: 100%;
 	overflow-y: auto;
-	color: var(--text-main);
+	color: var(--text-primary);
 }
 
 .settings-content-wrapper {
@@ -183,6 +183,7 @@ const updateInterfaceScale = (event: Event) => {
 	align-items: center;
 	justify-content: space-between;
 	padding: var(--spacing-md);
+	margin: var(--spacing-md) 0;
 	background: var(--bg-card);
 	border-radius: var(--radius-md);
 	border: 1px solid var(--border-color);
@@ -211,11 +212,6 @@ const updateInterfaceScale = (event: Event) => {
 }
 
 .setting-input {
-	padding: var(--spacing-sm);
-	border-radius: var(--radius-sm);
-	border: 1px solid var(--border-color);
-	background: var(--bg-input);
-	color: var(--text-primary);
 	width: 100px;
 	font-size: var(--font-base);
 	text-align: center;
@@ -230,12 +226,6 @@ const updateInterfaceScale = (event: Event) => {
 .setting-input.select {
 	width: auto;
 	min-width: 140px;
-	cursor: pointer;
-	appearance: none;
-	background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22white%22%20d%3D%22M10.293%203.293L6%207.586%201.707%203.293A1%201%200%2000.293%204.707l5%205a1%201%200%20001.414%200l5-5a1%201%200%2010-1.414-1.414z%22%2F%3E%3C%2Fsvg%3E');
-	background-repeat: no-repeat;
-	background-position: right 1rem center;
-	padding-right: 2.5rem;
 	text-align: left;
 }
 </style>

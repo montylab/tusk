@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
+import ColorPickerInput from './ColorPickerInput.vue'
 
 const props = defineProps<{
 	name: string
@@ -140,73 +141,72 @@ const isNewCategory = computed(() => {
 	if (!query) return false
 	return !categoriesStore.categoriesArray.some((cat) => cat.name.toLowerCase() === query)
 })
-
-const showHint = ref(false)
-let hintTimeout: any = null
-
-const handlePickerClick = () => {
-	if (!isNewCategory.value) {
-		showHint.value = true
-		if (hintTimeout) clearTimeout(hintTimeout)
-		hintTimeout = setTimeout(() => {
-			showHint.value = false
-		}, 3000)
-	}
-}
 </script>
 
 <template>
-	<div class="category-input-wrapper">
-		<AutoComplete
-			v-model="nameInput"
-			:suggestions="filteredSuggestions"
-			option-label="name"
-			@complete="searchCategory"
-			@item-select="onCategorySelect"
-			placeholder="Type to search or create..."
-			dropdown
-			input-class="form-input"
-			panel-class="p-autocomplete-panel-custom"
-			class="p-autocomplete-root-custom"
-		>
-			<template #option="slotProps">
-				<div class="autocomplete-option">
-					<div>
-						{{ slotProps.option.name }}
-					</div>
-					<div v-if="!isNewCategory" class="option-color-preview" :style="{ background: slotProps.option.color }"></div>
-				</div>
-			</template>
-		</AutoComplete>
+	<div class="category-selector-container">
+		<div class="category-input-row">
+			<div class="autocomplete-wrapper">
+				<AutoComplete
+					v-model="nameInput"
+					:suggestions="filteredSuggestions"
+					option-label="name"
+					@complete="searchCategory"
+					@item-select="onCategorySelect"
+					placeholder="Type to search or create..."
+					dropdown
+					input-class="form-input"
+					panel-class="p-autocomplete-panel-custom"
+					class="p-autocomplete-root-custom"
+				>
+					<template #option="slotProps">
+						<div class="autocomplete-option">
+							<div>
+								{{ slotProps.option.name }}
+							</div>
+							<div v-if="!isNewCategory" class="option-color-preview" :style="{ background: slotProps.option.color }"></div>
+						</div>
+					</template>
+				</AutoComplete>
+			</div>
 
-		<div class="color-picker-container" @click="handlePickerClick">
-			<ColorPicker v-model="colorInput" :disabled="!isNewCategory" class="color-preview" size="large" />
-			<Transition name="hint-fade">
-				<div v-if="showHint" class="picker-hint">Only new categories can choose color</div>
-			</Transition>
+			<div class="deep-work-toggle" v-if="isNewCategory">
+				<label class="toggle-container" title="Deep Work category">
+					<input type="checkbox" :checked="isDeepWork" @change="emit('update:isDeepWork', ($event.target as HTMLInputElement).checked)" />
+					<span class="toggle-label">Deep Work</span>
+				</label>
+			</div>
 		</div>
 
-		<div class="deep-work-toggle" v-if="isNewCategory">
-			<label class="toggle-container" title="Deep Work category">
-				<input type="checkbox" :checked="isDeepWork" @change="emit('update:isDeepWork', ($event.target as HTMLInputElement).checked)" />
-				<span class="toggle-label">Deep Work</span>
-			</label>
+		<div class="color-picker-row" v-if="isNewCategory">
+			<label class="sub-label">Choose Color:</label>
+			<ColorPickerInput v-model="colorInput" />
 		</div>
 	</div>
 </template>
 
 <style scoped>
-.category-input-wrapper {
-	position: relative;
+.category-selector-container {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	width: 100%;
+}
+
+.category-input-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	flex-direction: row;
+	gap: 1rem;
+}
+
+.autocomplete-wrapper {
+	flex: 1;
+	width: 100%;
 }
 
 /* PrimeVue AutoComplete specific styling */
 .p-autocomplete-root-custom {
-	flex: 1;
 	width: 100%;
 }
 
@@ -250,50 +250,71 @@ const handlePickerClick = () => {
 	box-shadow: var(--shadow-sm);
 }
 
-.color-preview {
-	margin-left: 1rem;
-	--p-colorpicker-preview-width: 3rem;
-	--p-colorpicker-preview-height: 3rem;
-}
-
-.color-picker-container {
-	position: relative;
+/* Deep Work Toggle */
+.deep-work-toggle {
 	display: flex;
 	align-items: center;
-}
-
-.picker-hint {
-	position: absolute;
-	bottom: 110%;
-	right: 0;
-	background: var(--bg-popover);
-	border: 1px solid var(--border-color);
-	color: var(--text-primary);
-	padding: var(--spacing-sm) var(--spacing-md);
-	border-radius: var(--radius-md);
-	font-size: var(--font-xs);
 	white-space: nowrap;
-	box-shadow: var(--shadow-md);
-	z-index: 10002;
-	pointer-events: none;
-	backdrop-filter: blur(calc(var(--ui-scale) * 10px));
 }
 
-.hint-fade-enter-active,
-.hint-fade-leave-active {
-	transition:
-		opacity 0.3s ease,
-		transform 0.3s ease;
+.toggle-container {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+	font-size: 0.875rem;
+	color: var(--text-muted);
+	user-select: none;
 }
 
-.hint-fade-enter-from,
-.hint-fade-leave-to {
-	opacity: 0;
-	transform: translateY(calc(var(--ui-scale) * 10px));
+.toggle-container input {
+	width: 1rem;
+	height: 1rem;
+	cursor: pointer;
+	accent-color: var(--color-urgent);
+}
+
+.toggle-label {
+	transition: color 0.2s;
+	font-weight: 500;
+}
+
+.toggle-container:hover .toggle-label {
+	color: var(--text-primary);
+}
+
+/* Color Picker Row */
+.color-picker-row {
+	background: color-mix(in srgb, var(--bg-popover), transparent 50%);
+	border-radius: var(--radius-md);
+	padding: 0.75rem;
+	border: 1px solid var(--border-color);
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	animation: fadeIn 0.3s ease;
+}
+
+.sub-label {
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	color: var(--text-meta);
+	font-weight: 600;
+	letter-spacing: 0.5px;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-5px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 /* Reusing form-input style from parent or defining it here if needed */
-/* Since it's a separate component, it should probably have its own definition or rely on global styles */
 :deep(.form-input) {
 	background: var(--bg-input);
 	border: 1px solid var(--border-color);
@@ -315,35 +336,5 @@ const handlePickerClick = () => {
 :deep(.form-input::placeholder) {
 	color: var(--text-muted);
 	opacity: 0.4;
-}
-
-.deep-work-toggle {
-	margin-left: 1rem;
-	display: flex;
-	align-items: center;
-}
-
-.toggle-container {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	cursor: pointer;
-	font-size: 0.75rem;
-	color: var(--text-muted);
-	user-select: none;
-	white-space: nowrap;
-}
-
-.toggle-container input {
-	cursor: pointer;
-	accent-color: var(--color-urgent);
-}
-
-.toggle-label {
-	transition: color 0.2s;
-}
-
-.toggle-container:hover .toggle-label {
-	color: var(--text-primary);
 }
 </style>

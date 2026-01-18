@@ -67,3 +67,58 @@ input {
 	scrollbar-width: thin;
 	scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
+
+/* Global Input / Select / Textarea Styles */
+input,
+select,
+textarea,
+.p-inputtext,
+.p-autocomplete-input {
+	background-color: var(--bg-input) !important;
+	color: var(--text-primary) !important;
+	font-family: inherit;
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-sm);
+	padding: 0.5rem 0.75rem;
+	transition: all 0.2s ease;
+}
+
+select {
+	appearance: none;
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgba(148, 163, 184, 0.5)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	background-size: 1rem;
+	padding-right: 2.5rem !important;
+	cursor: pointer;
+}
+
+[data-theme='light'] select {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgba(51, 65, 85, 0.5)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+option {
+	background-color: var(--bg-card);
+	color: var(--text-primary);
+}
+
+[data-theme='light'] option {
+	background-color: #ffffff;
+	color: var(--text-primary);
+}
+
+/* PrimeVue specific overrides to ensure they pick up our variables */
+.p-inputtext:focus,
+.p-autocomplete-input:focus {
+	border-color: var(--accent) !important;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent), transparent 80%) !important;
+}
+
+[data-theme='light'] input,
+[data-theme='light'] select,
+[data-theme='light'] textarea,
+[data-theme='light'] .p-inputtext,
+[data-theme='light'] .p-autocomplete-input {
+	background-color: #ffffff !important;
+	border: 1px solid var(--border-color) !important;
+}

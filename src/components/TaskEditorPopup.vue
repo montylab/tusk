@@ -203,12 +203,6 @@ onUnmounted(() => {
 								<label for="category">Category</label>
 								<CategorySelector v-model:name="categoryInput" v-model:color="selectedColor" v-model:isDeepWork="isDeepWork" />
 							</div>
-
-							<!-- Duration -->
-							<div class="form-group duration-group" v-if="taskType !== 'todo'">
-								<label for="duration">Duration</label>
-								<TaskDateTimePicker v-model:time="duration" view="time-only" />
-							</div>
 						</div>
 
 						<template v-else>
@@ -225,8 +219,20 @@ onUnmounted(() => {
 							</div>
 						</template>
 
-						<!-- Compact Read-only Metadata -->
-						<div v-if="isCompactView && taskType === 'scheduled'" class="compact-meta">
+						<!-- Compact Row 1: Deep Work + Duration -->
+						<div v-if="isCompactView && taskType === 'scheduled'" class="compact-meta-row">
+							<div class="checkbox-small">
+								<input id="deep-work-compact" v-model="isDeepWork" type="checkbox" />
+								<label for="deep-work-compact">Deep Work</label>
+							</div>
+							<div class="meta-item duration-compact">
+								<span class="meta-label">Duration:</span>
+								<TaskDateTimePicker v-model:time="duration" view="time-only" />
+							</div>
+						</div>
+
+						<!-- Compact Row 2: Date + Start Time -->
+						<div v-if="isCompactView && taskType === 'scheduled'" class="compact-meta-row">
 							<div class="meta-item">
 								<span class="meta-label">Date:</span>
 								<span class="meta-value">{{ displayDate }}</span>
@@ -234,12 +240,6 @@ onUnmounted(() => {
 							<div class="meta-item" v-if="startTime !== null">
 								<span class="meta-label">Start:</span>
 								<span class="meta-value">{{ formatTime(startTime) }}</span>
-							</div>
-							<div class="meta-item ml-auto">
-								<div class="checkbox-small">
-									<input id="deep-work-compact" v-model="isDeepWork" type="checkbox" />
-									<label for="deep-work-compact">Deep Work</label>
-								</div>
 							</div>
 						</div>
 
@@ -579,37 +579,32 @@ onUnmounted(() => {
 	width: 120px;
 }
 
-.compact-meta {
+.compact-meta-row {
 	display: flex;
 	align-items: center;
-	gap: var(--spacing-lg);
-	background: color-mix(in srgb, var(--text-primary), transparent 97%);
-	padding: 0.625rem var(--spacing-sm);
-	border-radius: var(--radius-md);
-	border: 1px solid var(--border-color);
+	gap: 1rem;
+	padding: 0.25rem 0;
+	min-height: 2.5rem;
 }
 
 .meta-item {
 	display: flex;
 	align-items: center;
-	gap: 0.375rem;
+	gap: 0.5rem;
 }
 
 .meta-label {
 	font-size: 0.75rem;
-	font-weight: 600;
+	font-weight: 700;
 	color: var(--text-meta);
 	text-transform: uppercase;
+	letter-spacing: 0.5px;
 }
 
 .meta-value {
-	font-size: 0.8125rem;
+	font-size: 0.875rem;
 	color: var(--text-primary);
 	font-weight: 500;
-}
-
-.ml-auto {
-	margin-left: auto;
 }
 
 .checkbox-small {
@@ -626,12 +621,23 @@ onUnmounted(() => {
 }
 
 .checkbox-small label {
-	font-size: 0.8125rem;
+	font-size: 0.75rem;
 	color: var(--text-meta);
 	cursor: pointer;
-	text-transform: none !important;
-	font-weight: 500 !important;
+	text-transform: uppercase !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.5px;
 	margin: 0 !important;
+	padding: 0.5rem 1rem 0.5rem 0.25rem;
+}
+
+.duration-compact {
+	margin-left: auto;
+	width: auto;
+}
+
+.duration-compact :deep(.p-datepicker) {
+	width: 90px;
 }
 
 .expand-container {

@@ -51,7 +51,7 @@
 	--bg-task-item: color-mix(in srgb, var(--text-primary), transparent 92%); /* Task card bg */
 	--bg-column: color-mix(in srgb, var(--text-primary), transparent 98%); /* Grid column tint */
 	--bg-overlay: rgba(0, 0, 0, 0.7); /* Modal backdrop dimmer */
-	--bg-input: color-mix(in srgb, var(--text-primary), transparent 95%); /* Form field surface */
+	--bg-input: rgba(255, 255, 255, 0.07); /* Form field surface */
 
 	/* Typography Roles */
 	--text-header: #ffffff; /* Text color for nav and logo */
@@ -109,6 +109,7 @@
 	--accent-gradient: linear-gradient(135deg, #db2777 0%, #fb7185 100%);
 	--bg-deep-work: #db2777;
 	--text-meta: color-mix(in srgb, var(--text-primary), transparent 40%);
+	--bg-task-item: var(--bg-page);
 }
 
 /* Vivid Theme (Joyful & Neon Energy) */

@@ -206,6 +206,10 @@ const stripHex = (hex: string) => hex.replace('#', '')
 	font-size: 0.9rem;
 }
 
+.name-input {
+	color: var(--text-primary);
+}
+
 .checkbox-group {
 	flex: 0 0 auto;
 	min-width: 120px;
@@ -319,6 +323,7 @@ const stripHex = (hex: string) => hex.replace('#', '')
 	font-size: 1rem !important;
 	padding: 0.2rem 0.4rem !important;
 	box-shadow: none !important;
+	color: var(--text-primary) !important;
 }
 
 .item-name-input:focus {
