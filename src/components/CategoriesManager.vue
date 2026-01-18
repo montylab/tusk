@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
 import draggable from 'vuedraggable'
+import ColorPickerInput from './ColorPickerInput.vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import ColorPicker from 'primevue/colorpicker'
@@ -23,7 +24,7 @@ const localCategories = computed({
 })
 
 const newCategoryName = ref('')
-const newCategoryColor = ref('3b82f6') // Default hex string (without # for PrimeVue ColorPicker)
+const newCategoryColor = ref('#06b6d4') // Default hex string (without # for PrimeVue ColorPicker)
 const newCategoryIsDeepWork = ref(false)
 
 const handleAddCategory = async () => {
@@ -58,9 +59,6 @@ const handleUpdateName = async (id: string, name: string) => {
 const handleUpdateDeepWork = async (id: string, isDeepWork: boolean) => {
 	await categoriesStore.updateCategory(id, { isDeepWork })
 }
-
-// Helper to strip # for ColorPicker model
-const stripHex = (hex: string) => hex.replace('#', '')
 </script>
 
 <template>
@@ -70,26 +68,38 @@ const stripHex = (hex: string) => hex.replace('#', '')
 			<p class="subtitle">Customize your task categories, colors, and organization</p>
 		</div>
 
-		<div class="add-section">
-			<div class="input-group">
-				<label>Category Name</label>
-				<InputText v-model="newCategoryName" placeholder="e.g., Deep Work, Health..." @keyup.enter="handleAddCategory" class="name-input" />
-			</div>
-			<div class="input-group">
-				<label>Color</label>
-				<div class="color-picker-container">
-					<ColorPicker v-model="newCategoryColor" />
-					<span class="color-code">#{{ newCategoryColor }}</span>
+		<div class="add-section-wrapper">
+			<div class="color-stripe"></div>
+			<div class="add-section">
+				<div class="row">
+					<div class="input-group name-group">
+						<label>Category Name</label>
+						<InputText
+							v-model="newCategoryName"
+							placeholder="e.g., Deep Work, Health..."
+							@keyup.enter="handleAddCategory"
+							class="name-input"
+						/>
+					</div>
+					<div class="input-group checkbox-group">
+						<label>Deep Work</label>
+						<div class="checkbox-container">
+							<input type="checkbox" v-model="newCategoryIsDeepWork" />
+							<span class="checkbox-hint">Auto-enables for tasks</span>
+						</div>
+					</div>
+					<Button
+						label="Add Category"
+						icon="pi pi-plus"
+						@click="handleAddCategory"
+						:disabled="!newCategoryName.trim()"
+						class="add-button"
+					/>
+				</div>
+				<div class="row">
+					<ColorPickerInput v-model="newCategoryColor" />
 				</div>
 			</div>
-			<div class="input-group checkbox-group">
-				<label>Deep Work</label>
-				<div class="checkbox-container">
-					<input type="checkbox" v-model="newCategoryIsDeepWork" />
-					<span class="checkbox-hint">Auto-enables for tasks</span>
-				</div>
-			</div>
-			<Button label="Add Category" icon="pi pi-plus" @click="handleAddCategory" :disabled="!newCategoryName.trim()" class="add-button" />
 		</div>
 
 		<div class="list-section">
@@ -105,8 +115,8 @@ const stripHex = (hex: string) => hex.replace('#', '')
 						<div class="color-swatch-wrapper">
 							<div class="color-indicator" :style="{ backgroundColor: element.color }"></div>
 							<ColorPicker
-								:modelValue="stripHex(element.color)"
-								@update:modelValue="(val) => handleUpdateColor(element.id, val)"
+								:modelValue="element.color.replace('#', '')"
+								@update:modelValue="(val: string) => handleUpdateColor(element.id, val)"
 								class="inline-picker"
 							/>
 						</div>
@@ -144,7 +154,7 @@ const stripHex = (hex: string) => hex.replace('#', '')
 	</div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .categories-manager {
 	display: flex;
 	flex-direction: column;
@@ -162,15 +172,40 @@ const stripHex = (hex: string) => hex.replace('#', '')
 	color: var(--text-muted);
 }
 
+.add-section-wrapper {
+	--category-color: v-bind(newCategoryColor);
+	background: var(--bg-task-item);
+	border-radius: var(--radius-md);
+	display: flex;
+	border: 1px solid var(--category-color);
+	width: 100%;
+	box-shadow: var(--shadow-sm);
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	position: relative;
+	overflow: hidden;
+
+	.color-stripe {
+		width: var(--spacing-xs);
+		flex-shrink: 0;
+		background: var(--category-color);
+		border-radius: var(--radius-md) 0 0 var(--radius-md);
+	}
+}
+
 .add-section {
 	display: flex;
-	align-items: flex-end;
+	flex: 1;
+	flex-direction: column;
 	gap: var(--spacing-md);
 	padding: var(--spacing-md);
-	background: var(--surface-hover);
-	border: 1px solid var(--border-color);
-	border-radius: var(--radius-md);
+	background: transparent;
 	flex-wrap: wrap;
+}
+
+.add-section .row {
+	display: flex;
+	flex-direction: row;
+	gap: var(--spacing-md);
 }
 
 .input-group {
@@ -178,6 +213,15 @@ const stripHex = (hex: string) => hex.replace('#', '')
 	flex-direction: column;
 	gap: 0.25rem;
 	flex: 1;
+
+	&.name-group {
+		flex: 1;
+		max-width: 50%;
+	}
+
+	&.checkbox-group {
+		flex: none;
+	}
 }
 
 .input-group label {
@@ -202,6 +246,9 @@ const stripHex = (hex: string) => hex.replace('#', '')
 }
 
 .add-button {
+	width: calc(100px + 5rem);
+	margin: 0 0 0 auto;
+	place-self: flex-end;
 	height: 36px;
 	font-size: 0.9rem;
 }
