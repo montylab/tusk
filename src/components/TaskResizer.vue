@@ -16,9 +16,13 @@ const emit = defineEmits<{
 	(e: 'end-resize'): void
 }>()
 
+import { useAppearanceStore } from '../stores/appearance'
+
 const tasksStore = useTasksStore()
 const settingsStore = useSettingsStore()
-const { hourHeight, settings } = storeToRefs(settingsStore)
+const appearanceStore = useAppearanceStore()
+const { settings } = storeToRefs(settingsStore)
+const { hourHeight } = storeToRefs(appearanceStore)
 
 const isResizing = ref(false)
 const resizeHandle = ref<'top' | 'bottom' | null>(null)

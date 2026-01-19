@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import CategoriesManager from '../components/CategoriesManager.vue'
 import { useSettingsStore } from '../stores/settings'
+import { useAppearanceStore, type ThemeType, type ColorSchemeType } from '../stores/appearance'
 import { storeToRefs } from 'pinia'
 
 const settingsStore = useSettingsStore()
+const appearanceStore = useAppearanceStore()
 const { settings } = storeToRefs(settingsStore)
+const { theme, colorScheme, interfaceScale } = storeToRefs(appearanceStore)
 
 const updateStartHour = (event: Event) => {
 	const val = parseFloat((event.target as HTMLInputElement).value)
@@ -14,18 +17,18 @@ const updateStartHour = (event: Event) => {
 }
 
 const updateTheme = (event: Event) => {
-	const val = (event.target as HTMLSelectElement).value as 'light' | 'dark'
-	settingsStore.updateSettings({ theme: val })
+	const val = (event.target as HTMLSelectElement).value as ThemeType
+	appearanceStore.theme = val
 }
 
 const updateColorScheme = (event: Event) => {
-	const val = (event.target as HTMLSelectElement).value as 'pastel' | 'brisky' | 'royal'
-	settingsStore.updateSettings({ colorScheme: val })
+	const val = (event.target as HTMLSelectElement).value as ColorSchemeType
+	appearanceStore.colorScheme = val
 }
 
 const updateInterfaceScale = (event: Event) => {
 	const val = parseInt((event.target as HTMLSelectElement).value)
-	settingsStore.updateSettings({ interfaceScale: val })
+	appearanceStore.interfaceScale = val
 }
 </script>
 
@@ -66,7 +69,7 @@ const updateInterfaceScale = (event: Event) => {
 							<label for="theme">Application Theme</label>
 							<p class="setting-desc">Switch between light and dark modes</p>
 						</div>
-						<select id="theme" :value="settings.theme ?? 'dark'" @change="updateTheme" class="setting-input select">
+						<select id="theme" :value="theme ?? 'dark'" @change="updateTheme" class="setting-input select">
 							<option value="light">Light</option>
 							<option value="dark">Dark</option>
 						</select>
@@ -77,7 +80,7 @@ const updateInterfaceScale = (event: Event) => {
 							<label for="color-scheme">Color Scheme</label>
 							<p class="setting-desc">Choose your preferred accent colors</p>
 						</div>
-						<select id="color-scheme" :value="settings.colorScheme ?? 'brisky'" @change="updateColorScheme" class="setting-input select">
+						<select id="color-scheme" :value="colorScheme ?? 'brisky'" @change="updateColorScheme" class="setting-input select">
 							<option value="pastel">Pastel</option>
 							<option value="brisky">Brisky</option>
 							<option value="royal">Royal</option>
@@ -89,12 +92,7 @@ const updateInterfaceScale = (event: Event) => {
 							<label for="interface-scale">Interface Scale</label>
 							<p class="setting-desc">Adjust the size of the user interface</p>
 						</div>
-						<select
-							id="interface-scale"
-							:value="settings.interfaceScale ?? 100"
-							@change="updateInterfaceScale"
-							class="setting-input select"
-						>
+						<select id="interface-scale" :value="interfaceScale ?? 100" @change="updateInterfaceScale" class="setting-input select">
 							<option :value="50">50%</option>
 							<option :value="75">75%</option>
 							<option :value="100">100%</option>

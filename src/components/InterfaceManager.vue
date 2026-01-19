@@ -1,25 +1,22 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useSettingsStore } from '../stores/settings'
+import { useAppearanceStore } from '../stores/appearance'
 
-const settingsStore = useSettingsStore()
-const { settings, hourHeight, headerHeight, uiScale } = storeToRefs(settingsStore)
+const appearanceStore = useAppearanceStore()
+const { theme, colorScheme, interfaceScale, hourHeight, headerHeight, uiScale } = storeToRefs(appearanceStore)
 
 // Apply settings to document
 watch(
-	[settings, hourHeight, headerHeight, uiScale],
-	([s, hh, hdh, scale]) => {
-		const theme = s.theme || 'dark'
-		const scheme = s.colorScheme || 'brisky'
-
+	[theme, colorScheme, interfaceScale, hourHeight, headerHeight, uiScale],
+	([t, sc, scale, hh, hdh, uis]) => {
 		const el = document.documentElement
 
-		el.setAttribute('data-theme', theme)
-		el.setAttribute('data-scheme', scheme)
-		el.setAttribute('data-scale', s.interfaceScale?.toString() || '100')
+		el.setAttribute('data-theme', t)
+		el.setAttribute('data-scheme', sc)
+		el.setAttribute('data-scale', scale.toString())
 
-		el.style.setProperty('--ui-scale', scale.toString())
+		el.style.setProperty('--ui-scale', uis.toString())
 		el.style.setProperty('--hour-height', `${hh}px`)
 		el.style.setProperty('--header-height', `${hdh}px`)
 	},

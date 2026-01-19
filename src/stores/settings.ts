@@ -5,20 +5,10 @@ import * as firebaseService from '../services/firebaseService'
 
 export interface UserSettings {
 	defaultStartHour?: number
-	theme?: 'light' | 'dark' | 'pinky' | 'vivid'
-	colorScheme?: 'pastel' | 'brisky' | 'royal'
-	interfaceScale?: number
-	hourHeight?: number
-	headerHeight?: number
 	snapMinutes?: number
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-	theme: 'dark',
-	colorScheme: 'brisky',
-	interfaceScale: 100,
-	hourHeight: 80,
-	headerHeight: 70,
 	snapMinutes: 15,
 	defaultStartHour: 9
 }
@@ -32,10 +22,6 @@ export const useSettingsStore = defineStore('settings', () => {
 		...DEFAULT_SETTINGS,
 		...settingsData.value
 	}))
-
-	const uiScale = computed(() => (settings.value.interfaceScale || 100) / 100)
-	const hourHeight = computed(() => (settings.value.hourHeight || 80) * uiScale.value)
-	const headerHeight = computed(() => (settings.value.headerHeight || 70) * uiScale.value)
 
 	let unsub: (() => void) | null = null
 
@@ -70,9 +56,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
 	return {
 		settings,
-		uiScale,
-		hourHeight,
-		headerHeight,
 		loading,
 		updateSettings
 	}

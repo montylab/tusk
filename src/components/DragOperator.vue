@@ -2,13 +2,14 @@
 import { computed } from 'vue'
 import { useDragOperator } from '../composables/useDragOperator'
 import { getTaskStatus } from '../logic/taskStatus'
-import { useSettingsStore } from '../stores/settings'
 import { storeToRefs } from 'pinia'
 import TaskItem from './TaskItem.vue'
 
+import { useAppearanceStore } from '../stores/appearance'
+
 const { isDragging, draggedTask, ghostPosition, currentZone, dropData, isDestroying } = useDragOperator()
-const settingsStore = useSettingsStore()
-const { hourHeight, uiScale } = storeToRefs(settingsStore)
+const appearanceStore = useAppearanceStore()
+const { hourHeight, uiScale } = storeToRefs(appearanceStore)
 
 const isVisible = computed(() => isDragging.value || isDestroying.value)
 

@@ -7,6 +7,7 @@ import type { Task } from '../types'
 import { useDragOperator } from '../composables/useDragOperator'
 import { getTaskStatus } from '../logic/taskStatus'
 import { useSettingsStore } from '../stores/settings'
+import { useAppearanceStore } from '../stores/appearance'
 import AppIcon from './common/AppIcon.vue'
 
 const props = withDefaults(
@@ -119,7 +120,8 @@ const formatTimeLabel = (time: number) => {
 }
 
 const settingsStore = useSettingsStore()
-const { hourHeight, uiScale } = storeToRefs(settingsStore)
+const appearanceStore = useAppearanceStore()
+const { hourHeight, uiScale } = storeToRefs(appearanceStore)
 
 const timeIndicatorTop = computed(() => {
 	const now = currentTime.value
@@ -315,7 +317,7 @@ defineExpose({
 <style scoped>
 .day-view-container {
 	background: var(--bg-card);
-	border-radius: var(--radius);
+	border-radius: var(--radius-md);
 	flex: 1;
 	min-height: 0;
 	display: flex;

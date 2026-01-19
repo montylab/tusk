@@ -1,10 +1,10 @@
 import { onMounted, onUnmounted } from 'vue'
-import { useSettingsStore } from '../stores/settings'
+import { useAppearanceStore, type ThemeType } from '../stores/appearance'
 import { useTasksStore } from '../stores/tasks'
 import { useDragOperator } from './useDragOperator'
 
 export function useGlobalShortcuts() {
-	const settingsStore = useSettingsStore()
+	const appearanceStore = useAppearanceStore()
 	const tasksStore = useTasksStore()
 	const { startDrag } = useDragOperator()
 
@@ -20,14 +20,14 @@ export function useGlobalShortcuts() {
 		// Theme & Scale (Alt + ...)
 		if (e.altKey) {
 			if (scales[e.key]) {
-				settingsStore.updateSettings({ interfaceScale: scales[e.key] })
+				appearanceStore.interfaceScale = scales[e.key]
 				e.preventDefault()
 			} else if (e.code === 'Backquote') {
-				const themes: ('light' | 'dark' | 'pinky' | 'vivid')[] = ['dark', 'light', 'pinky', 'vivid']
-				const currentTheme = settingsStore.settings.theme || 'dark'
+				const themes: ThemeType[] = ['dark', 'light', 'pinky', 'vivid']
+				const currentTheme = appearanceStore.theme
 				const currentIndex = themes.indexOf(currentTheme)
 				const nextTheme = themes[(currentIndex + 1) % themes.length]
-				settingsStore.updateSettings({ theme: nextTheme })
+				appearanceStore.theme = nextTheme
 				e.preventDefault()
 			}
 		}

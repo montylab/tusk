@@ -410,7 +410,7 @@ const handleUpdateDeepWork = async (id: string, isDeepWork: boolean) => {
 	padding: 2rem;
 	color: var(--text-muted);
 	border: 1px dashed var(--border-color);
-	border-radius: var(--radius);
+	border-radius: var(--radius-md);
 }
 
 @media (max-width: 768px) {

@@ -5,7 +5,6 @@ import type { Task } from '../types'
 import { useTaskLayout } from '../composables/useTaskLayout'
 import { useDragOperator } from '../composables/useDragOperator'
 import { useTasksStore } from '../stores/tasks'
-import { useSettingsStore } from '../stores/settings'
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
@@ -31,9 +30,11 @@ const emit = defineEmits<{
 	(e: 'update:bounds', bounds: DOMRect): void
 }>()
 
+import { useAppearanceStore } from '../stores/appearance'
+
 const tasksStore = useTasksStore()
-const settingsStore = useSettingsStore()
-const { hourHeight } = storeToRefs(settingsStore)
+const appearanceStore = useAppearanceStore()
+const { hourHeight } = storeToRefs(appearanceStore)
 
 const { activeDraggedTaskId, registerZone, unregisterZone, updateZoneBounds, startDrag, dragOffset } = useDragOperator()
 

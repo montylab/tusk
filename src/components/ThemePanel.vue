@@ -1,21 +1,18 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { useSettingsStore } from '../stores/settings'
+import { useAppearanceStore, type ThemeType, THEMES, SCALES } from '../stores/appearance'
 import { useUIStore } from '../stores/ui'
 
-const settingsStore = useSettingsStore()
+const appearanceStore = useAppearanceStore()
 const uiStore = useUIStore()
-const { settings } = storeToRefs(settingsStore)
+const { theme, interfaceScale } = storeToRefs(appearanceStore)
 const { isThemePanelOpen } = storeToRefs(uiStore)
 
-const themes = ['dark', 'light', 'pinky', 'vivid'] as const
-const schemes = ['brisky', 'pastel', 'royal'] as const
-
-const toggleTheme = (t: (typeof themes)[number]) => {
-	settingsStore.updateSettings({ theme: t })
+const toggleTheme = (t: ThemeType) => {
+	appearanceStore.theme = t
 }
-const toggleScheme = (s: (typeof schemes)[number]) => {
-	settingsStore.updateSettings({ colorScheme: s })
+const setScale = (s: number) => {
+	appearanceStore.interfaceScale = s
 }
 </script>
 
@@ -32,31 +29,24 @@ const toggleScheme = (s: (typeof schemes)[number]) => {
 			<div class="switcher-group">
 				<span class="switcher-label">Base Theme</span>
 				<div class="switcher-row">
-					<button
-						v-for="t in themes"
-						:key="t"
-						class="theme-btn"
-						:class="{ active: settings.theme === t }"
-						@click="toggleTheme(t)"
-						:title="t"
-					>
+					<button v-for="t in THEMES" :key="t" class="theme-btn" :class="{ active: theme === t }" @click="toggleTheme(t)" :title="t">
 						{{ t[0].toUpperCase() }}
 					</button>
 				</div>
 			</div>
 
 			<div class="switcher-group">
-				<span class="switcher-label">Accent Scheme</span>
+				<span class="switcher-label">Interface Scale</span>
 				<div class="switcher-row">
 					<button
-						v-for="s in schemes"
+						v-for="s in SCALES"
 						:key="s"
-						class="theme-btn scheme-btn"
-						:class="{ active: settings.colorScheme === s }"
-						@click="toggleScheme(s)"
-						:title="s"
+						class="theme-btn scale-btn"
+						:class="{ active: interfaceScale === s }"
+						@click="setScale(s)"
+						:title="`${s}%`"
 					>
-						{{ s[0].toUpperCase() }}
+						{{ s }}
 					</button>
 				</div>
 			</div>
