@@ -428,4 +428,104 @@ const onEditClick = (e: Event) => {
 		transform: scaleX(1);
 	}
 }
+
+/* ==========================================================================
+   TASK STATES (PAST, ON-AIR, FUTURE)
+   Uncomment only ONE block at a time to change the UI direction.
+   ========================================================================== */
+
+// one of the variation of three state of task-item could be
+.task-item {
+	background: var(--category-color);
+
+	&.in-past {
+		opacity: 0.75;
+	}
+
+	&.in-future {
+		opacity: 0.75;
+		background-color: color-mix(in srgb, var(--category-color), transparent 70%);
+	}
+}
+
+// --- OPTION 1: Elevation & Focus (High Contrast) ---
+.task-item {
+	&.in-past {
+		filter: grayscale(0.5);
+		opacity: 0.5;
+		background: var(--bg-card);
+		border-style: solid;
+	}
+
+	&.on-air {
+		background: var(--category-color);
+		color: #fff;
+		box-shadow: 0 0 20px color-mix(in srgb, var(--category-color), transparent 60%);
+		transform: scale(1.02);
+		z-index: 10;
+		border-color: rgba(255, 255, 255, 0.4);
+	}
+
+	&.in-future {
+		background: transparent;
+		border: 2px dashed var(--category-color);
+		opacity: 0.8;
+	}
+}
+
+// --- OPTION 2: Glassmorphism (Premium SaaS) ---
+.task-item {
+	&.in-past {
+		background: rgba(255, 255, 255, 0.02);
+		backdrop-filter: blur(2px);
+		border-color: color-mix(in srgb, var(--category-color), transparent 80%);
+		opacity: 0.4;
+	}
+
+	&.on-air {
+		background: color-mix(in srgb, var(--category-color), transparent 40%);
+		backdrop-filter: blur(8px);
+		border: 2px solid var(--category-color);
+		box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
+		z-index: 10;
+	}
+
+	&.in-future {
+		background: color-mix(in srgb, var(--category-color), transparent 90%);
+		border: 1px solid color-mix(in srgb, var(--category-color), transparent 50%);
+		border-style: solid;
+	}
+}
+
+// --- OPTION 3: Skeuomorphic Ink (Minimalist) ---
+.task-item {
+	&.in-past {
+		background: transparent;
+		border-color: var(--border-color);
+		color: var(--text-muted);
+		opacity: 0.6;
+		.color-stripe {
+			opacity: 0.2;
+		}
+	}
+
+	&.on-air {
+		background: var(--category-color);
+		border-color: rgba(255, 255, 255, 0.3);
+		outline: 2px solid var(--category-color);
+		outline-offset: 2px;
+		z-index: 10;
+	}
+
+	&.in-future {
+		background-image: repeating-linear-gradient(
+			45deg,
+			transparent,
+			transparent 10px,
+			color-mix(in srgb, var(--category-color), transparent 95%) 10px,
+			color-mix(in srgb, var(--category-color), transparent 95%) 20px
+		);
+		border: 1px solid color-mix(in srgb, var(--category-color), transparent 40%);
+	}
+}
 </style>
