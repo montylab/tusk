@@ -5,6 +5,7 @@ import type { Task } from '../types'
 import CategorySelector from './CategorySelector.vue'
 import TaskDateTimePicker from './TaskDateTimePicker.vue'
 import AppIcon from './common/AppIcon.vue'
+import AppCheckbox from './common/AppCheckbox.vue'
 
 const props = defineProps<{
 	show: boolean
@@ -221,10 +222,7 @@ onUnmounted(() => {
 
 						<!-- Compact Row 1: Deep Work + Duration -->
 						<div v-if="isCompactView && taskType === 'scheduled'" class="compact-meta-row">
-							<div class="checkbox-small">
-								<input id="deep-work-compact" v-model="isDeepWork" type="checkbox" />
-								<label for="deep-work-compact">Deep Work</label>
-							</div>
+							<AppCheckbox v-model="isDeepWork" label="Deep Work" />
 							<div class="meta-item duration-compact">
 								<span class="meta-label">Duration:</span>
 								<TaskDateTimePicker v-model:time="duration" view="time-only" />
@@ -253,11 +251,7 @@ onUnmounted(() => {
 
 						<!-- Deep Work Toggle (Full) -->
 						<div class="form-group" v-if="!isCompactView">
-							<div class="checkbox-group">
-								<input id="deep-work" v-model="isDeepWork" type="checkbox" class="form-checkbox" />
-								<label for="deep-work" class="checkbox-label">Deep Work</label>
-								<div class="deep-work-hint">Focused, uninterrupted work</div>
-							</div>
+							<AppCheckbox v-model="isDeepWork" label="Deep Work" />
 						</div>
 
 						<!-- Task Description -->
@@ -459,53 +453,6 @@ onUnmounted(() => {
 	margin-top: 0.25rem;
 }
 
-.checkbox-group {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-sm);
-	background: var(--bg-input);
-	padding: 0.75rem var(--spacing-md);
-	border-radius: var(--radius-md);
-	border: 1px solid var(--border-color);
-	transition: all 0.2s ease;
-}
-
-.checkbox-group:hover {
-	background: var(--surface-hover);
-	border-color: color-mix(in srgb, var(--accent), transparent 70%);
-}
-
-.checkbox-group:has(.form-checkbox:checked) {
-	background: color-mix(in srgb, var(--accent), transparent 90%);
-	border-color: color-mix(in srgb, var(--accent), transparent 60%);
-}
-
-.form-checkbox {
-	width: 1.375rem;
-	height: 1.375rem;
-	cursor: pointer;
-	accent-color: #7c3aed;
-	border-radius: 0.375rem;
-	transition: all 0.2s ease;
-}
-
-.checkbox-label {
-	font-size: 1rem;
-	font-weight: 600;
-	color: var(--text-primary);
-	cursor: pointer;
-	margin: 0 !important;
-	text-transform: none !important;
-}
-
-.deep-work-hint {
-	margin-left: auto;
-	font-size: 0.75rem;
-	color: var(--text-muted);
-	opacity: 0.6;
-	font-style: italic;
-}
-
 .form-actions {
 	display: flex;
 	gap: 1rem;
@@ -576,7 +523,7 @@ onUnmounted(() => {
 }
 
 .duration-group {
-	width: 120px;
+	width: 150px;
 }
 
 .compact-meta-row {
@@ -607,37 +554,13 @@ onUnmounted(() => {
 	font-weight: 500;
 }
 
-.checkbox-small {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.checkbox-small input {
-	width: 1rem;
-	height: 1rem;
-	cursor: pointer;
-	accent-color: #7c3aed;
-}
-
-.checkbox-small label {
-	font-size: 0.75rem;
-	color: var(--text-meta);
-	cursor: pointer;
-	text-transform: uppercase !important;
-	font-weight: 700 !important;
-	letter-spacing: 0.5px;
-	margin: 0 !important;
-	padding: 0.5rem 1rem 0.5rem 0.25rem;
-}
-
 .duration-compact {
 	margin-left: auto;
 	width: auto;
 }
 
 .duration-compact :deep(.p-datepicker) {
-	width: 90px;
+	width: 6rem;
 }
 
 .expand-container {

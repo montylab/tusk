@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
 import ColorPickerInput from './ColorPickerInput.vue'
+import AppCheckbox from './common/AppCheckbox.vue'
 
 const props = defineProps<{
 	name: string
@@ -171,10 +172,12 @@ const isNewCategory = computed(() => {
 			</div>
 
 			<div class="deep-work-toggle" v-if="isNewCategory">
-				<label class="toggle-container" title="Deep Work category">
-					<input type="checkbox" :checked="isDeepWork" @change="emit('update:isDeepWork', ($event.target as HTMLInputElement).checked)" />
-					<span class="toggle-label">Deep Work</span>
-				</label>
+				<AppCheckbox
+					inputId="new-cat-deep-work-selector"
+					:modelValue="isDeepWork"
+					@update:modelValue="(val: boolean) => emit('update:isDeepWork', val)"
+					label="Deep Work"
+				/>
 			</div>
 		</div>
 
@@ -255,32 +258,6 @@ const isNewCategory = computed(() => {
 	display: flex;
 	align-items: center;
 	white-space: nowrap;
-}
-
-.toggle-container {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	cursor: pointer;
-	font-size: 0.875rem;
-	color: var(--text-muted);
-	user-select: none;
-}
-
-.toggle-container input {
-	width: 1rem;
-	height: 1rem;
-	cursor: pointer;
-	accent-color: var(--color-urgent);
-}
-
-.toggle-label {
-	transition: color 0.2s;
-	font-weight: 500;
-}
-
-.toggle-container:hover .toggle-label {
-	color: var(--text-primary);
 }
 
 /* Color Picker Row */

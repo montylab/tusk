@@ -7,6 +7,8 @@ import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import ColorPicker from 'primevue/colorpicker'
 
+import AppCheckbox from './common/AppCheckbox.vue'
+
 const categoriesStore = useCategoriesStore()
 
 // Local copy for dragging with computed setter
@@ -84,8 +86,7 @@ const handleUpdateDeepWork = async (id: string, isDeepWork: boolean) => {
 					<div class="input-group checkbox-group">
 						<label>Deep Work</label>
 						<div class="checkbox-container">
-							<input type="checkbox" v-model="newCategoryIsDeepWork" />
-							<span class="checkbox-hint">Auto-enables for tasks</span>
+							<AppCheckbox v-model="newCategoryIsDeepWork" />
 						</div>
 					</div>
 					<Button
@@ -131,13 +132,11 @@ const handleUpdateDeepWork = async (id: string, isDeepWork: boolean) => {
 						</div>
 
 						<div class="item-deep-work">
-							<input
-								type="checkbox"
-								:checked="element.isDeepWork"
-								@change="handleUpdateDeepWork(element.id, ($event.target as HTMLInputElement).checked)"
-								title="Deep Work enabled"
+							<AppCheckbox
+								:modelValue="element.isDeepWork"
+								@update:modelValue="(val: boolean) => handleUpdateDeepWork(element.id, val)"
+								:label="element.isDeepWork ? 'Deep Work enabled' : ''"
 							/>
-							<i class="pi pi-brain" v-if="element.isDeepWork" style="color: #a78bfa; font-size: 0.8rem"></i>
 						</div>
 
 						<div class="actions">
@@ -265,21 +264,11 @@ const handleUpdateDeepWork = async (id: string, isDeepWork: boolean) => {
 .checkbox-container {
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
 	height: 36px;
-}
 
-.checkbox-container input {
-	width: 18px;
-	height: 18px;
-	cursor: pointer;
-	accent-color: var(--accent);
-}
-
-.checkbox-hint {
-	font-size: 0.65rem;
-	color: var(--text-muted);
-	font-style: italic;
+	:deep(.app-checkbox-wrapper) {
+		flex-direction: row-reverse;
+	}
 }
 
 .list-section {
@@ -380,13 +369,24 @@ const handleUpdateDeepWork = async (id: string, isDeepWork: boolean) => {
 .item-deep-work {
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
 	padding: 0 0.5rem;
-}
 
-.item-deep-work input {
-	cursor: pointer;
-	accent-color: var(--accent);
+	:deep(.app-checkbox-wrapper) {
+		flex-direction: row-reverse;
+		// justify-content: flex-end;
+		// width: 100%;
+	}
+
+	:deep(.label-group) {
+		text-align: right;
+		flex: 1;
+
+		label {
+			font-size: var(--font-sm);
+			font-weight: normal;
+			color: var(--text-muted);
+		}
+	}
 }
 
 .actions {
