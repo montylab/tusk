@@ -52,9 +52,9 @@ const debugLinks = [{ name: 'Color Scheme Debug', path: '/debug/colors', icon: '
 <style scoped lang="scss">
 .debug-fab-container {
 	position: fixed;
-	bottom: -3rem;
-	left: -3rem;
-	padding: 1rem;
+	bottom: -4rem;
+	left: -4rem;
+	padding: 2rem;
 	z-index: 9999;
 	transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
@@ -115,6 +115,18 @@ const debugLinks = [{ name: 'Color Scheme Debug', path: '/debug/colors', icon: '
 	color: var(--text-muted);
 }
 
+.popover-header.secondary {
+	padding-top: 0.5rem;
+	border-bottom: none;
+	background: transparent;
+}
+
+.popover-divider {
+	height: 1px;
+	background: var(--border-color);
+	margin: 0.25rem 1rem;
+}
+
 .popover-content {
 	display: flex;
 	flex-direction: column;
@@ -129,6 +141,15 @@ const debugLinks = [{ name: 'Color Scheme Debug', path: '/debug/colors', icon: '
 	text-decoration: none;
 	font-size: 0.9rem;
 	transition: background 0.2s;
+
+	&.btn {
+		background: transparent;
+		border: none;
+		width: 100%;
+		cursor: pointer;
+		text-align: left;
+		font-family: inherit;
+	}
 }
 
 .debug-item:hover {

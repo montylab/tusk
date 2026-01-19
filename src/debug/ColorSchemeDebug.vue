@@ -2,9 +2,14 @@
 import { computed } from 'vue'
 import DayColumn from '../components/DayColumn.vue'
 import { useCategoriesStore } from '../stores/categories'
+import { tailwindColors, radixColors, ibmCarbonColors, defaultColors } from '../stores/settings'
 import type { Task } from '../types'
 
 const categoriesStore = useCategoriesStore()
+
+const remap = async (palette: string[]) => {
+	await categoriesStore.remapCategoriesToPalette(palette)
+}
 
 const categories = computed(() => categoriesStore.categoriesArray)
 
@@ -174,8 +179,18 @@ const endHour = 20
 <template>
 	<div class="color-debug-page">
 		<header class="debug-header">
-			<h1>Color Scheme Debug</h1>
-			<p>Debugging task colors across different states (Past, On-Air, Future)</p>
+			<div class="header-main">
+				<h1>Color Scheme Debug</h1>
+				<p>Debugging task colors across different states (Past, On-Air, Future)</p>
+			</div>
+
+			<div class="header-controls">
+				<span class="control-label">Bulk Remap:</span>
+				<button class="control-btn" @click="remap(defaultColors)">Default</button>
+				<button class="control-btn" @click="remap(tailwindColors)">Tailwind</button>
+				<button class="control-btn" @click="remap(radixColors)">Radix</button>
+				<button class="control-btn" @click="remap(ibmCarbonColors)">IBM Carbon</button>
+			</div>
 		</header>
 
 		<div class="debug-grid">
@@ -259,16 +274,55 @@ const endHour = 20
 
 .debug-header {
 	margin-bottom: 2rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid var(--border-color);
 }
 
-.debug-header h1 {
+.header-main h1 {
 	font-size: 2rem;
 	margin: 0;
 	color: var(--antipod-color);
 }
 
-.debug-header p {
+.header-main p {
 	color: var(--text-muted);
+	margin: 0.5rem 0 0 0;
+}
+
+.header-controls {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.control-label {
+	font-size: 0.8rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	color: var(--text-muted);
+	margin-right: 0.25rem;
+}
+
+.control-btn {
+	padding: 0.5rem 1rem;
+	background: var(--bg-card);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-sm);
+	color: var(--text-primary);
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.control-btn:hover {
+	background: var(--accent);
+	color: var(--text-on-accent);
+	border-color: var(--accent);
+	transform: translateY(-2px);
 }
 
 .debug-grid {
