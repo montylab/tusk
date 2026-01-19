@@ -130,7 +130,7 @@ watch(isDragging, (val) => {
 }
 
 .add-day-zone {
-	width: calc(2rem + 10px);
+	width: calc(2rem + var(--scrollbar-size));
 	border-left: 1px solid var(--border-color);
 	cursor: pointer;
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

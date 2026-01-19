@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import type { Task } from '../types'
 import * as firebaseService from '../services/firebaseService'
 import { useUserStore } from './user'
+import { formatDate } from '../utils/dateUtils'
 
 export const useTasksStore = defineStore('tasks', () => {
 	const userStore = useUserStore()
@@ -15,7 +16,7 @@ export const useTasksStore = defineStore('tasks', () => {
 	const todoTasksState = ref<Task[]>([])
 	const shortcutsTasksState = ref<Task[]>([])
 
-	const currentDates = ref<string[]>([new Date().toISOString().split('T')[0]])
+	const currentDates = ref<string[]>([formatDate(new Date())])
 
 	const loading = ref(false)
 	const error = ref<string | null>(null)

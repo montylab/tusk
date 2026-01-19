@@ -63,16 +63,19 @@ watch(
 	},
 	{ immediate: true }
 )
+
+const handleAddDay = () => {
+	const lastDateStr = currentDates.value[currentDates.value.length - 1]
+	const lastDate = new Date(lastDateStr)
+	const nextDate = new Date(lastDate)
+	nextDate.setDate(lastDate.getDate() + 1)
+	const nextDateStr = nextDate.toISOString().split('T')[0]
+	tasksStore.addDate(nextDateStr)
+}
 </script>
 
 <template>
 	<TaskPageLayout @edit="handleEditTask">
-		<template #header>
-			<div class="header-actions-row">
-				<h2 class="week-title">Week View ({{ currentDates[0] }} - {{ currentDates[6] }})</h2>
-			</div>
-		</template>
-
 		<DayView
 			ref="dayViewRef"
 			:dates="currentDates"
@@ -81,6 +84,7 @@ watch(
 			:end-hour="24"
 			@create-task="handleOpenCreatePopup"
 			@edit="handleEditTask"
+			@add-day="handleAddDay"
 		/>
 
 		<TrashBasketRound />

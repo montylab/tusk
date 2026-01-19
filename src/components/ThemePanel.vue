@@ -8,8 +8,8 @@ const uiStore = useUIStore()
 const { theme, interfaceScale } = storeToRefs(appearanceStore)
 const { isThemePanelOpen } = storeToRefs(uiStore)
 
-const toggleTheme = (t: ThemeType) => {
-	appearanceStore.theme = t
+const toggleTheme = (t: ThemeType, event: MouseEvent) => {
+	uiStore.startThemeTransition(event.clientX, event.clientY, t)
 }
 const setScale = (s: number) => {
 	appearanceStore.interfaceScale = s
@@ -29,7 +29,14 @@ const setScale = (s: number) => {
 			<div class="switcher-group">
 				<span class="switcher-label">Base Theme</span>
 				<div class="switcher-row">
-					<button v-for="t in THEMES" :key="t" class="theme-btn" :class="{ active: theme === t }" @click="toggleTheme(t)" :title="t">
+					<button
+						v-for="t in THEMES"
+						:key="t"
+						class="theme-btn"
+						:class="{ active: theme === t }"
+						@click="toggleTheme(t, $event)"
+						:title="t"
+					>
 						{{ t[0].toUpperCase() }}
 					</button>
 				</div>

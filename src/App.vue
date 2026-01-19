@@ -5,6 +5,7 @@ import AppHeader from './components/AppHeader.vue'
 import DragOperator from './components/DragOperator.vue'
 import InterfaceManager from './components/InterfaceManager.vue'
 import ThemePanel from './components/ThemePanel.vue'
+import ThemeTransitionOverlay from './components/ThemeTransitionOverlay.vue'
 import { useGlobalShortcuts } from './composables/useGlobalShortcuts'
 
 const userStore = useUserStore()
@@ -16,6 +17,7 @@ useGlobalShortcuts()
 
 <template>
 	<InterfaceManager />
+	<ThemeTransitionOverlay />
 	<ThemePanel v-if="user" />
 	<div class="app-layout">
 		<div v-if="authLoading" class="loading-overlay">

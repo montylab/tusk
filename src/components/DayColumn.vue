@@ -7,6 +7,7 @@ import { useDragOperator } from '../composables/useDragOperator'
 import { useTasksStore } from '../stores/tasks'
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { isTimePast } from '../utils/dateUtils'
 
 const props = withDefaults(
 	defineProps<{
@@ -17,6 +18,7 @@ const props = withDefaults(
 		taskStatuses: Record<string | number, 'past' | 'future' | 'on-air' | null>
 		scrollTop?: number
 		scrollLeft?: number
+		currentTime: Date
 	}>(),
 	{
 		scrollTop: 0,
@@ -159,13 +161,23 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
 	// TODO: For touch, we could implement long-press for duplication
 	startDrag(task, zoneName.value, e)
 }
+
+const isSlotPast = (hour: number, q: number) => {
+	return isTimePast(props.date, hour + q * 0.25, props.currentTime)
+}
 </script>
 
 <template>
 	<div ref="columnRef" class="day-column">
 		<div ref="gridRef" class="column-grid">
 			<div v-for="hour in hours" :key="hour" class="hour-row">
-				<div v-for="q in 4" :key="q - 1" class="quarter-slot" @click="handleSlotClick(hour, q - 1)"></div>
+				<div
+					v-for="q in 4"
+					:key="q - 1"
+					class="quarter-slot"
+					:class="{ 'is-past': isSlotPast(hour, q - 1) }"
+					@click="handleSlotClick(hour, q - 1)"
+				></div>
 			</div>
 		</div>
 
@@ -219,15 +231,20 @@ const handleTaskTouchStart = (e: TouchEvent, task: Task) => {
 	flex: 1;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 	cursor: cell;
-	transition: background 0.2s;
+	transition: background-color 0.2s;
 }
 
 .quarter-slot:last-child {
 	border-bottom: none;
 }
 
-.quarter-slot:hover {
+.quarter-slot:hover,
+.quarter-slot.is-past:hover {
 	background: var(--surface-hover);
+}
+
+.quarter-slot.is-past {
+	background: color-mix(in srgb, var(--bg-column), var(--antipod-color) 1%);
 }
 
 .tasks-container {

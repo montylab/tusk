@@ -9,6 +9,7 @@ import { getTaskStatus } from '../logic/taskStatus'
 import { useSettingsStore } from '../stores/settings'
 import { useAppearanceStore } from '../stores/appearance'
 import AppIcon from './common/AppIcon.vue'
+import { formatDate } from '../utils/dateUtils'
 
 const props = withDefaults(
 	defineProps<{
@@ -132,8 +133,7 @@ const timeIndicatorTop = computed(() => {
 
 const getDayName = (dateStr: string) => {
 	const d = new Date(dateStr)
-	const today = new Date().toISOString().split('T')[0]
-	if (dateStr === today) return 'Today'
+	if (dateStr === formatDate(currentTime.value)) return 'Today'
 	return d.toLocaleDateString('en-US', { weekday: 'long' })
 }
 
@@ -293,6 +293,7 @@ defineExpose({
 								:task-statuses="taskStatuses"
 								:scroll-top="scrollTop"
 								:scroll-left="scrollLeft"
+								:current-time="currentTime"
 								@slot-click="handleSlotClick($event.startTime, 0, date)"
 								@edit="emit('edit', $event)"
 							/>

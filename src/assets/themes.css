@@ -9,6 +9,7 @@ html:root {
 	--accent: #38bdf8; /* Primary interactive brand color */
 	--accent-hover: #7dd3fc; /* Hover state for interactive items */
 	--surface-hover: rgba(255, 255, 255, 0.05); /* Hover tint for cards/cols */
+	--antipod-color: #ffffff;
 
 	/* Elevation */
 	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -120,6 +121,7 @@ html[data-theme='light'] {
 	--accent-hover: #0369a1;
 	--surface-hover: rgba(15, 23, 42, 0.05);
 	--bg-input: rgba(15, 23, 42, 0.05);
+	--antipod-color: #000000;
 
 	/* Role Adjustments */
 	--bg-header: rgba(255, 255, 255, 0.95);
@@ -143,6 +145,7 @@ html[data-theme='pinky'] {
 	--accent-hover: #be185d;
 	--surface-hover: rgba(219, 39, 119, 0.08);
 	--bg-input: rgba(136, 19, 55, 0.05);
+	--antipod-color: #000000;
 
 	/* Role Adjustments */
 	--bg-header: #fffcfd;
@@ -164,6 +167,7 @@ html[data-theme='vivid'] {
 	--accent-hover: #ff8533;
 	--surface-hover: rgba(255, 255, 255, 0.25);
 	--bg-input: rgba(0, 0, 0, 0.2);
+	--antipod-color: #ffffff;
 	--color-basket-accent: #ff4b1f;
 
 	/* Role Adjustments */

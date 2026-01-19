@@ -2,10 +2,12 @@
 import CategoriesManager from '../components/CategoriesManager.vue'
 import { useSettingsStore } from '../stores/settings'
 import { useAppearanceStore, type ThemeType, type ColorSchemeType } from '../stores/appearance'
+import { useUIStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 
 const settingsStore = useSettingsStore()
 const appearanceStore = useAppearanceStore()
+const uiStore = useUIStore()
 const { settings } = storeToRefs(settingsStore)
 const { theme, colorScheme, interfaceScale } = storeToRefs(appearanceStore)
 
@@ -18,13 +20,16 @@ const updateStartHour = (event: Event) => {
 
 const updateTheme = (event: Event) => {
 	const val = (event.target as HTMLSelectElement).value as ThemeType
-	appearanceStore.theme = val
+	const mouseEvent = event as MouseEvent
+	uiStore.startThemeTransition(mouseEvent.clientX || window.innerWidth / 2, mouseEvent.clientY || window.innerHeight / 2, val)
 }
 
-const updateColorScheme = (event: Event) => {
-	const val = (event.target as HTMLSelectElement).value as ColorSchemeType
-	appearanceStore.colorScheme = val
-}
+// const updateColorScheme = (event: Event) => {
+// 	const val = (event.target as HTMLSelectElement).value as ColorSchemeType
+// 	// For select elements, clientX might be 0, so we use center as fallback or we could try to find element position
+// 	const rect = (event.target as HTMLElement).getBoundingClientRect()
+// 	uiStore.startThemeTransition(rect.left + rect.width / 2, rect.top + rect.height / 2, val)
+// }
 
 const updateInterfaceScale = (event: Event) => {
 	const val = parseInt((event.target as HTMLSelectElement).value)
@@ -75,7 +80,7 @@ const updateInterfaceScale = (event: Event) => {
 						</select>
 					</div>
 
-					<div class="setting-item">
+					<!-- <div class="setting-item">
 						<div class="setting-info">
 							<label for="color-scheme">Color Scheme</label>
 							<p class="setting-desc">Choose your preferred accent colors</p>
@@ -85,7 +90,7 @@ const updateInterfaceScale = (event: Event) => {
 							<option value="brisky">Brisky</option>
 							<option value="royal">Royal</option>
 						</select>
-					</div>
+					</div> -->
 
 					<div class="setting-item">
 						<div class="setting-info">
@@ -182,7 +187,7 @@ const updateInterfaceScale = (event: Event) => {
 	justify-content: space-between;
 	padding: var(--spacing-md);
 	margin: var(--spacing-md) 0;
-	background: var(--bg-card);
+	background-color: var(--bg-card);
 	border-radius: var(--radius-md);
 	border: 1px solid var(--border-color);
 	transition: border-color 0.2s;

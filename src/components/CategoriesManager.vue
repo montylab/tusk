@@ -288,7 +288,7 @@ const handleUpdateDeepWork = async (id: string, isDeepWork: boolean) => {
 	align-items: center;
 	gap: 0.75rem;
 	padding: 0.4rem 0.75rem;
-	background: var(--bg-card);
+	background-color: var(--bg-card);
 	border: 1px solid var(--border-color);
 	border-radius: 8px;
 	transition: all 0.2s ease;

@@ -119,3 +119,14 @@ export const getTimeSnapped = (date: Date = new Date(), intervalMinutes: number 
 	const snappedMinutes = Math.round(totalMinutes / intervalMinutes) * intervalMinutes
 	return snappedMinutes / 60
 }
+
+/**
+ * Returns true if a given time slot (in decimal hours) on a specific date is in the past
+ */
+export const isTimePast = (dateStr: string, hour: number, now = new Date()): boolean => {
+	const todayStr = formatDate(now)
+	if (dateStr < todayStr) return true
+	if (dateStr > todayStr) return false
+	const nowHour = now.getHours() + now.getMinutes() / 60
+	return hour < nowHour
+}

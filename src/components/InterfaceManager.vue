@@ -6,7 +6,6 @@ import { useAppearanceStore } from '../stores/appearance'
 const appearanceStore = useAppearanceStore()
 const { theme, colorScheme, interfaceScale, hourHeight, headerHeight, uiScale } = storeToRefs(appearanceStore)
 
-// Apply settings to document
 watch(
 	[theme, colorScheme, interfaceScale, hourHeight, headerHeight, uiScale],
 	([t, sc, scale, hh, hdh, uis]) => {
