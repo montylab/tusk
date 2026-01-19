@@ -6,6 +6,7 @@ import DragOperator from './components/DragOperator.vue'
 import InterfaceManager from './components/InterfaceManager.vue'
 import ThemePanel from './components/ThemePanel.vue'
 import ThemeTransitionOverlay from './components/ThemeTransitionOverlay.vue'
+import DebugFAB from './debug/DebugFAB.vue'
 import { useGlobalShortcuts } from './composables/useGlobalShortcuts'
 
 const userStore = useUserStore()
@@ -13,12 +14,15 @@ const { user, loading: authLoading } = storeToRefs(userStore)
 
 // Initialize global shortcuts
 useGlobalShortcuts()
+
+const isDev = import.meta.env.DEV
 </script>
 
 <template>
 	<InterfaceManager />
 	<ThemeTransitionOverlay />
 	<ThemePanel v-if="user" />
+	<DebugFAB v-if="user && isDev" />
 	<div class="app-layout">
 		<div v-if="authLoading" class="loading-overlay">
 			<div class="loader"></div>

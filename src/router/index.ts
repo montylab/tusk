@@ -58,6 +58,15 @@ const routes: RouteRecordRaw[] = [
 	}
 ]
 
+if (import.meta.env.DEV) {
+	routes.push({
+		path: '/debug/colors',
+		name: 'debug-colors',
+		component: () => import('../debug/ColorSchemeDebug.vue'),
+		meta: { requiresAuth: false }
+	})
+}
+
 const router = createRouter({
 	history: createWebHistory(),
 	routes

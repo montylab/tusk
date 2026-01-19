@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import CategoriesManager from '../components/CategoriesManager.vue'
 import { useSettingsStore } from '../stores/settings'
-import { useAppearanceStore, type ThemeType, type ColorSchemeType } from '../stores/appearance'
+import { useAppearanceStore, type ThemeType } from '../stores/appearance'
 import { useUIStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 
@@ -9,7 +9,7 @@ const settingsStore = useSettingsStore()
 const appearanceStore = useAppearanceStore()
 const uiStore = useUIStore()
 const { settings } = storeToRefs(settingsStore)
-const { theme, colorScheme, interfaceScale } = storeToRefs(appearanceStore)
+const { theme, interfaceScale } = storeToRefs(appearanceStore)
 
 const updateStartHour = (event: Event) => {
 	const val = parseFloat((event.target as HTMLInputElement).value)
