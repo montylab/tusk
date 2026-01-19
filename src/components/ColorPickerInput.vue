@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import { useSettingsStore } from '../stores/settings'
 
 const props = defineProps<{
 	modelValue: string
@@ -10,22 +11,13 @@ const emit = defineEmits<{
 	(e: 'update:modelValue', value: string): void
 }>()
 
+const settingsStore = useSettingsStore()
 const localColor = ref(props.modelValue)
 const showCustomPicker = ref(false)
 const pickerRef = ref<HTMLElement | null>(null)
 
-// Preset colors - selected for good visibility and aesthetics
-const presets = [
-	'#ef4444', // Red
-	'#f97316', // Orange
-	'#f59e0b', // Amber
-	'#84cc16', // Lime
-	'#22c55e', // Green
-	'#06b6d4', // Cyan
-	'#3b82f6', // Blue
-	'#8b5cf6', // Violet
-	'#d946ef' // Fuchsia
-]
+// Preset colors from settings
+const presets = computed(() => settingsStore.settings.categoryColors)
 
 watch(
 	() => props.modelValue,
@@ -61,6 +53,10 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 onMounted(() => {
+	// If no color is provided, pick a random one from presets
+	if (!props.modelValue) {
+		emit('update:modelValue', settingsStore.getRandomCategoryColor())
+	}
 	document.addEventListener('click', handleClickOutside)
 })
 

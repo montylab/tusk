@@ -9,7 +9,10 @@ import ColorPicker from 'primevue/colorpicker'
 
 import AppCheckbox from './common/AppCheckbox.vue'
 
+import { useSettingsStore } from '../stores/settings'
+
 const categoriesStore = useCategoriesStore()
+const settingsStore = useSettingsStore()
 
 // Local copy for dragging with computed setter
 const localCategories = computed({
@@ -26,7 +29,7 @@ const localCategories = computed({
 })
 
 const newCategoryName = ref('')
-const newCategoryColor = ref('#06b6d4') // Default hex string (without # for PrimeVue ColorPicker)
+const newCategoryColor = ref(settingsStore.getRandomCategoryColor())
 const newCategoryIsDeepWork = ref(false)
 
 const handleAddCategory = async () => {
@@ -35,7 +38,7 @@ const handleAddCategory = async () => {
 		await categoriesStore.addCategory(newCategoryName.value.trim(), color, newCategoryIsDeepWork.value)
 		newCategoryName.value = ''
 		newCategoryIsDeepWork.value = false
-		// Keep color as is or reset? Let's keep it for now.
+		newCategoryColor.value = settingsStore.getRandomCategoryColor()
 	}
 }
 

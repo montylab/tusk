@@ -75,7 +75,20 @@ html:root {
 		PrimeVue 
 		Global & Component Tokens 
 	*/
-	--p-content-background: transparent;
+	--p-surface-0: #020617;
+	--p-surface-50: #0f172a;
+	--p-surface-100: #1e293b;
+	--p-surface-200: #334155;
+	--p-surface-300: #475569;
+	--p-surface-400: #64748b;
+	--p-surface-500: #94a3b8;
+	--p-surface-600: #cbd5e1;
+	--p-surface-700: #e2e8f0;
+	--p-surface-800: #f1f5f9;
+	--p-surface-900: #f8fafc;
+	--p-surface-950: #ffffff;
+
+	--p-content-background: var(--bg-card);
 	--p-content-color: var(--text-primary);
 	--p-content-hover-background: var(--surface-hover);
 	--p-content-hover-color: var(--text-primary);
@@ -104,6 +117,10 @@ html:root {
 	--p-inputtext-focus-border-color: var(--accent);
 	--p-inputtext-border-radius: var(--radius-md);
 	--p-inputtext-focus-ring-shadow: 0 0 0 calc(var(--ui-scale) * 3px) color-mix(in srgb, var(--accent), transparent 90%);
+
+	--p-autocomplete-dropdown-background: var(--p-surface-200);
+	--p-autocomplete-overlay-background: var(--p-surface-100);
+	--p-list-option-focus-background: var(--p-surface-200);
 }
 
 html[data-theme='dark'] {
@@ -132,6 +149,20 @@ html[data-theme='light'] {
 	--text-description: color-mix(in srgb, var(--text-primary), transparent 30%);
 	--bg-today-highlight: color-mix(in srgb, var(--accent), transparent 90%);
 	--bg-task-item: #f1f5f9;
+
+	/* PrimeVue Overrides */
+	--p-surface-0: #ffffff;
+	--p-surface-50: #f9fafb;
+	--p-surface-100: #f3f4f6;
+	--p-surface-200: #e5e7eb;
+	--p-surface-300: #d1d5db;
+	--p-surface-400: #9ca3af;
+	--p-surface-500: #6b7280;
+	--p-surface-600: #4b5563;
+	--p-surface-700: #374151;
+	--p-surface-800: #1f2937;
+	--p-surface-900: #111827;
+	--p-surface-950: #030712;
 }
 
 /* Pinky Theme */
@@ -154,6 +185,20 @@ html[data-theme='pinky'] {
 	--bg-deep-work: #db2777;
 	--text-meta: color-mix(in srgb, var(--text-primary), transparent 40%);
 	--bg-task-item: var(--bg-page);
+
+	/* PrimeVue Overrides (using rosy/pinkish tones for surfaces) */
+	--p-surface-0: #ffffff;
+	--p-surface-50: #fff1f2;
+	--p-surface-100: #ffe4e6;
+	--p-surface-200: #fecdd3;
+	--p-surface-300: #fda4af;
+	--p-surface-400: #fb7185;
+	--p-surface-500: #f43f5e;
+	--p-surface-600: #e11d48;
+	--p-surface-700: #be185d;
+	--p-surface-800: #9f1239;
+	--p-surface-900: #881337;
+	--p-surface-950: #4c0519;
 }
 
 /* Vivid Theme (Joyful & Neon Energy) */
@@ -176,4 +221,18 @@ html[data-theme='vivid'] {
 	--bg-deep-work: #ff00ff;
 	--text-meta: rgba(255, 255, 255, 0.85);
 	--text-description: rgba(255, 255, 255, 0.9);
+
+	/* PrimeVue Overrides (using deep purple surfaces) */
+	--p-surface-0: #8f00ff;
+	--p-surface-50: #a855f7;
+	--p-surface-100: #c084fc;
+	--p-surface-200: #d8b4fe;
+	--p-surface-300: #e9d5ff;
+	--p-surface-400: #f3e8ff;
+	--p-surface-500: #faf5ff;
+	--p-surface-600: #ffffff;
+	--p-surface-700: #ffffff;
+	--p-surface-800: #ffffff;
+	--p-surface-900: #ffffff;
+	--p-surface-950: #ffffff;
 }

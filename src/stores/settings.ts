@@ -6,11 +6,23 @@ import * as firebaseService from '../services/firebaseService'
 export interface UserSettings {
 	defaultStartHour?: number
 	snapMinutes?: number
+	categoryColors: string[]
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
 	snapMinutes: 15,
-	defaultStartHour: 9
+	defaultStartHour: 9,
+	categoryColors: [
+		'#ef4444', // Red
+		'#f97316', // Orange
+		'#f59e0b', // Amber
+		'#84cc16', // Lime
+		'#22c55e', // Green
+		'#06b6d4', // Cyan
+		'#3b82f6', // Blue
+		'#8b5cf6', // Violet
+		'#d946ef' // Fuchsia
+	]
 }
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -54,9 +66,15 @@ export const useSettingsStore = defineStore('settings', () => {
 		await firebaseService.updateSettings(updates)
 	}
 
+	function getRandomCategoryColor() {
+		const colors = settings.value.categoryColors
+		return colors[Math.floor(Math.random() * colors.length)]
+	}
+
 	return {
 		settings,
 		loading,
-		updateSettings
+		updateSettings,
+		getRandomCategoryColor
 	}
 })

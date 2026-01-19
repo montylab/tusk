@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useCategoriesStore } from '../stores/categories'
+import { useSettingsStore } from '../stores/settings'
 import ColorPickerInput from './ColorPickerInput.vue'
 import AppCheckbox from './common/AppCheckbox.vue'
 
@@ -17,20 +18,10 @@ const emit = defineEmits<{
 }>()
 
 const categoriesStore = useCategoriesStore()
+const settingsStore = useSettingsStore()
 
 // Autocomplete suggestions
 const filteredSuggestions = ref<Array<{ name: string; color: string; isNew?: boolean }>>([])
-
-// Generate a random hex color for a new category
-const generateColorForCategory = (): string => {
-	return (
-		'#' +
-		Math.floor(Math.random() * 16777215)
-			.toString(16)
-			.padStart(6, '0')
-			.toUpperCase()
-	)
-}
 
 // PrimeVue AutoComplete search method
 const searchCategory = (event: { query: string }) => {
@@ -48,7 +39,7 @@ const searchCategory = (event: { query: string }) => {
 	const exactMatch = _filtered.some((cat) => cat.name.toLowerCase() === query)
 
 	if (!exactMatch && query) {
-		const suggestedColor = generateColorForCategory()
+		const suggestedColor = settingsStore.getRandomCategoryColor()
 		_filtered.push({ name: event.query, color: suggestedColor, isNew: true })
 	}
 
@@ -117,7 +108,7 @@ watch(
 			if (existing) {
 				colorInput.value = existing.color
 			} else {
-				colorInput.value = generateColorForCategory()
+				colorInput.value = settingsStore.getRandomCategoryColor()
 			}
 			emit('update:color', colorInput.value)
 		} else {
