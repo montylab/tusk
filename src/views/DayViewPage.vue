@@ -51,7 +51,7 @@ watch(
 
 		if (newDate !== oldDate) {
 			nextTick(() => {
-				dayViewRef.value?.scrollToTop()
+				dayViewRef.value?.scrollToCurrentTime()
 			})
 		}
 	},

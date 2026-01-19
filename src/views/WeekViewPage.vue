@@ -54,7 +54,7 @@ watch(
 		tasksStore.currentDates = weekDays
 
 		setTimeout(() => {
-			dayViewRef.value?.scrollToTop()
+			dayViewRef.value?.scrollToCurrentTime()
 			const today = formatDate(new Date())
 			if (weekDays.includes(today)) {
 				dayViewRef.value?.scrollToDate(today)

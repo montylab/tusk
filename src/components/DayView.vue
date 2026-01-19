@@ -151,11 +151,13 @@ const handleSlotClick = (hour: number, quarter: number, date: string) => {
 	emit('create-task', { startTime, date })
 }
 
-const scrollToDefaultTime = () => {
-	const defaultHour = settingsStore.settings.defaultStartHour ?? 0
-	if (scrollAreaRef.value && defaultHour > props.startHour) {
-		const top = (defaultHour - props.startHour) * hourHeight.value
-		scrollAreaRef.value.scrollTo({ top })
+const scrollToCurrentTime = (behavior: ScrollBehavior = 'auto') => {
+	const now = new Date()
+	const currentHour = now.getHours() + now.getMinutes() / 60
+	const scrollHour = Math.max(props.startHour, currentHour - 1)
+	if (scrollAreaRef.value) {
+		const top = (scrollHour - props.startHour) * hourHeight.value
+		scrollAreaRef.value.scrollTo({ top, behavior })
 	}
 }
 
@@ -189,12 +191,12 @@ onMounted(() => {
 	window.addEventListener('resize', updateHeaderOffset)
 	updateHeaderOffset()
 
-	// Scroll to default time once settings are loaded
+	// Scroll to current time once settings are loaded
 	watch(
 		() => settingsStore.loading,
 		(isLoading) => {
 			if (!isLoading) {
-				nextTick(() => scrollToDefaultTime())
+				nextTick(() => scrollToCurrentTime())
 			}
 		},
 		{ immediate: true }
@@ -230,7 +232,8 @@ const scrollToDate = (date: string) => {
 
 defineExpose({
 	scrollToTop,
-	scrollToDate
+	scrollToDate,
+	scrollToCurrentTime
 })
 </script>
 
