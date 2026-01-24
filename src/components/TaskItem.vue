@@ -528,4 +528,20 @@ const onEditClick = (e: Event) => {
 		border: 1px solid color-mix(in srgb, var(--category-color), transparent 40%);
 	}
 }
+
+// --- OPTION 4: Solid color ---
+.task-item.task-item {
+	&.in-past {
+		background: color-mix(in srgb, var(--category-color), transparent 50%);
+	}
+
+	&.on-air {
+		background: var(--category-color);
+		outline: none;
+	}
+
+	&.in-future {
+		background: color-mix(in srgb, var(--category-color), transparent 40%);
+	}
+}
 </style>
