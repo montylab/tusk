@@ -139,7 +139,7 @@ const onEditClick = (e: Event) => {
 
 	// 2. Base Components
 	.color-stripe {
-		width: var(--spacing-xs);
+		width: 0.35rem;
 		height: 100%;
 		flex-shrink: 0;
 		background: var(--category-color);
@@ -276,7 +276,7 @@ const onEditClick = (e: Event) => {
 		border-radius: var(--radius-sm);
 		z-index: 1000;
 		letter-spacing: 0.5px;
-		box-shadow: 0 0 10px var(--bg-on-air);
+		box-shadow: 0 0 20px -5px color-mix(in srgb, var(--bg-page), transparent 25%);
 		pointer-events: none;
 	}
 
@@ -345,35 +345,7 @@ const onEditClick = (e: Event) => {
 		}
 	}
 
-	&.on-air {
-		background: color-mix(in srgb, var(--category-color), transparent 50%);
-		border-width: 2px;
-		z-index: 5;
-
-		.content {
-			.meta .time-badge,
-			.meta .duration-badge {
-				color: var(--text-primary);
-				opacity: 0.8;
-			}
-
-			.badges .category-badge {
-				background-color: var(--category-color);
-				color: var(--text-on-accent);
-			}
-		}
-	}
-
-	&.in-past {
-		opacity: 0.75;
-		filter: grayscale(0.5);
-		background: rgba(255, 255, 255, 0.04);
-
-		.color-stripe {
-			opacity: 0.8;
-		}
-	}
-
+	// 4. Interactions
 	&.dragging {
 		background: rgba(255, 255, 255, 0.2);
 		backdrop-filter: blur(4px);
@@ -385,7 +357,6 @@ const onEditClick = (e: Event) => {
 		animation: shake 0.4s infinite ease-in-out;
 	}
 
-	// 4. Interactions
 	&:active {
 		cursor: grabbing;
 	}
@@ -430,26 +401,27 @@ const onEditClick = (e: Event) => {
 }
 
 /* ==========================================================================
-   TASK STATES (PAST, ON-AIR, FUTURE)
-   Uncomment only ONE block at a time to change the UI direction.
-   ========================================================================== */
+	   SCHEMES
+	   ========================================================================== */
 
-// one of the variation of three state of task-item could be
-.task-item {
-	background: var(--category-color);
-
+// --- Solid (Default) ---
+[data-scheme='solid'] .task-item {
 	&.in-past {
-		opacity: 0.75;
+		background: color-mix(in srgb, var(--category-color), var(--bg-page) 70%);
+	}
+
+	&.on-air {
+		background: var(--category-color);
+		color: var(--text-on-accent, #fff);
 	}
 
 	&.in-future {
-		opacity: 0.75;
-		background-color: color-mix(in srgb, var(--category-color), transparent 70%);
+		background: color-mix(in srgb, var(--category-color), var(--bg-page) 30%);
 	}
 }
 
-// --- OPTION 1: Elevation & Focus (High Contrast) ---
-.task-item {
+// --- Neo (Option 1 - previously Contrast) ---
+[data-scheme='neo'] .task-item {
 	&.in-past {
 		filter: grayscale(0.5);
 		opacity: 0.5;
@@ -460,8 +432,6 @@ const onEditClick = (e: Event) => {
 	&.on-air {
 		background: var(--category-color);
 		color: #fff;
-		box-shadow: 0 0 20px color-mix(in srgb, var(--category-color), transparent 60%);
-		transform: scale(1.02);
 		z-index: 10;
 		border-color: rgba(255, 255, 255, 0.4);
 	}
@@ -473,75 +443,60 @@ const onEditClick = (e: Event) => {
 	}
 }
 
-// --- OPTION 2: Glassmorphism (Premium SaaS) ---
-.task-item {
+// --- Glass (Option 2) ---
+[data-scheme='glass'] .task-item {
 	&.in-past {
 		background: rgba(255, 255, 255, 0.02);
-		backdrop-filter: blur(2px);
-		border-color: color-mix(in srgb, var(--category-color), transparent 80%);
-		opacity: 0.4;
+		border-color: color-mix(in srgb, var(--category-color), transparent 50%);
+		opacity: 0.8;
 	}
 
 	&.on-air {
-		background: color-mix(in srgb, var(--category-color), transparent 40%);
-		backdrop-filter: blur(8px);
-		border: 2px solid var(--category-color);
-		box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
-		z-index: 10;
-	}
-
-	&.in-future {
-		background: color-mix(in srgb, var(--category-color), transparent 90%);
-		border: 1px solid color-mix(in srgb, var(--category-color), transparent 50%);
-		border-style: solid;
-	}
-}
-
-// --- OPTION 3: Skeuomorphic Ink (Minimalist) ---
-.task-item {
-	&.in-past {
-		background: transparent;
-		border-color: var(--border-color);
-		color: var(--text-muted);
-		opacity: 0.6;
-		.color-stripe {
-			opacity: 0.2;
+		background: color-mix(in srgb, var(--category-color), transparent 20%);
+		.badge.category-badge {
+			color: var(--text-on-accent, #fff);
+			background: var(--category-color);
 		}
 	}
 
-	&.on-air {
-		background: var(--category-color);
-		border-color: rgba(255, 255, 255, 0.3);
-		outline: 2px solid var(--category-color);
-		outline-offset: 2px;
-		z-index: 10;
-	}
-
 	&.in-future {
-		background-image: repeating-linear-gradient(
-			45deg,
-			transparent,
-			transparent 10px,
-			color-mix(in srgb, var(--category-color), transparent 95%) 10px,
-			color-mix(in srgb, var(--category-color), transparent 95%) 20px
-		);
-		border: 1px solid color-mix(in srgb, var(--category-color), transparent 40%);
+		background: color-mix(in srgb, var(--category-color), transparent 70%);
+		// border: 1px solid color-mix(in srgb, var(--category-color), transparent 50%);
 	}
 }
 
-// --- OPTION 4: Solid color ---
-.task-item.task-item {
+// --- Ink (Option 3 - previously Minimal) ---
+[data-scheme='ink'] .task-item {
 	&.in-past {
-		background: color-mix(in srgb, var(--category-color), transparent 50%);
+		background: color-mix(in srgb, var(--bg-card), transparent 20%);
+		border-color: color-mix(in srgb, var(--category-color), transparent 50%);
+		opacity: 0.8;
 	}
 
 	&.on-air {
 		background: var(--category-color);
-		outline: none;
+
+		.badge.category-badge {
+			color: var(--text-on-accent, #fff);
+			border-color: var(--text-on-accent, #fff);
+		}
 	}
 
 	&.in-future {
-		background: color-mix(in srgb, var(--category-color), transparent 40%);
+		// background-image: repeating-linear-gradient(
+		// 	45deg,
+		// 	transparent,
+		// 	transparent 10px,
+		// 	color-mix(in srgb, var(--category-color), transparent 95%) 10px,
+		// 	color-mix(in srgb, var(--category-color), transparent 95%) 20px
+		// );
+		background: color-mix(in srgb, var(--category-color), transparent 15%);
+		border: 1px solid color-mix(in srgb, var(--category-color), transparent 40%);
+
+		.badge.category-badge {
+			color: var(--text-on-accent, #fff);
+			border-color: var(--text-on-accent, #fff);
+		}
 	}
 }
 </style>

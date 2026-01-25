@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 
-export const THEMES = ['dark', 'light', 'pinky', 'vivid'] as const
+export const THEMES = ['dark', 'light', 'pinky' /*, 'vivid'*/] as const
 export const SCALES = [50, 75, 100, 150] as const
-export const SCHEMES = ['brisky', 'pastel', 'royal'] as const
+export const SCHEMES = ['solid', 'glass', 'ink', 'neo'] as const
 
 export type ThemeType = (typeof THEMES)[number]
 export type ColorSchemeType = (typeof SCHEMES)[number]
@@ -13,7 +13,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
 	const saved = JSON.parse(localStorage.getItem('appearance-settings') || '{}')
 
 	const theme = ref<ThemeType>(saved.theme || 'dark')
-	const colorScheme = ref<ColorSchemeType>(saved.colorScheme || 'brisky')
+	const colorScheme = ref<ColorSchemeType>(saved.colorScheme || 'glass')
 	const interfaceScale = ref<number>(saved.interfaceScale || 100)
 	const hourHeightBase = ref<number>(saved.hourHeight || 80)
 	const headerHeightBase = ref<number>(saved.headerHeight || 70)

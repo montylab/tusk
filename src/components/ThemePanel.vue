@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { useAppearanceStore, type ThemeType, THEMES, SCALES } from '../stores/appearance'
+import { useAppearanceStore, type ThemeType, type ColorSchemeType, THEMES, SCALES, SCHEMES } from '../stores/appearance'
 import { useUIStore } from '../stores/ui'
 
 const appearanceStore = useAppearanceStore()
 const uiStore = useUIStore()
-const { theme, interfaceScale } = storeToRefs(appearanceStore)
+const { theme, interfaceScale, colorScheme } = storeToRefs(appearanceStore)
 const { isThemePanelOpen } = storeToRefs(uiStore)
 
 const toggleTheme = (t: ThemeType, event: MouseEvent) => {
@@ -13,6 +13,9 @@ const toggleTheme = (t: ThemeType, event: MouseEvent) => {
 }
 const setScale = (s: number) => {
 	appearanceStore.interfaceScale = s
+}
+const setScheme = (s: ColorSchemeType) => {
+	appearanceStore.colorScheme = s
 }
 </script>
 
@@ -54,6 +57,14 @@ const setScale = (s: number) => {
 						:title="`${s}%`"
 					>
 						{{ s }}
+					</button>
+				</div>
+			</div>
+			<div class="switcher-group">
+				<span class="switcher-label">Task Style</span>
+				<div class="switcher-row">
+					<button v-for="s in SCHEMES" :key="s" class="theme-btn" :class="{ active: colorScheme === s }" @click="setScheme(s)" :title="s">
+						{{ s[0].toUpperCase() }}
 					</button>
 				</div>
 			</div>
