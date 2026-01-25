@@ -8,6 +8,7 @@ import { useDragOperator } from '../composables/useDragOperator'
 import { getTaskStatus } from '../logic/taskStatus'
 import { useSettingsStore } from '../stores/settings'
 import { useAppearanceStore } from '../stores/appearance'
+import { useTimeStore } from '../stores/time'
 import AppIcon from './common/AppIcon.vue'
 import { formatDate } from '../utils/dateUtils'
 
@@ -47,8 +48,8 @@ const updateScroll = () => {
 }
 
 // --- Time & Status Helpers ---
-const currentTime = ref(new Date())
-let timer: any = null
+const timeStore = useTimeStore()
+const { currentTime, hoveredTimeRange } = storeToRefs(timeStore)
 const taskStatuses = ref<Record<string | number, 'past' | 'future' | 'on-air' | null>>({})
 
 const allTasks = computed(() => Object.values(props.tasksByDate).flat())
@@ -120,6 +121,15 @@ const formatTimeLabel = (time: number) => {
 	return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
 }
 
+const isTimeHighlighted = (time: number) => {
+	if (!hoveredTimeRange.value) return false
+	const { start, duration } = hoveredTimeRange.value
+	const end = start + duration / 60
+
+	return time === start || time === end
+	//return time >= start && time <= end
+}
+
 const settingsStore = useSettingsStore()
 const appearanceStore = useAppearanceStore()
 const { hourHeight, uiScale } = storeToRefs(appearanceStore)
@@ -185,11 +195,11 @@ const updateHeaderOffset = () => {
 }
 
 onMounted(() => {
+	timeStore.startTicking()
 	updateTaskStatuses()
-	timer = setInterval(() => {
-		currentTime.value = new Date()
-		updateTaskStatuses()
-	}, 60000)
+
+	watch(currentTime, updateTaskStatuses)
+
 	window.addEventListener('resize', updateHeaderOffset)
 	updateHeaderOffset()
 
@@ -206,7 +216,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-	if (timer) clearInterval(timer)
+	timeStore.stopTicking()
 	window.removeEventListener('resize', updateHeaderOffset)
 })
 
@@ -247,11 +257,14 @@ defineExpose({
 					<!-- Time Labels -->
 					<div class="time-labels">
 						<div class="column-header"></div>
-						<div v-for="hour in hours" :key="hour" class="time-label">{{ hour.toString().padStart(2, '0') }}:00</div>
+						<div v-for="hour in hours" :key="hour" class="time-label" :class="{ 'is-highlighted': isTimeHighlighted(hour) }">
+							{{ hour.toString().padStart(2, '0') }}:00
+						</div>
 						<div
 							v-for="time in taskBoundaryTimes"
 							:key="`boundary-${time}`"
 							class="time-label task-boundary-label"
+							:class="{ 'is-highlighted': isTimeHighlighted(time) }"
 							:style="{ top: `${(time - startHour) * hourHeight + headerOffset}px` }"
 						>
 							{{ formatTimeLabel(time) }}
@@ -386,6 +399,21 @@ defineExpose({
 	border-bottom: 1px solid var(--border-color);
 	display: flex;
 	align-items: flex-start;
+	transition:
+		color 0.2s,
+		background-color 0.2s,
+		font-weight 0.2s;
+}
+
+.time-label.is-highlighted {
+	/* color: var(--accent-color, #6366f1); */
+	opacity: 1;
+	color: #ff5d5d;
+	/* font-weight: 700; */
+	/* background: color-mix(in srgb, var(--color-primary), transparent 95%); */
+	/* color: var(--text-primary); */
+	/* background: color-mix(in srgb, var(--color-primary), transparent 100%); */
+	/* background: red; */
 }
 
 .task-boundary-label {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import TaskItem from './TaskItem.vue'
 import TaskResizer from './TaskResizer.vue'
+import TimeHoverTracker from './common/TimeHoverTracker.vue'
 import type { Task } from '../types'
 import { useTaskLayout } from '../composables/useTaskLayout'
 import { useDragOperator } from '../composables/useDragOperator'
@@ -183,25 +184,28 @@ const isSlotPast = (hour: number, q: number) => {
 
 		<div class="tasks-container">
 			<template v-for="task in layoutTasks" :key="task.id">
-				<TaskResizer
-					:task="task"
-					:layout-style="task.style"
-					:start-hour="props.startHour"
-					class="task-wrapper-absolute"
-					:class="{ 'dragged-origin': task.id === activeDraggedTaskId }"
-					@mousedown="handleTaskMouseDown($event, task)"
-					@touchstart="handleTaskTouchStart($event, task)"
-				>
-					<template #default="{ resizedTask }">
-						<TaskItem
-							:task="resizedTask"
-							:is-dragging="task.id === activeDraggedTaskId"
-							:is-shaking="task.isOverlapping"
-							:status="taskStatuses[task.id]"
-							@edit="emit('edit', $event)"
-						/>
-					</template>
-				</TaskResizer>
+				<TimeHoverTracker :start="task.startTime" :duration="task.duration" v-slot="{ events }">
+					<TaskResizer
+						v-on="events"
+						:task="task"
+						:layout-style="task.style"
+						:start-hour="props.startHour"
+						class="task-wrapper-absolute"
+						:class="{ 'dragged-origin': task.id === activeDraggedTaskId }"
+						@mousedown="handleTaskMouseDown($event, task)"
+						@touchstart="handleTaskTouchStart($event, task)"
+					>
+						<template #default="{ resizedTask }">
+							<TaskItem
+								:task="resizedTask"
+								:is-dragging="task.id === activeDraggedTaskId"
+								:is-shaking="task.isOverlapping"
+								:status="taskStatuses[task.id]"
+								@edit="emit('edit', $event)"
+							/>
+						</template>
+					</TaskResizer>
+				</TimeHoverTracker>
 			</template>
 		</div>
 	</div>
