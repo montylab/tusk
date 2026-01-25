@@ -256,6 +256,14 @@ defineExpose({
 						>
 							{{ formatTimeLabel(time) }}
 						</div>
+						<!-- Current Time Label -->
+						<div
+							v-if="timeIndicatorTop >= 0"
+							class="time-label current-time-label"
+							:style="{ top: `${timeIndicatorTop + headerOffset}px` }"
+						>
+							{{ formatTimeLabel(currentTime.getHours() + currentTime.getMinutes() / 60) }}
+						</div>
 					</div>
 
 					<!-- Columnar Content -->
@@ -393,6 +401,23 @@ defineExpose({
 	pointer-events: none;
 	display: flex;
 	align-items: flex-start;
+}
+
+.current-time-label {
+	position: absolute;
+	right: 0.5rem;
+	height: auto;
+	padding: 2px var(--spacing-xs);
+	font-size: var(--font-sm);
+	font-weight: 700;
+	color: var(--color-danger);
+	background: var(--bg-card);
+	border-radius: 4px;
+	border: 0;
+	/* 1px solid var(--color-danger); */
+	transform: translateY(-50%);
+	z-index: 10;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .days-wrapper {
