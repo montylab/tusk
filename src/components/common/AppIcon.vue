@@ -8,8 +8,8 @@ const props = defineProps<{
 }>()
 
 const iconUrl = computed(() => {
-	// Simple mapping or assume icons are in /assets/icons/
-	return `/src/assets/icons/${props.name}.svg`
+	// Assumes icons are in /assets/icons/ (served from public)
+	return `/assets/icons/${props.name}.svg`
 })
 
 const iconStyle = computed(() => ({
