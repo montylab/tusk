@@ -2,17 +2,18 @@ import mitt from 'mitt'
 
 export const NERVE_EVENTS = {
 	// Task Life Cycle
-	TASK_CREATED: 'task:created',
-	TASK_DELETED: 'task:deleted',
-	TASK_MOVED: 'task:moved',
-	TASK_COMPLETED: 'task:completed',
-	TASK_UNCOMPLETED: 'task:uncompleted',
+	TASK_CREATED: 'TASK_CREATED',
+	TASK_DELETED: 'TASK_DELETED',
+	TASK_MOVED: 'TASK_MOVED',
+	TASK_COMPLETED: 'TASK_COMPLETED',
+	TASK_UNCOMPLETED: 'TASK_UNCOMPLETED',
 
-	// Time & Notifications
-	TIME_NOTIFICATION: 'time:notification',
+	// Time & Scheduled Notifications
+	SCHEDULED_TASK_BEGIN: 'SCHEDULED_TASK_BEGIN',
+	SCHEDULED_TASK_END: 'SCHEDULED_TASK_END',
 
 	// App State
-	APP_ERROR: 'app:error'
+	APP_ERROR: 'APP_ERROR'
 } as const
 
 type ApplicationEvents = {
@@ -21,7 +22,8 @@ type ApplicationEvents = {
 	[NERVE_EVENTS.TASK_MOVED]: void
 	[NERVE_EVENTS.TASK_COMPLETED]: { taskId: string }
 	[NERVE_EVENTS.TASK_UNCOMPLETED]: { taskId: string }
-	[NERVE_EVENTS.TIME_NOTIFICATION]: { title: string; body?: string }
+	[NERVE_EVENTS.SCHEDULED_TASK_BEGIN]: { title: string; body?: string }
+	[NERVE_EVENTS.SCHEDULED_TASK_END]: { title: string; body?: string }
 	[NERVE_EVENTS.APP_ERROR]: { message: string }
 }
 

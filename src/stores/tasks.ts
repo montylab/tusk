@@ -366,7 +366,9 @@ export const useTasksStore = defineStore('tasks', () => {
 
 		// If order is provided, use it directly instead of letting createTodo calculate
 		if (order !== undefined) {
-			return await firebaseService.createTaskInPath('todo', { ...taskData, order })
+			const res = await firebaseService.createTaskInPath('todo', { ...taskData, order })
+			nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
+			return res
 		}
 
 		return await createTodo(taskData)
@@ -378,13 +380,15 @@ export const useTasksStore = defineStore('tasks', () => {
 
 		const { id: _, ...data } = shortcut
 		// We use createTaskInPath directly instead of createTodo to go straight to calendar
-		return await firebaseService.createTaskInPath(`calendar/${date}`, {
+		const res = await firebaseService.createTaskInPath(`calendar/${date}`, {
 			...data,
 			isShortcut: false,
 			date,
 			startTime,
 			duration
 		})
+		nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
+		return res
 	}
 
 	// --- Delete Actions ---
@@ -396,6 +400,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
 	const deleteShortcut = async (id: string | number) => {
 		await firebaseService.deleteTaskFromPath('shortcuts', id)
+		nerve.emit(NERVE_EVENTS.TASK_DELETED)
 	}
 
 	const deleteScheduledTask = async (id: string | number, date: string) => {

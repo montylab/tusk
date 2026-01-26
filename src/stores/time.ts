@@ -11,7 +11,8 @@ export const useTimeStore = defineStore('time', () => {
 	let kickstartTimer: number | null = null
 
 	// Track notified tasks to simulate "edge-trigger" (only notify once per task)
-	const notifiedTasks = new Set<string>()
+	const notifiedEntryTasks = new Set<string>()
+	const notifiedExitTasks = new Set<string>()
 
 	function startTicking() {
 		if (timer || kickstartTimer) return
@@ -59,22 +60,32 @@ export const useTimeStore = defineStore('time', () => {
 
 		scheduled.forEach((task) => {
 			if (typeof task.startTime !== 'number') return
+			const id = String(task.id)
 
-			// Check strict equality or range
-			// If we want exact time notification (e.g. 9:00), we check if abs(diff) < small
-			const diff = Math.abs(task.startTime - currentDecimal)
-
-			// 0.005 hours is 18 seconds.
-			// checking every 10s means we will hit it.
-			if (diff < 0.005) {
-				const id = String(task.id)
-				if (!notifiedTasks.has(id)) {
-					// Notify
-					nerve.emit(NERVE_EVENTS.TIME_NOTIFICATION, {
+			// --- BEGIN Check ---
+			const startDiff = Math.abs(task.startTime - currentDecimal)
+			if (startDiff < 0.005) {
+				if (!notifiedEntryTasks.has(id)) {
+					nerve.emit(NERVE_EVENTS.SCHEDULED_TASK_BEGIN, {
 						title: 'Task Started',
 						body: `It's time for: ${task.text}`
 					})
-					notifiedTasks.add(id)
+					notifiedEntryTasks.add(id)
+				}
+			}
+
+			// --- END Check ---
+			if (task.duration) {
+				const endTime = task.startTime + task.duration / 60
+				const endDiff = Math.abs(endTime - currentDecimal)
+				if (endDiff < 0.005) {
+					if (!notifiedExitTasks.has(id)) {
+						nerve.emit(NERVE_EVENTS.SCHEDULED_TASK_END, {
+							title: 'Task Finished',
+							body: `${task.text} should be finished now.`
+						})
+						notifiedExitTasks.add(id)
+					}
 				}
 			}
 		})
