@@ -14,7 +14,10 @@
   },
   "dependencies": {
     "@primeuix/themes": "^2.0.2",
+    "@types/howler": "^2.2.12",
     "firebase": "^12.7.0",
+    "howler": "^2.2.4",
+    "mitt": "^3.0.1",
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.4",

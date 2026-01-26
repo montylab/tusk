@@ -4,6 +4,7 @@ import type { Task } from '../types'
 import * as firebaseService from '../services/firebaseService'
 import { useUserStore } from './user'
 import { formatDate } from '../utils/dateUtils'
+import { nerve, NERVE_EVENTS } from '../services/nerve'
 
 export const useTasksStore = defineStore('tasks', () => {
 	const userStore = useUserStore()
@@ -163,7 +164,9 @@ export const useTasksStore = defineStore('tasks', () => {
 			}
 
 			const finalTaskData = { ...defaults, ...taskData }
-			return await firebaseService.createTaskInPath('todo', finalTaskData)
+			const res = await firebaseService.createTaskInPath('todo', finalTaskData)
+			nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
+			return res
 		} catch (err) {
 			console.error(err)
 			error.value = 'Failed to create todo'
@@ -212,7 +215,9 @@ export const useTasksStore = defineStore('tasks', () => {
 
 			const finalTaskData = { ...defaults, ...taskData }
 			const date = finalTaskData.date
-			return await firebaseService.createTaskInPath(`calendar/${date}`, finalTaskData)
+			const res = await firebaseService.createTaskInPath(`calendar/${date}`, finalTaskData)
+			nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
+			return res
 		} catch (err) {
 			console.error(err)
 			error.value = 'Failed to create scheduled task'
@@ -248,6 +253,11 @@ export const useTasksStore = defineStore('tasks', () => {
 		}
 
 		await firebaseService.updateTaskInPath(`calendar/${date}`, id, updates)
+		if (updates.completed === true) {
+			nerve.emit(NERVE_EVENTS.TASK_COMPLETED, { taskId: String(id) })
+		} else if (updates.completed === false) {
+			nerve.emit(NERVE_EVENTS.TASK_UNCOMPLETED, { taskId: String(id) })
+		}
 	}
 
 	// --- Move Actions (Atomic Transfer) ---
@@ -262,6 +272,7 @@ export const useTasksStore = defineStore('tasks', () => {
 		// Logic: Delete from 'todo', create in 'calendar/date'
 		const updates = { startTime, duration, date, isShortcut: false }
 		await firebaseService.moveTask('todo', `calendar/${date}`, task, updates)
+		nerve.emit(NERVE_EVENTS.TASK_MOVED)
 	}
 
 	const moveCalendarToTodo = async (id: string | number, date: string, order?: number) => {
@@ -341,6 +352,7 @@ export const useTasksStore = defineStore('tasks', () => {
 		}
 
 		await firebaseService.moveTask(`calendar/${fromDate}`, `calendar/${toDate}`, task, moveUpdates)
+		nerve.emit(NERVE_EVENTS.TASK_MOVED)
 	}
 
 	// --- Copy Actions (Templates) ---
@@ -379,6 +391,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
 	const deleteTodo = async (id: string | number) => {
 		await firebaseService.deleteTaskFromPath('todo', id)
+		nerve.emit(NERVE_EVENTS.TASK_DELETED)
 	}
 
 	const deleteShortcut = async (id: string | number) => {
@@ -387,6 +400,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
 	const deleteScheduledTask = async (id: string | number, date: string) => {
 		await firebaseService.deleteTaskFromPath(`calendar/${date}`, id)
+		nerve.emit(NERVE_EVENTS.TASK_DELETED)
 	}
 
 	// --- Legacy / Helper for Reordering (Optional, generic reorder is tricky with explicit paths) ---

@@ -8,12 +8,18 @@ import ThemePanel from './components/ThemePanel.vue'
 import ThemeTransitionOverlay from './components/ThemeTransitionOverlay.vue'
 import DebugFAB from './debug/DebugFAB.vue'
 import { useGlobalShortcuts } from './composables/useGlobalShortcuts'
+import { useSoundSystem } from './composables/useSoundSystem'
+import { useNotificationSystem } from './composables/useNotificationSystem'
 
 const userStore = useUserStore()
 const { user, loading: authLoading } = storeToRefs(userStore)
 
 // Initialize global shortcuts
 useGlobalShortcuts()
+
+// Initialize app internal systems
+useSoundSystem()
+useNotificationSystem()
 
 const isDev = import.meta.env.DEV
 </script>
