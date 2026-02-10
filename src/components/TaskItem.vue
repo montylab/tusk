@@ -73,7 +73,7 @@ const onEditClick = (e: Event) => {
 		<div class="color-stripe"></div>
 		<div class="content">
 			<div class="main-info">
-				<h4 class="title">{{ task.text }}</h4>
+				<h4 class="title" :title="task.text">{{ task.text }}</h4>
 
 				<div class="meta">
 					<span class="time-badge" v-if="task.startTime !== null && task.startTime !== undefined">
@@ -96,7 +96,7 @@ const onEditClick = (e: Event) => {
 			</div>
 
 			<div class="badges">
-				<span class="category-badge badge">{{ task.category || 'Uncategorized' }}</span>
+				<span class="category-badge badge" :title="task.category || 'Uncategorized'">{{ task.category || 'Uncategorized' }}</span>
 				<span v-if="task.isDeepWork" class="deep-work-badge badge" title="Deep Work task">
 					<AppIcon name="brain" size="0.8rem" />
 					<span>DEEP</span>
@@ -128,6 +128,7 @@ const onEditClick = (e: Event) => {
 	box-shadow: var(--shadow-sm);
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
+	container-type: inline-size;
 
 	&:hover {
 		background: var(--surface-hover);
@@ -137,7 +138,7 @@ const onEditClick = (e: Event) => {
 		}
 	}
 
-	// 2. Base Components
+	// 2. Base Components (>= 280px)
 	.color-stripe {
 		width: 0.35rem;
 		height: 100%;
@@ -250,6 +251,9 @@ const onEditClick = (e: Event) => {
 					opacity: 0.9;
 					border: 1px solid var(--category-color);
 					color: var(--category-color);
+					max-width: 100px;
+					overflow: hidden;
+					text-overflow: ellipsis;
 				}
 
 				&.deep-work-badge {
@@ -259,8 +263,25 @@ const onEditClick = (e: Event) => {
 					background: var(--bg-deep-work);
 					color: var(--text-on-accent);
 					letter-spacing: 0.5px;
+
+					span {
+						display: none;
+					}
 				}
 			}
+		}
+	}
+
+	// 3. Container-based Overrides (Growth)
+	@container (min-width: 450px) {
+		.content .badges .badge.category-badge {
+			max-width: none;
+		}
+	}
+
+	@container (min-width: 600px) {
+		.content .badges .badge.deep-work-badge span {
+			display: inline;
 		}
 	}
 
@@ -280,7 +301,7 @@ const onEditClick = (e: Event) => {
 		pointer-events: none;
 	}
 
-	// 3. State-based Overrides
+	// 4. State-based Overrides
 	&.is-compact {
 		--font-size-title: 0.875rem;
 		--font-size-meta: 0.75rem;
@@ -292,9 +313,6 @@ const onEditClick = (e: Event) => {
 			.main-info {
 				.meta {
 					gap: 0.4rem;
-					.time-badge {
-						display: none;
-					}
 				}
 			}
 
@@ -345,7 +363,7 @@ const onEditClick = (e: Event) => {
 		}
 	}
 
-	// 4. Interactions
+	// 5. Interactions
 	&.dragging {
 		background: rgba(255, 255, 255, 0.2);
 		backdrop-filter: blur(4px);
