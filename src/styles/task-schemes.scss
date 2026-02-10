@@ -62,7 +62,7 @@
 // --- Glass (Option 2) ---
 [data-scheme='glass'] .task-item {
 	&.in-past {
-		background: rgba(255, 255, 255, 0.02);
+		background: rgba(0, 0, 0, 0.1);
 		border-color: color-mix(in srgb, var(--category-color), transparent 50%);
 		opacity: 0.8;
 	}

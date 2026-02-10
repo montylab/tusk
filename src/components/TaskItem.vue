@@ -206,7 +206,6 @@ const onEditClick = (e: Event) => {
 
 			.edit-btn {
 				background: var(--bg-action-btn);
-				border: 1px solid var(--border-color);
 				border-radius: var(--radius-sm);
 				color: #fff;
 				width: 1.5rem;
@@ -231,7 +230,6 @@ const onEditClick = (e: Event) => {
 
 				&:hover {
 					background: var(--category-color);
-					border-color: #fff;
 					transform: scale(1.1);
 				}
 
@@ -270,6 +268,7 @@ const onEditClick = (e: Event) => {
 				display: flex;
 				align-items: center;
 				gap: 3px;
+				height: 1rem;
 				background: var(--bg-deep-work);
 				color: var(--text-on-accent);
 				letter-spacing: 0.5px;
@@ -282,6 +281,12 @@ const onEditClick = (e: Event) => {
 	}
 
 	// 3. Container-based Overrides (Growth)
+	@container (min-width: 350px) {
+		.content .badges .badge.category-badge {
+			max-width: 150px;
+		}
+	}
+
 	@container (min-width: 450px) {
 		.content .badges .badge.category-badge {
 			max-width: none;
