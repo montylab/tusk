@@ -182,7 +182,6 @@ html[data-theme='pinky'] {
 	--bg-header: #fffcfd;
 	--text-header: var(--text-primary);
 	--accent-gradient: linear-gradient(135deg, #db2777 0%, #fb7185 100%);
-	--bg-deep-work: #db2777;
 	--text-meta: color-mix(in srgb, var(--text-primary), transparent 40%);
 	--bg-task-item: var(--bg-page);
 
@@ -218,7 +217,6 @@ html[data-theme='vivid'] {
 	/* Role Adjustments */
 	--bg-header: rgba(143, 0, 255, 0.7);
 	--accent-gradient: linear-gradient(135deg, #ff6b00 0%, #ff00ff 100%);
-	--bg-deep-work: #ff00ff;
 	--text-meta: rgba(255, 255, 255, 0.85);
 	--text-description: rgba(255, 255, 255, 0.9);
 

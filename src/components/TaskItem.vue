@@ -126,11 +126,11 @@ const onEditClick = (e: Event) => {
 		}
 	}
 
-	&.on-air {
-		.content .badges .badge.category-badge {
-			color: #fff; // no var for this case. it's always white!
-		}
-	}
+	// &.on-air {
+	// 	.content .badges .badge.category-badge {
+	// 		// color: #fff; // no var for this case. it's always white!
+	// 	}
+	// }
 
 	// 2. Base Components (>= 280px)
 	.color-stripe {

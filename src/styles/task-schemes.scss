@@ -44,6 +44,12 @@
 		color: #fff;
 		z-index: 10;
 		border-color: rgba(255, 255, 255, 0.4);
+
+		.badges .badge.category-badge {
+			background: #fff;
+			color: var(--category-color);
+			border-color: #fff;
+		}
 	}
 
 	&.in-future {
