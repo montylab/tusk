@@ -130,3 +130,24 @@ export const isTimePast = (dateStr: string, hour: number, now = new Date()): boo
 	const nowHour = now.getHours() + now.getMinutes() / 60
 	return hour < nowHour
 }
+
+/**
+ * Formats decimal hours into H:MM format
+ */
+export const formatTime = (time: number) => {
+	const h = Math.floor(time)
+	const m = Math.round((time % 1) * 60)
+	return `${h}:${m.toString().padStart(2, '0')}`
+}
+
+/**
+ * Formats duration in minutes to Hh Mm or Mm format
+ */
+export const formatDuration = (minutes: number) => {
+	const safeMinutes = isNaN(minutes) ? 60 : minutes
+	if (safeMinutes <= 0) return '0m'
+	if (safeMinutes < 60) return `${safeMinutes}m`
+	const h = Math.floor(safeMinutes / 60)
+	const m = Math.round(safeMinutes % 60)
+	return m > 0 ? `${h}h ${m}m` : `${h}h`
+}

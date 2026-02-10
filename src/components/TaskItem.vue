@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { Task } from '../types'
 import { useCategoriesStore } from '../stores/categories'
 import AppIcon from './common/AppIcon.vue'
+import { formatTime, formatDuration } from '../utils/dateUtils'
 
 const props = defineProps<{
 	task: Task
@@ -18,21 +19,6 @@ const emit = defineEmits<{
 }>()
 
 const categoriesStore = useCategoriesStore()
-
-const formatTime = (time: number) => {
-	const h = Math.floor(time)
-	const m = Math.round((time % 1) * 60)
-	return `${h}:${m.toString().padStart(2, '0')}`
-}
-
-const formatDuration = (minutes: number) => {
-	const safeMinutes = isNaN(minutes) ? 60 : minutes
-	if (safeMinutes <= 0) return '0m'
-	if (safeMinutes < 60) return `${safeMinutes}m`
-	const h = Math.floor(safeMinutes / 60)
-	const m = Math.round(safeMinutes % 60)
-	return m > 0 ? `${h}h ${m}m` : `${h}h`
-}
 
 const endTime = computed(() => {
 	if (props.task.startTime === null || props.task.startTime === undefined) return null
@@ -108,6 +94,8 @@ const onEditClick = (e: Event) => {
 </template>
 
 <style scoped lang="scss">
+@import '../styles/task-schemes.scss';
+
 .task-item {
 	// 1. Typography & Colors
 	--category-color: var(--color-default);
@@ -215,7 +203,7 @@ const onEditClick = (e: Event) => {
 				background: var(--bg-action-btn);
 				border: 1px solid var(--border-color);
 				border-radius: var(--radius-sm);
-				color: var(--text-primary);
+				color: #fff;
 				width: 1.25rem;
 				height: 1.25rem;
 				display: flex;
@@ -232,41 +220,41 @@ const onEditClick = (e: Event) => {
 				}
 			}
 		}
+	}
 
-		.badges {
-			display: flex;
-			align-items: center;
-			gap: var(--spacing-sm);
+	.badges {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
 
-			.badge {
-				font-size: var(--font-size-badge);
-				border-radius: var(--radius-sm);
-				padding: 0 var(--spacing-xs);
-				font-weight: 700;
-				white-space: nowrap;
-				text-transform: uppercase;
-				flex-shrink: 0;
+		.badge {
+			font-size: var(--font-size-badge);
+			border-radius: var(--radius-sm);
+			padding: 0 var(--spacing-xs);
+			font-weight: 700;
+			white-space: nowrap;
+			text-transform: uppercase;
+			flex-shrink: 0;
 
-				&.category-badge {
-					opacity: 0.9;
-					border: 1px solid var(--category-color);
-					color: var(--category-color);
-					max-width: 100px;
-					overflow: hidden;
-					text-overflow: ellipsis;
-				}
+			&.category-badge {
+				opacity: 0.9;
+				border: 1px solid var(--category-color);
+				color: var(--category-color);
+				max-width: 100px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
 
-				&.deep-work-badge {
-					display: flex;
-					align-items: center;
-					gap: 3px;
-					background: var(--bg-deep-work);
-					color: var(--text-on-accent);
-					letter-spacing: 0.5px;
+			&.deep-work-badge {
+				display: flex;
+				align-items: center;
+				gap: 3px;
+				background: var(--bg-deep-work);
+				color: var(--text-on-accent);
+				letter-spacing: 0.5px;
 
-					span {
-						display: none;
-					}
+				span {
+					display: none;
 				}
 			}
 		}
@@ -415,106 +403,6 @@ const onEditClick = (e: Event) => {
 	}
 	100% {
 		transform: scaleX(1);
-	}
-}
-
-/* ==========================================================================
-	   SCHEMES
-	   ========================================================================== */
-
-// --- Solid (Default) ---
-[data-scheme='solid'] .task-item {
-	&.in-past {
-		background: color-mix(in srgb, var(--category-color), var(--bg-page) 70%);
-	}
-
-	&.on-air {
-		background: var(--category-color);
-		color: var(--text-on-accent, #fff);
-	}
-
-	&.in-future {
-		background: color-mix(in srgb, var(--category-color), var(--bg-page) 30%);
-	}
-}
-
-// --- Neo (Option 1 - previously Contrast) ---
-[data-scheme='neo'] .task-item {
-	&.in-past {
-		filter: grayscale(0.5);
-		opacity: 0.5;
-		background: var(--bg-card);
-		border-style: solid;
-	}
-
-	&.on-air {
-		background: var(--category-color);
-		color: #fff;
-		z-index: 10;
-		border-color: rgba(255, 255, 255, 0.4);
-	}
-
-	&.in-future {
-		background: transparent;
-		border: 2px dashed var(--category-color);
-		opacity: 0.8;
-	}
-}
-
-// --- Glass (Option 2) ---
-[data-scheme='glass'] .task-item {
-	&.in-past {
-		background: rgba(255, 255, 255, 0.02);
-		border-color: color-mix(in srgb, var(--category-color), transparent 50%);
-		opacity: 0.8;
-	}
-
-	&.on-air {
-		background: color-mix(in srgb, var(--category-color), transparent 20%);
-		.badge.category-badge {
-			color: var(--text-on-accent, #fff);
-			background: var(--category-color);
-		}
-	}
-
-	&.in-future {
-		background: color-mix(in srgb, var(--category-color), transparent 70%);
-		// border: 1px solid color-mix(in srgb, var(--category-color), transparent 50%);
-	}
-}
-
-// --- Ink (Option 3 - previously Minimal) ---
-[data-scheme='ink'] .task-item {
-	&.in-past {
-		background: color-mix(in srgb, var(--bg-card), transparent 20%);
-		border-color: color-mix(in srgb, var(--category-color), transparent 50%);
-		opacity: 0.8;
-	}
-
-	&.on-air {
-		background: var(--category-color);
-
-		.badge.category-badge {
-			color: var(--text-on-accent, #fff);
-			border-color: var(--text-on-accent, #fff);
-		}
-	}
-
-	&.in-future {
-		// background-image: repeating-linear-gradient(
-		// 	45deg,
-		// 	transparent,
-		// 	transparent 10px,
-		// 	color-mix(in srgb, var(--category-color), transparent 95%) 10px,
-		// 	color-mix(in srgb, var(--category-color), transparent 95%) 20px
-		// );
-		background: color-mix(in srgb, var(--category-color), transparent 15%);
-		border: 1px solid color-mix(in srgb, var(--category-color), transparent 40%);
-
-		.badge.category-badge {
-			color: var(--text-on-accent, #fff);
-			border-color: var(--text-on-accent, #fff);
-		}
 	}
 }
 </style>

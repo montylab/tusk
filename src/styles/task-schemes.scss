@@ -1,0 +1,103 @@
+/* ==========================================================================
+   TASK ITEM SCHEMES
+   ========================================================================== */
+
+// --- Solid (Default) ---
+[data-scheme='solid'] .task-item {
+	&.in-past {
+		background: color-mix(in srgb, var(--category-color), var(--bg-page) 70%);
+	}
+
+	&.on-air {
+		background: var(--category-color);
+		color: var(--text-on-accent, #fff);
+
+		.badges .badge.category-badge {
+			background: #fff;
+			color: var(--category-color);
+			border-color: #fff;
+		}
+	}
+
+	&.in-future {
+		background: color-mix(in srgb, var(--category-color), var(--bg-page) 30%);
+	}
+
+	.badges .badge.category-badge {
+		background: var(--category-color);
+		color: #fff;
+		border-color: var(--category-color);
+	}
+}
+
+// --- Neo (Option 1 - previously Contrast) ---
+[data-scheme='neo'] .task-item {
+	&.in-past {
+		filter: grayscale(0.5);
+		opacity: 0.5;
+		background: var(--bg-card);
+		border-style: solid;
+	}
+
+	&.on-air {
+		background: var(--category-color);
+		color: #fff;
+		z-index: 10;
+		border-color: rgba(255, 255, 255, 0.4);
+	}
+
+	&.in-future {
+		background: transparent;
+		border: 2px dashed var(--category-color);
+		opacity: 0.8;
+	}
+}
+
+// --- Glass (Option 2) ---
+[data-scheme='glass'] .task-item {
+	&.in-past {
+		background: rgba(255, 255, 255, 0.02);
+		border-color: color-mix(in srgb, var(--category-color), transparent 50%);
+		opacity: 0.8;
+	}
+
+	&.on-air {
+		background: color-mix(in srgb, var(--category-color), transparent 20%);
+		.badge.category-badge {
+			color: var(--text-on-accent, #fff);
+			background: var(--category-color);
+		}
+	}
+
+	&.in-future {
+		background: color-mix(in srgb, var(--category-color), transparent 70%);
+	}
+}
+
+// --- Ink (Option 3 - previously Minimal) ---
+[data-scheme='ink'] .task-item {
+	&.in-past {
+		background: color-mix(in srgb, var(--bg-card), transparent 20%);
+		border-color: color-mix(in srgb, var(--category-color), transparent 50%);
+		opacity: 0.8;
+	}
+
+	&.on-air {
+		background: var(--category-color);
+
+		.badge.category-badge {
+			color: var(--text-on-accent, #fff);
+			border-color: var(--text-on-accent, #fff);
+		}
+	}
+
+	&.in-future {
+		background: color-mix(in srgb, var(--category-color), transparent 15%);
+		border: 1px solid color-mix(in srgb, var(--category-color), transparent 40%);
+
+		.badge.category-badge {
+			color: var(--text-on-accent, #fff);
+			border-color: var(--text-on-accent, #fff);
+		}
+	}
+}
