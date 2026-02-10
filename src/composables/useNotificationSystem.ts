@@ -1,6 +1,11 @@
 import { nerve, NERVE_EVENTS } from '../services/nerve'
+import { useSettingsStore } from '../stores/settings'
+import { storeToRefs } from 'pinia'
 
 export function useNotificationSystem() {
+	const settingsStore = useSettingsStore()
+	const { settings } = storeToRefs(settingsStore)
+
 	console.log('🔔 Notification System Initialized')
 
 	// Request permission immediately on load (or could be deferred to a button click if preferred)
@@ -32,10 +37,14 @@ export function useNotificationSystem() {
 	}
 
 	nerve.on(NERVE_EVENTS.SCHEDULED_TASK_BEGIN, ({ title, body }) => {
-		showNotification(title, body)
+		if (settings.value.notifications.enabled && settings.value.notifications.taskStarted) {
+			showNotification(title, body)
+		}
 	})
 
 	nerve.on(NERVE_EVENTS.SCHEDULED_TASK_END, ({ title, body }) => {
-		showNotification(title, body)
+		if (settings.value.notifications.enabled && settings.value.notifications.taskEnded) {
+			showNotification(title, body)
+		}
 	})
 }

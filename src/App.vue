@@ -10,6 +10,8 @@ import DebugFAB from './debug/DebugFAB.vue'
 import { useGlobalShortcuts } from './composables/useGlobalShortcuts'
 import { useSoundSystem } from './composables/useSoundSystem'
 import { useNotificationSystem } from './composables/useNotificationSystem'
+import { useTaskMonitor } from './composables/useTaskMonitor'
+import { useTimeStore } from './stores/time'
 
 const userStore = useUserStore()
 const { user, loading: authLoading } = storeToRefs(userStore)
@@ -20,6 +22,11 @@ useGlobalShortcuts()
 // Initialize app internal systems
 useSoundSystem()
 useNotificationSystem()
+useTaskMonitor()
+
+// Initialize time system
+const timeStore = useTimeStore()
+timeStore.startTicking()
 
 const isDev = import.meta.env.DEV
 </script>

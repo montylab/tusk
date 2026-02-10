@@ -5,11 +5,30 @@ import { useAppearanceStore, type ThemeType } from '../stores/appearance'
 import { useUIStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 
+import AppCheckbox from '../components/common/AppCheckbox.vue'
 const settingsStore = useSettingsStore()
 const appearanceStore = useAppearanceStore()
 const uiStore = useUIStore()
 const { settings } = storeToRefs(settingsStore)
 const { theme, interfaceScale } = storeToRefs(appearanceStore)
+
+const updateNotificationSetting = (key: keyof typeof settings.value.notifications, value: boolean) => {
+	settingsStore.updateSettings({
+		notifications: {
+			...settings.value.notifications,
+			[key]: value
+		}
+	})
+}
+
+const updateSoundSetting = (key: keyof typeof settings.value.sounds, value: boolean) => {
+	settingsStore.updateSettings({
+		sounds: {
+			...settings.value.sounds,
+			[key]: value
+		}
+	})
+}
 
 const updateStartHour = (event: Event) => {
 	const val = parseFloat((event.target as HTMLInputElement).value)
@@ -77,6 +96,7 @@ const updateInterfaceScale = (event: Event) => {
 						<select id="theme" :value="theme ?? 'dark'" @change="updateTheme" class="setting-input select">
 							<option value="light">Light</option>
 							<option value="dark">Dark</option>
+							<option value="pinky">Pinky</option>
 						</select>
 					</div>
 
@@ -103,6 +123,83 @@ const updateInterfaceScale = (event: Event) => {
 							<option :value="100">100%</option>
 							<option :value="150">150%</option>
 						</select>
+					</div>
+				</section>
+
+				<section class="settings-section">
+					<h2>Notifications & Sounds</h2>
+
+					<div class="settings-sub-group">
+						<h3>Notifications</h3>
+						<div class="setting-item">
+							<div class="setting-info">
+								<label>Global Notifications</label>
+								<p class="setting-desc">Enable or disable all desktop notifications</p>
+							</div>
+							<AppCheckbox
+								:model-value="settings.notifications.enabled"
+								@update:model-value="(val) => updateNotificationSetting('enabled', val)"
+							/>
+						</div>
+
+						<div class="granular-settings" v-if="settings.notifications.enabled">
+							<div class="setting-item mini">
+								<div class="setting-info">
+									<label>Task Started</label>
+								</div>
+								<AppCheckbox
+									:model-value="settings.notifications.taskStarted"
+									@update:model-value="(val) => updateNotificationSetting('taskStarted', val)"
+								/>
+							</div>
+							<div class="setting-item mini">
+								<div class="setting-info">
+									<label>Task Ended</label>
+								</div>
+								<AppCheckbox
+									:model-value="settings.notifications.taskEnded"
+									@update:model-value="(val) => updateNotificationSetting('taskEnded', val)"
+								/>
+							</div>
+						</div>
+					</div>
+
+					<div class="settings-sub-group">
+						<h3>Sounds</h3>
+						<div class="setting-item">
+							<div class="setting-info">
+								<label>Global Sounds</label>
+								<p class="setting-desc">Enable or disable all application sounds</p>
+							</div>
+							<AppCheckbox :model-value="settings.sounds.enabled" @update:model-value="(val) => updateSoundSetting('enabled', val)" />
+						</div>
+
+						<div class="granular-settings" v-if="settings.sounds.enabled">
+							<div class="setting-item mini">
+								<div class="setting-info">
+									<label>Task Started</label>
+								</div>
+								<AppCheckbox
+									:model-value="settings.sounds.taskStarted"
+									@update:model-value="(val) => updateSoundSetting('taskStarted', val)"
+								/>
+							</div>
+							<div class="setting-item mini">
+								<div class="setting-info">
+									<label>Task Ended</label>
+								</div>
+								<AppCheckbox :model-value="settings.sounds.taskEnded" @update:model-value="(val) => updateSoundSetting('taskEnded', val)" />
+							</div>
+							<div class="setting-item mini">
+								<div class="setting-info">
+									<label>Task Deleted</label>
+								</div>
+								<AppCheckbox
+									:model-value="settings.sounds.taskDeleted"
+									@update:model-value="(val) => updateSoundSetting('taskDeleted', val)"
+								/>
+							</div>
+						</div>
 					</div>
 				</section>
 
@@ -230,5 +327,33 @@ const updateInterfaceScale = (event: Event) => {
 	width: auto;
 	min-width: 140px;
 	text-align: left;
+}
+
+.settings-sub-group {
+	margin-top: 2rem;
+	padding-left: 1rem;
+}
+
+.settings-sub-group h3 {
+	font-size: 1.1rem;
+	margin-bottom: 1rem;
+	color: var(--text-secondary);
+	font-weight: 600;
+}
+
+.granular-settings {
+	margin-left: 2rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.setting-item.mini {
+	padding: 0.75rem 1rem;
+	margin: 0;
+}
+
+.setting-item.mini .setting-info label {
+	font-size: 0.95rem;
 }
 </style>

@@ -1,5 +1,7 @@
 import { Howl } from 'howler'
+import { storeToRefs } from 'pinia'
 import { nerve, NERVE_EVENTS } from '../services/nerve'
+import { useSettingsStore } from '../stores/settings'
 
 // Define sound assets - key maps to filename in /public/assets/sounds/
 const soundAssets = {
@@ -9,18 +11,27 @@ const soundAssets = {
 }
 
 export function useSoundSystem() {
+	const settingsStore = useSettingsStore()
+	const { settings } = storeToRefs(settingsStore)
+
 	// Initialize listeners
 	console.log('🔊 Sound System Initialized')
 
 	nerve.on(NERVE_EVENTS.TASK_DELETED, () => {
-		soundAssets.taskDeleted.play()
+		if (settings.value.sounds.enabled && settings.value.sounds.taskDeleted) {
+			soundAssets.taskDeleted.play()
+		}
 	})
 
 	nerve.on(NERVE_EVENTS.SCHEDULED_TASK_BEGIN, () => {
-		soundAssets.taskStarts.play()
+		if (settings.value.sounds.enabled && settings.value.sounds.taskStarted) {
+			soundAssets.taskStarts.play()
+		}
 	})
 
 	nerve.on(NERVE_EVENTS.SCHEDULED_TASK_END, () => {
-		soundAssets.taskEnds.play()
+		if (settings.value.sounds.enabled && settings.value.sounds.taskEnded) {
+			soundAssets.taskEnds.play()
+		}
 	})
 }

@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, onUnmounted } from 'vue'
-import { useTasksStore } from './tasks'
 import { nerve, NERVE_EVENTS } from '../services/nerve'
-import { formatDate } from '../utils/dateUtils'
 
 export const useTimeStore = defineStore('time', () => {
 	// --- Current Time Logic ---
@@ -10,15 +8,12 @@ export const useTimeStore = defineStore('time', () => {
 	let timer: number | null = null
 	let kickstartTimer: number | null = null
 
-	// Track notified tasks to simulate "edge-trigger" (only notify once per task)
-	const notifiedEntryTasks = new Set<string>()
-	const notifiedExitTasks = new Set<string>()
-
 	function startTicking() {
 		if (timer || kickstartTimer) return
 		// Update immediately
 		currentTime.value = new Date()
-		checkNotifications()
+		// initialization kickstart
+		nerve.emit(NERVE_EVENTS.MINUTE_TICK, { date: currentTime.value })
 
 		// Kick start: wait until the beginning of the next minute
 		const now = new Date()
@@ -26,12 +21,12 @@ export const useTimeStore = defineStore('time', () => {
 
 		kickstartTimer = window.setTimeout(() => {
 			currentTime.value = new Date()
-			checkNotifications()
+			nerve.emit(NERVE_EVENTS.MINUTE_TICK, { date: currentTime.value })
 
 			// Then continue every minute exactly
 			timer = window.setInterval(() => {
 				currentTime.value = new Date()
-				checkNotifications()
+				nerve.emit(NERVE_EVENTS.MINUTE_TICK, { date: currentTime.value })
 			}, 60000)
 
 			kickstartTimer = null
@@ -47,48 +42,6 @@ export const useTimeStore = defineStore('time', () => {
 			clearTimeout(kickstartTimer)
 			kickstartTimer = null
 		}
-	}
-
-	function checkNotifications() {
-		const tasksStore = useTasksStore()
-		const now = currentTime.value
-
-		const todayStr = formatDate(now)
-		const scheduled = tasksStore.scheduledTasks[todayStr] || []
-
-		const currentDecimal = now.getHours() + now.getMinutes() / 60
-
-		scheduled.forEach((task) => {
-			if (typeof task.startTime !== 'number') return
-			const id = String(task.id)
-
-			// --- BEGIN Check ---
-			const startDiff = Math.abs(task.startTime - currentDecimal)
-			if (startDiff < 0.005) {
-				if (!notifiedEntryTasks.has(id)) {
-					nerve.emit(NERVE_EVENTS.SCHEDULED_TASK_BEGIN, {
-						title: 'Task Started',
-						body: `It's time for: ${task.text}`
-					})
-					notifiedEntryTasks.add(id)
-				}
-			}
-
-			// --- END Check ---
-			if (task.duration) {
-				const endTime = task.startTime + task.duration / 60
-				const endDiff = Math.abs(endTime - currentDecimal)
-				if (endDiff < 0.005) {
-					if (!notifiedExitTasks.has(id)) {
-						nerve.emit(NERVE_EVENTS.SCHEDULED_TASK_END, {
-							title: 'Task Finished',
-							body: `${task.text} should be finished now.`
-						})
-						notifiedExitTasks.add(id)
-					}
-				}
-			}
-		})
 	}
 
 	// Auto-cleanup if the store itself is disposed (rare in Pinia but good practice)

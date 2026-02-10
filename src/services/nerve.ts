@@ -11,6 +11,7 @@ export const NERVE_EVENTS = {
 	// Time & Scheduled Notifications
 	SCHEDULED_TASK_BEGIN: 'SCHEDULED_TASK_BEGIN',
 	SCHEDULED_TASK_END: 'SCHEDULED_TASK_END',
+	MINUTE_TICK: 'MINUTE_TICK',
 
 	// App State
 	APP_ERROR: 'APP_ERROR'
@@ -24,6 +25,7 @@ type ApplicationEvents = {
 	[NERVE_EVENTS.TASK_UNCOMPLETED]: { taskId: string }
 	[NERVE_EVENTS.SCHEDULED_TASK_BEGIN]: { title: string; body?: string }
 	[NERVE_EVENTS.SCHEDULED_TASK_END]: { title: string; body?: string }
+	[NERVE_EVENTS.MINUTE_TICK]: { date: Date }
 	[NERVE_EVENTS.APP_ERROR]: { message: string }
 }
 

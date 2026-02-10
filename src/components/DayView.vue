@@ -195,7 +195,6 @@ const updateHeaderOffset = () => {
 }
 
 onMounted(() => {
-	timeStore.startTicking()
 	updateTaskStatuses()
 
 	watch(currentTime, updateTaskStatuses)
@@ -216,7 +215,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-	timeStore.stopTicking()
 	window.removeEventListener('resize', updateHeaderOffset)
 })
 

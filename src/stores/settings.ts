@@ -7,6 +7,17 @@ export interface UserSettings {
 	defaultStartHour?: number
 	snapMinutes?: number
 	categoryColors: string[]
+	notifications: {
+		enabled: boolean
+		taskStarted: boolean
+		taskEnded: boolean
+	}
+	sounds: {
+		enabled: boolean
+		taskStarted: boolean
+		taskEnded: boolean
+		taskDeleted: boolean
+	}
 }
 
 export const defaultColors = [
@@ -67,7 +78,18 @@ export const ibmCarbonColors = [
 const DEFAULT_SETTINGS: UserSettings = {
 	snapMinutes: 15,
 	defaultStartHour: 9,
-	categoryColors: tailwindColors
+	categoryColors: tailwindColors,
+	notifications: {
+		enabled: true,
+		taskStarted: true,
+		taskEnded: true
+	},
+	sounds: {
+		enabled: true,
+		taskStarted: true,
+		taskEnded: true,
+		taskDeleted: true
+	}
 }
 
 export const useSettingsStore = defineStore('settings', () => {
