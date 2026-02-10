@@ -216,7 +216,7 @@ const isSlotPast = (hour: number, q: number) => {
 	flex: 1;
 	position: relative;
 	border-left: 1px solid var(--border-color);
-	min-width: clamp(200px, 12.5rem, 12.5rem);
+	min-width: clamp(280px, 12.5rem, 25rem);
 	background: var(--bg-column);
 }
 

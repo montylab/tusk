@@ -455,7 +455,8 @@ defineExpose({
 
 .day-column-outer {
 	flex: 1;
-	min-width: 12.5rem;
+	/* min-width: 12.5rem; */
+	min-width: 280px;
 	width: 20vw;
 	display: flex;
 	flex-direction: column;
