@@ -76,7 +76,7 @@ const onEditClick = (e: Event) => {
 			</div>
 
 			<div class="header-actions">
-				<button class="edit-btn" @mousedown.stop @click="onEditClick" title="Edit Task">
+				<button class="edit-btn" @mousedown.stop @touchstart.stop @click="onEditClick" title="Edit Task">
 					<AppIcon name="pencil" size="0.8rem" />
 				</button>
 			</div>
@@ -126,12 +126,6 @@ const onEditClick = (e: Event) => {
 		}
 	}
 
-	// &.on-air {
-	// 	.content .badges .badge.category-badge {
-	// 		// color: #fff; // no var for this case. it's always white!
-	// 	}
-	// }
-
 	// 2. Base Components (>= 280px)
 	.color-stripe {
 		width: 0.35rem;
@@ -154,7 +148,7 @@ const onEditClick = (e: Event) => {
 			flex-direction: column;
 			align-items: flex-start;
 			justify-content: center;
-			row-gap: 0;
+			row-gap: 0.5rem;
 			flex: 1;
 			min-width: 0; // Allow shrinking for ellipsis
 
@@ -205,24 +199,45 @@ const onEditClick = (e: Event) => {
 			opacity: 0.25;
 			transition: opacity 0.2s ease;
 
+			// Ensure visibility on touch devices where hover doesn't exist
+			@media (hover: none) {
+				opacity: 0.8;
+			}
+
 			.edit-btn {
 				background: var(--bg-action-btn);
 				border: 1px solid var(--border-color);
 				border-radius: var(--radius-sm);
 				color: #fff;
-				width: 1.25rem;
-				height: 1.25rem;
+				width: 1.5rem;
+				height: 1.5rem;
 				display: flex;
 				align-items: center;
 				justify-content: center;
 				cursor: pointer;
 				transition: all 0.2s ease;
 				margin: 0 0.5rem;
+				position: relative;
+
+				// Touch target expansion (Invisible hit area)
+				&::before {
+					content: '';
+					position: absolute;
+					top: -10px;
+					left: -10px;
+					right: -10px;
+					bottom: -10px;
+				}
 
 				&:hover {
 					background: var(--category-color);
 					border-color: #fff;
 					transform: scale(1.1);
+				}
+
+				&:active {
+					transform: scale(0.9);
+					background: var(--category-color);
 				}
 			}
 		}
