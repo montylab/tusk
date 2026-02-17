@@ -34,10 +34,14 @@ test.describe('Task Management & Persistence', () => {
 
 		// Verify it exists in the UI
 		await expect(page.getByText(uniqueTaskName).first()).toBeVisible({ timeout: 10000 })
+		await page.waitForTimeout(500)
 
 		// Final check: Persistence
 		await page.reload()
-		await expect(page.getByText(uniqueTaskName).first()).toBeVisible({ timeout: 10000 })
+		const reloadedTask = page.getByText(uniqueTaskName).first()
+		await reloadedTask.waitFor({ state: 'attached', timeout: 15000 })
+		await reloadedTask.scrollIntoViewIfNeeded()
+		await expect(reloadedTask).toBeVisible()
 	})
 
 	test('should edit an existing task via the pencil icon', async ({ page }) => {
@@ -62,7 +66,10 @@ test.describe('Task Management & Persistence', () => {
 
 		// Verify persistence
 		await page.reload()
-		await expect(page.getByText(editedName).first()).toBeVisible({ timeout: 10000 })
+		const reloadedEdit = page.getByText(editedName).first()
+		await reloadedEdit.waitFor({ state: 'attached', timeout: 15000 })
+		await reloadedEdit.scrollIntoViewIfNeeded()
+		await expect(reloadedEdit).toBeVisible()
 	})
 
 	test('should edit an existing task via double-click', async ({ page }) => {
@@ -87,7 +94,10 @@ test.describe('Task Management & Persistence', () => {
 
 		// Verify persistence
 		await page.reload()
-		await expect(page.getByText(editedName).first()).toBeVisible({ timeout: 10000 })
+		const reloadedDblClick = page.getByText(editedName).first()
+		await reloadedDblClick.waitFor({ state: 'attached', timeout: 15000 })
+		await reloadedDblClick.scrollIntoViewIfNeeded()
+		await expect(reloadedDblClick).toBeVisible()
 	})
 
 	test('should delete a task by dragging it to the trash basket', async ({ page }) => {

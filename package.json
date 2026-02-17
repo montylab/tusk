@@ -8,7 +8,7 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"test": "playwright test",
-		"test:unit": "vitest",
+		"test:unit": "vitest --dir ./src --maxWorkers 10",
 		"test-ui": "playwright test --ui",
 		"format": "prettier --write .",
 		"format:check": "prettier --check ."

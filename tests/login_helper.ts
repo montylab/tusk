@@ -50,7 +50,7 @@ export async function loginTestUser(page: Page, email = testUsers[0].email, pass
 		}
 	}
 
-	// 4. Cleanup/Sync
-	await page.waitForLoadState('networkidle')
+	// 4. Wait for initial data to settle (networkidle doesn't work with Firestore's persistent connections)
+	await page.waitForLoadState('domcontentloaded')
 	await page.waitForTimeout(500)
 }

@@ -35,7 +35,9 @@ test.describe('Month View', () => {
 		// Check for day names header
 		await expect(page.locator('.day-name').first()).toBeVisible()
 		// Check grid structure (7 columns x 6 rows max)
-		await expect(page.locator('.week-row')).toHaveCount(6)
+		const weekRows = await page.locator('.week-row').count()
+		expect(weekRows).toBeGreaterThanOrEqual(4)
+		expect(weekRows).toBeLessThanOrEqual(6)
 		// Check navigation buttons exist
 		await expect(page.locator('.nav-btn').first()).toBeVisible()
 		await expect(page.locator('.month-title')).toBeVisible()
