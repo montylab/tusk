@@ -26,6 +26,7 @@ export interface CategoryStat {
 	totalCount: number
 	completedMinutes: number
 	completedCount: number
+	completedDeepWorkMinutes: number
 }
 
 export interface StatDoc {

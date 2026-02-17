@@ -88,9 +88,11 @@ export const useStatsStore = defineStore('stats', () => {
 
 	// --- Getters ---
 
-	const totalHours = computed(() => (currentStat.value ? Math.round((currentStat.value.totalMinutes / 60) * 10) / 10 : 0))
+	const totalMinutes = computed(() => currentStat.value?.totalMinutes || 0)
+	const totalHours = computed(() => Math.round((totalMinutes.value / 60) * 10) / 10)
 
-	const deepWorkHours = computed(() => (currentStat.value ? Math.round((currentStat.value.deepWorkMinutes / 60) * 10) / 10 : 0))
+	const deepWorkMinutes = computed(() => currentStat.value?.deepWorkMinutes || 0)
+	const deepWorkHours = computed(() => Math.round((deepWorkMinutes.value / 60) * 10) / 10)
 
 	const taskCount = computed(() => currentStat.value?.totalCount ?? 0)
 
@@ -139,13 +141,14 @@ export const useStatsStore = defineStore('stats', () => {
 		return Math.round((currentStat.value.deepWorkMinutes / currentStat.value.totalMinutes) * 100)
 	})
 
-	const completedHours = computed(() => {
+	const completedMinutes = computed(() => {
 		let mins = currentStat.value?.completedMinutes || 0
 		if (isTodayInCurrentPeriod.value) {
 			mins = mins - todayExplicitStats.value.total.minutes + todayElapsedStats.value.total.minutes
 		}
-		return Math.round((mins / 60) * 10) / 10
+		return mins
 	})
+	const completedHours = computed(() => Math.round((completedMinutes.value / 60) * 10) / 10)
 
 	const completedCount = computed(() => {
 		let cnt = currentStat.value?.completedCount ?? 0
@@ -155,17 +158,22 @@ export const useStatsStore = defineStore('stats', () => {
 		return cnt
 	})
 
-	const completedDeepWorkHours = computed(() => {
+	const completedDeepWorkMinutes = computed(() => {
 		let mins = currentStat.value?.completedDeepWorkMinutes || 0
 		if (isTodayInCurrentPeriod.value) {
 			mins = mins - todayExplicitStats.value.total.dwMinutes + todayElapsedStats.value.total.dwMinutes
 		}
-		return Math.round((mins / 60) * 10) / 10
+		return mins
 	})
+	const completedDeepWorkHours = computed(() => Math.round((completedDeepWorkMinutes.value / 60) * 10) / 10)
 
-	const plannedHours = computed(() => Math.round((totalHours.value - completedHours.value) * 10) / 10)
+	const plannedMinutes = computed(() => totalMinutes.value - completedMinutes.value)
+	const plannedHours = computed(() => Math.round((plannedMinutes.value / 60) * 10) / 10)
+
 	const plannedCount = computed(() => taskCount.value - completedCount.value)
-	const plannedDeepWorkHours = computed(() => Math.round((deepWorkHours.value - completedDeepWorkHours.value) * 10) / 10)
+
+	const plannedDeepWorkMinutes = computed(() => deepWorkMinutes.value - completedDeepWorkMinutes.value)
+	const plannedDeepWorkHours = computed(() => Math.round((plannedDeepWorkMinutes.value / 60) * 10) / 10)
 
 	const completionRatio = computed(() => {
 		if (!currentStat.value || currentStat.value.totalCount === 0) return 0
@@ -272,16 +280,22 @@ export const useStatsStore = defineStore('stats', () => {
 		loading,
 		// Getters
 		totalHours,
+		totalMinutes,
 		deepWorkHours,
+		deepWorkMinutes,
 		taskCount,
 		categoryBreakdown,
 		deepWorkRatio,
 		completedHours,
+		completedMinutes,
 		completedCount,
 		completedDeepWorkHours,
+		completedDeepWorkMinutes,
 		plannedHours,
+		plannedMinutes,
 		plannedCount,
 		plannedDeepWorkHours,
+		plannedDeepWorkMinutes,
 		completionRatio,
 		// Actions
 		setPeriod,

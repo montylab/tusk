@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useStatsStore } from '../stores/stats'
 import { useCategoriesStore } from '../stores/categories'
 import { triggerRecalcStats } from '../services/statsService'
-import { getWeekRange } from '../utils/dateUtils'
+import { getWeekRange, formatDuration } from '../utils/dateUtils'
 import type { Category } from '../types'
 
 const statsStore = useStatsStore()
@@ -13,16 +13,16 @@ const {
 	currentPeriodType,
 	currentPeriodKey,
 	loading,
-	totalHours,
-	deepWorkHours,
+	totalMinutes,
+	deepWorkMinutes,
 	taskCount,
 	categoryBreakdown,
-	completedHours,
 	completedCount,
-	completedDeepWorkHours,
-	plannedHours,
+	completedMinutes,
+	completedDeepWorkMinutes,
 	plannedCount,
-	plannedDeepWorkHours
+	plannedMinutes,
+	plannedDeepWorkMinutes
 } = storeToRefs(statsStore)
 
 const periodLabels = { day: 'Day', week: 'Week', month: 'Month', year: 'Year' }
@@ -105,7 +105,7 @@ onUnmounted(() => {
 				</div>
 			</header>
 
-			<!-- Period Type Selector -->
+			<!-- Period Selector -->
 			<div class="period-selector">
 				<button
 					v-for="(label, type) in periodLabels"
@@ -148,15 +148,15 @@ onUnmounted(() => {
 						</tr>
 						<tr>
 							<td class="row-label">Hours</td>
-							<td class="val-completed">{{ completedHours }}h</td>
-							<td class="val-planned">{{ plannedHours }}h</td>
-							<td class="val-total">{{ totalHours }}h</td>
+							<td class="val-completed">{{ formatDuration(completedMinutes) }}</td>
+							<td class="val-planned">{{ formatDuration(plannedMinutes) }}</td>
+							<td class="val-total">{{ formatDuration(totalMinutes) }}</td>
 						</tr>
 						<tr>
 							<td class="row-label">Deep Work</td>
-							<td class="val-completed">{{ completedDeepWorkHours }}h</td>
-							<td class="val-planned">{{ plannedDeepWorkHours }}h</td>
-							<td class="val-total">{{ deepWorkHours }}h</td>
+							<td class="val-completed">{{ formatDuration(completedDeepWorkMinutes) }}</td>
+							<td class="val-planned">{{ formatDuration(plannedDeepWorkMinutes) }}</td>
+							<td class="val-total">{{ formatDuration(deepWorkMinutes) }}</td>
 						</tr>
 					</tbody>
 				</table>
@@ -181,7 +181,7 @@ onUnmounted(() => {
 									class="bar-segment"
 									:style="{ flex: cat.completedMinutes, background: getCategoryColor(cat.name) }"
 								>
-									<span class="bar-text" v-if="cat.completedHours >= 0.5">{{ cat.completedHours }}h</span>
+									<span class="bar-text" v-if="cat.completedMinutes >= 30">{{ formatDuration(cat.completedMinutes) }}</span>
 								</div>
 
 								<!-- Planned Segment -->
@@ -190,14 +190,14 @@ onUnmounted(() => {
 									class="bar-segment planned"
 									:style="{ flex: cat.plannedMinutes, background: getCategoryColor(cat.name) }"
 								>
-									<span class="bar-text" v-if="cat.plannedHours >= 0.5">{{ cat.plannedHours }}h</span>
+									<span class="bar-text" v-if="cat.plannedMinutes >= 30">{{ formatDuration(cat.plannedMinutes) }}</span>
 								</div>
 							</div>
 						</div>
 
 						<!-- Total Column -->
 						<div class="cat-meta">
-							<span class="cat-hours">{{ cat.totalHours }}h</span>
+							<span class="cat-hours">{{ formatDuration(cat.minutes) }}</span>
 							<!-- <span class="cat-label-sm">Total</span> -->
 						</div>
 					</div>
@@ -466,7 +466,7 @@ onUnmounted(() => {
 
 .category-row {
 	display: grid;
-	grid-template-columns: 120px 1fr 100px;
+	grid-template-columns: 8rem 1fr 3rem;
 	gap: 1rem;
 	align-items: center;
 	padding: 0.5rem 0;

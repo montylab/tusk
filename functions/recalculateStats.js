@@ -87,19 +87,69 @@ export async function recalculateStatsHandler(request) {
 	}
 
 	const uid = request.auth.uid
+	const today = request.data.today // Expect 'YYYY-MM-DD' from client
+	if (!today || !/^\d{4}-\d{2}-\d{2}$/.test(today)) {
+		throw new Error('Missing or invalid "today" date')
+	}
+
 	const db = getFirestore(DB_NAME)
-	const pastDates = getPastDateRange()
-	const futureDates = getFutureDateRange()
-	const allDates = [...pastDates, ...futureDates]
+
+	// Build date range helper
+	function iterateDates(start, end, callback) {
+		const cursor = new Date(start)
+		const endDate = new Date(end)
+		while (cursor <= endDate) {
+			callback(cursor.toISOString().slice(0, 10))
+			cursor.setDate(cursor.getDate() + 1)
+		}
+	}
+
+	// 1. Calculate Ranges relative to 'today'
+	// Past: 1st of previous month -> yesterday
+	const pastStart = new Date(today)
+	pastStart.setMonth(pastStart.getMonth() - 1)
+	pastStart.setDate(1)
+	const yesterday = new Date(today)
+	yesterday.setDate(yesterday.getDate() - 1)
+
+	// Future: tomorrow -> end of current (+1) month
+	// Actually, let's keep it simple: Current month end
+	const tomorrow = new Date(today)
+	tomorrow.setDate(tomorrow.getDate() + 1)
+	const futureEnd = new Date(today)
+	futureEnd.setMonth(futureEnd.getMonth() + 1)
+	futureEnd.setDate(0) // Last day of current month
+
+	const allDates = []
+	const pastDateSet = new Set()
+	const futureDateSet = new Set()
+
+	// Past
+	if (pastStart <= yesterday) {
+		iterateDates(pastStart, yesterday, (d) => {
+			allDates.push(d)
+			pastDateSet.add(d)
+		})
+	}
+
+	// Today
+	allDates.push(today)
+
+	// Future
+	if (tomorrow <= futureEnd) {
+		iterateDates(tomorrow, futureEnd, (d) => {
+			allDates.push(d)
+			futureDateSet.add(d)
+		})
+	}
 
 	if (allDates.length === 0) {
 		return { daysProcessed: 0, tasksCompleted: 0, tasksUncompleted: 0, diffs: [] }
 	}
 
-	logger.info(`[recalculateStats] uid=${uid}, past=${pastDates.length} days, future=${futureDates.length} days`)
-	const pastDateSet = new Set(pastDates)
+	logger.info(`[recalculateStats] uid=${uid}, today=${today}, totalDays=${allDates.length}`)
 
-	// 1. Collect all unique stat period keys
+	// 2. Collect all unique stat period keys
 	const periodKeysSet = new Set()
 	for (const dateStr of allDates) {
 		for (const key of getStatPeriods(dateStr)) {
@@ -108,7 +158,7 @@ export async function recalculateStatsHandler(request) {
 	}
 	const allPeriodKeys = [...periodKeysSet]
 
-	// 2. Read old stat docs (snapshot before changes)
+	// 3. Read old stat docs (snapshot before changes)
 	const oldStats = {}
 	for (const period of allPeriodKeys) {
 		const snap = await db.doc(`users/${uid}/stats/${period}`).get()
@@ -117,14 +167,14 @@ export async function recalculateStatsHandler(request) {
 		}
 	}
 
-	// 3. Delete old stat docs
+	// 4. Delete old stat docs
 	const deleteBatch = db.batch()
 	for (const period of allPeriodKeys) {
 		deleteBatch.delete(db.doc(`users/${uid}/stats/${period}`))
 	}
 	await deleteBatch.commit()
 
-	// 4. Iterate all calendar days, fix completion flags, rebuild stats
+	// 5. Iterate all calendar days, fix completion flags, rebuild stats
 	const newStats = {} // periodKey -> aggregated stat object
 	let totalTasksCompleted = 0
 	let totalTasksUncompleted = 0
@@ -132,6 +182,11 @@ export async function recalculateStatsHandler(request) {
 
 	for (const dateStr of allDates) {
 		const isPast = pastDateSet.has(dateStr)
+		const isFuture = futureDateSet.has(dateStr)
+		const isToday = dateStr === today
+
+		if (!isPast && !isFuture && !isToday) continue // Should not happen based on construction
+
 		const calendarRef = db.doc(`users/${uid}/calendar/${dateStr}`)
 		const calendarSnap = await calendarRef.get()
 
@@ -144,30 +199,35 @@ export async function recalculateStatsHandler(request) {
 		const taskUpdates = {}
 
 		for (const [taskId, task] of Object.entries(data.tasks)) {
+			let shouldCountAsCompleted = false
+
 			if (isPast) {
-				// Past: mark uncompleted → completed
+				// Past: Force Complete
 				if (!task.isCompleted) {
-					logger.error(`[recalculateStats] Task not completed: uid=${uid} date=${dateStr} taskId=${taskId} text="${task.text || ''}"`)
 					taskUpdates[`tasks.${taskId}.isCompleted`] = true
 					totalTasksCompleted++
 				}
-			} else {
-				// Future: mark completed → uncompleted
+				shouldCountAsCompleted = true
+			} else if (isFuture) {
+				// Future: Force Uncomplete
 				if (task.isCompleted) {
-					logger.error(
-						`[recalculateStats] Future task wrongly completed: uid=${uid} date=${dateStr} taskId=${taskId} text="${task.text || ''}"`
-					)
 					taskUpdates[`tasks.${taskId}.isCompleted`] = false
 					totalTasksUncompleted++
 				}
+				shouldCountAsCompleted = false
+			} else if (isToday) {
+				// Today: Preserve Status, But Update Stats
+				// We do NOT change task.isCompleted
+				// User wants "Today" stats to effectively be "Planned" only in the DB
+				// so the frontend can add "Elapsed" on top correctly.
+				// Thus: Add to Total, but NEVER add to Completed (count as 0).
+				shouldCountAsCompleted = false
 			}
 
 			// Aggregate into stat periods
 			const duration = task.duration || 0
 			const cat = task.category || 'Default'
 			const isDeepWork = !!task.isDeepWork
-			// Past → all completed; Future → none completed
-			const isCompleted = isPast
 
 			for (const periodKey of getStatPeriods(dateStr)) {
 				if (!newStats[periodKey]) {
@@ -184,13 +244,13 @@ export async function recalculateStatsHandler(request) {
 				const s = newStats[periodKey]
 				s.totalMinutes += duration
 				s.totalCount += 1
-				if (isCompleted) {
+				if (shouldCountAsCompleted) {
 					s.completedMinutes += duration
 					s.completedCount += 1
 				}
 				if (isDeepWork) {
 					s.deepWorkMinutes += duration
-					if (isCompleted) {
+					if (shouldCountAsCompleted) {
 						s.completedDeepWorkMinutes = (s.completedDeepWorkMinutes || 0) + duration
 					}
 				}
@@ -205,7 +265,7 @@ export async function recalculateStatsHandler(request) {
 				}
 				s.categories[cat].totalMinutes += duration
 				s.categories[cat].totalCount += 1
-				if (isCompleted) {
+				if (shouldCountAsCompleted) {
 					s.categories[cat].completedMinutes += duration
 					s.categories[cat].completedCount += 1
 				}
@@ -218,14 +278,14 @@ export async function recalculateStatsHandler(request) {
 		}
 	}
 
-	// 5. Write new stat docs
+	// 6. Write new stat docs
 	const writeBatch = db.batch()
 	for (const [periodKey, stats] of Object.entries(newStats)) {
 		writeBatch.set(db.doc(`users/${uid}/stats/${periodKey}`), stats)
 	}
 	await writeBatch.commit()
 
-	// 6. Compare old vs new and log differences
+	// 7. Compare old vs new and log differences
 	const allDiffs = []
 	for (const periodKey of allPeriodKeys) {
 		const diffs = diffStats(
@@ -242,7 +302,7 @@ export async function recalculateStatsHandler(request) {
 			}
 		)
 		for (const diff of diffs) {
-			logger.error(`[recalculateStats] DIFF ${diff}`)
+			// logger.info(`[recalculateStats] DIFF ${diff}`) // Change to info to avoid error spam
 			allDiffs.push(diff)
 		}
 	}

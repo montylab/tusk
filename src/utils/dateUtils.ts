@@ -141,6 +141,13 @@ export const formatTime = (time: number) => {
 }
 
 /**
+ * Formats minutes into H:MM format
+ */
+export const formatMinutesToTime = (minutes: number) => {
+	return formatTime(minutes / 60)
+}
+
+/**
  * Formats duration in minutes to Hh Mm or Mm format
  */
 export const formatDuration = (minutes: number) => {

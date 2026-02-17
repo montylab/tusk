@@ -72,12 +72,14 @@ export const buildDelta = (task: Pick<Task, 'duration' | 'category' | 'isDeepWor
 		completedMinutes: completedMin,
 		completedCount: completedCnt,
 		deepWorkMinutes: deepWork,
+		completedDeepWorkMinutes: completed ? deepWork : 0,
 		categories: {
 			[task.category]: {
 				totalMinutes: minutes,
 				totalCount: count,
 				completedMinutes: completedMin,
-				completedCount: completedCnt
+				completedCount: completedCnt,
+				completedDeepWorkMinutes: completed ? deepWork : 0
 			}
 		}
 	}
@@ -142,10 +144,11 @@ export const triggerRecalcStats = async (): Promise<{
 	tasksUncompleted: number
 	diffs: string[]
 }> => {
-	const callable = httpsCallable<void, { daysProcessed: number; tasksCompleted: number; tasksUncompleted: number; diffs: string[] }>(
-		functions,
-		'recalculateStats'
-	)
-	const result = await callable()
+	const today = formatDate(new Date())
+	const callable = httpsCallable<
+		{ today: string },
+		{ daysProcessed: number; tasksCompleted: number; tasksUncompleted: number; diffs: string[] }
+	>(functions, 'recalculateStats')
+	const result = await callable({ today })
 	return result.data
 }
