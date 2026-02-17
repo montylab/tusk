@@ -5,7 +5,7 @@ export const getTaskStatus = (task: Task | Partial<Task>, now = new Date()): 'pa
 	if (task.startTime === null || task.startTime === undefined || !task.date) return null
 
 	const startTime = task.startTime
-	const endTime = startTime + (task.duration || 60) / 60
+	const endTime = startTime + (task.duration ?? 60) / 60
 
 	// Check if finished
 	if (isTimePast(task.date, endTime, now)) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, watch, onUnmounted, nextTick } from 'vue'
 import type { Task } from '../types'
 import { useCategoriesStore } from '../stores/categories'
 
@@ -89,7 +89,8 @@ watch(
 			document.removeEventListener('click', handleClickOutside, true)
 			document.removeEventListener('keydown', handleKeydown)
 		}
-	}
+	},
+	{ immediate: true }
 )
 
 onUnmounted(() => {

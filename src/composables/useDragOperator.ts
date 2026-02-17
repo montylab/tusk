@@ -361,6 +361,9 @@ export function useDragOperator() {
 		unregisterZone,
 		updateZoneBounds,
 		startDrag,
-		cancelDrag
+		cancelDrag,
+		__clearZonesForTesting() {
+			zones.clear()
+		}
 	}
 }

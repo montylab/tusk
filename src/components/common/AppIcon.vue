@@ -23,8 +23,7 @@ const iconStyle = computed(() => ({
 	maskPosition: 'center',
 	'-webkit-mask-position': 'center',
 	maskSize: 'contain',
-	'-webkit-mask-size': 'contain',
-	hey: '2'
+	'-webkit-mask-size': 'contain'
 }))
 </script>
 

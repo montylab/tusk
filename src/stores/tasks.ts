@@ -442,6 +442,9 @@ export const useTasksStore = defineStore('tasks', () => {
 	return {
 		// State
 		tasks,
+		calendarTasksState,
+		todoTasksState,
+		shortcutsTasksState,
 		loading,
 		error,
 		currentDates,

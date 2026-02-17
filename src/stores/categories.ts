@@ -99,7 +99,7 @@ export const useCategoriesStore = defineStore('categories', () => {
 		const existing = categoriesArray.value.find((c) => c.name.toLowerCase() === name.toLowerCase())
 		if (existing) return existing
 
-		const id = await addCategory(name, defaultColor, isDeepWork)
+		const { id } = await addCategory(name, defaultColor, isDeepWork)
 		return { id, name, color: defaultColor, order: 0, isDeepWork } // order doesn't matter much for return
 	}
 
