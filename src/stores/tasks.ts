@@ -218,7 +218,9 @@ export const useTasksStore = defineStore('tasks', () => {
 			const date = finalTaskData.date
 			const res = await firebaseService.createTaskInPath(`calendar/${date}`, finalTaskData)
 			nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
-			applyStatDelta(date!, buildDelta(finalTaskData)).catch(console.error)
+
+			const delta = buildDelta(finalTaskData)
+			applyStatDelta(date!, delta).catch(console.error)
 			return res
 		} catch (err) {
 			console.error(err)
@@ -259,7 +261,11 @@ export const useTasksStore = defineStore('tasks', () => {
 		if (existingTask) {
 			const durationChanged = updates.duration !== undefined && updates.duration !== existingTask.duration
 			const categoryChanged = updates.category !== undefined && updates.category !== existingTask.category
-			if (durationChanged || categoryChanged) {
+			const completedChanged = updates.completed !== undefined && updates.completed !== existingTask.completed
+			const deepWorkChanged = updates.isDeepWork !== undefined && updates.isDeepWork !== existingTask.isDeepWork
+
+			if (durationChanged || categoryChanged || completedChanged || deepWorkChanged) {
+				console.log('[updateScheduledTask] Triggering stat delta update', { id, updates })
 				// Subtract old, add new
 				const oldDelta = buildDelta(existingTask, -1)
 				const newTask = { ...existingTask, ...updates }

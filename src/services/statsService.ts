@@ -94,24 +94,29 @@ export const applyStatDelta = async (dateStr: string, delta: StatDelta): Promise
 	const periods = computeStatPeriods(dateStr)
 	const batch = writeBatch(db)
 
+	const categoryUpdates: Record<string, any> = {}
+	for (const [cat, catDelta] of Object.entries(delta.categories)) {
+		categoryUpdates[cat] = {
+			totalMinutes: increment(catDelta.totalMinutes),
+			totalCount: increment(catDelta.totalCount),
+			completedMinutes: increment(catDelta.completedMinutes),
+			completedCount: increment(catDelta.completedCount),
+			completedDeepWorkMinutes: increment(catDelta.completedDeepWorkMinutes || 0)
+		}
+	}
+
+	const updates = {
+		totalMinutes: increment(delta.totalMinutes),
+		totalCount: increment(delta.totalCount),
+		completedMinutes: increment(delta.completedMinutes),
+		completedCount: increment(delta.completedCount),
+		deepWorkMinutes: increment(delta.deepWorkMinutes),
+		completedDeepWorkMinutes: increment(delta.completedDeepWorkMinutes || 0),
+		categories: categoryUpdates
+	}
+
 	for (const period of periods) {
 		const statRef = doc(db, root, 'stats', period)
-		const updates: Record<string, any> = {
-			totalMinutes: increment(delta.totalMinutes),
-			totalCount: increment(delta.totalCount),
-			completedMinutes: increment(delta.completedMinutes),
-			completedCount: increment(delta.completedCount),
-			deepWorkMinutes: increment(delta.deepWorkMinutes)
-		}
-
-		// Per-category increments
-		for (const [cat, catDelta] of Object.entries(delta.categories)) {
-			updates[`categories.${cat}.totalMinutes`] = increment(catDelta.totalMinutes)
-			updates[`categories.${cat}.totalCount`] = increment(catDelta.totalCount)
-			updates[`categories.${cat}.completedMinutes`] = increment(catDelta.completedMinutes)
-			updates[`categories.${cat}.completedCount`] = increment(catDelta.completedCount)
-		}
-
 		batch.set(statRef, updates, { merge: true })
 	}
 

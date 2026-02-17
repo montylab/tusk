@@ -1,6 +1,7 @@
 import { nerve, NERVE_EVENTS } from '../services/nerve'
 import { useSettingsStore } from '../stores/settings'
 import { storeToRefs } from 'pinia'
+import { onUnmounted } from 'vue'
 
 export function useNotificationSystem() {
 	const settingsStore = useSettingsStore()
@@ -36,15 +37,23 @@ export function useNotificationSystem() {
 		}
 	}
 
-	nerve.on(NERVE_EVENTS.SCHEDULED_TASK_BEGIN, ({ title, body }) => {
+	const onTaskStart = ({ title, body }: { title: string; body?: string }) => {
 		if (settings.value.notifications.enabled && settings.value.notifications.taskStarted) {
 			showNotification(title, body)
 		}
-	})
+	}
 
-	nerve.on(NERVE_EVENTS.SCHEDULED_TASK_END, ({ title, body }) => {
+	const onTaskEnd = ({ title, body }: { title: string; body?: string }) => {
 		if (settings.value.notifications.enabled && settings.value.notifications.taskEnded) {
 			showNotification(title, body)
 		}
+	}
+
+	nerve.on(NERVE_EVENTS.SCHEDULED_TASK_BEGIN, onTaskStart)
+	nerve.on(NERVE_EVENTS.SCHEDULED_TASK_END, onTaskEnd)
+
+	onUnmounted(() => {
+		nerve.off(NERVE_EVENTS.SCHEDULED_TASK_BEGIN, onTaskStart)
+		nerve.off(NERVE_EVENTS.SCHEDULED_TASK_END, onTaskEnd)
 	})
 }

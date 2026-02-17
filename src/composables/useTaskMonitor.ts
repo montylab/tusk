@@ -1,13 +1,14 @@
 import { nerve, NERVE_EVENTS } from '../services/nerve'
 import { useTasksStore } from '../stores/tasks'
 import { formatDate } from '../utils/dateUtils'
+import { onUnmounted } from 'vue'
 
 export function useTaskMonitor() {
 	// Track notified tasks to simulate "edge-trigger" (only notify once per task instance)
 	const notifiedEntryTasks = new Set<string>()
 	const notifiedExitTasks = new Set<string>()
 
-	nerve.on(NERVE_EVENTS.MINUTE_TICK, ({ date }) => {
+	const checkTasks = ({ date }: { date: Date }) => {
 		const tasksStore = useTasksStore()
 		const todayStr = formatDate(date)
 		const scheduled = tasksStore.scheduledTasks[todayStr] || []
@@ -44,5 +45,11 @@ export function useTaskMonitor() {
 				}
 			}
 		})
+	}
+
+	nerve.on(NERVE_EVENTS.MINUTE_TICK, checkTasks)
+
+	onUnmounted(() => {
+		nerve.off(NERVE_EVENTS.MINUTE_TICK, checkTasks)
 	})
 }

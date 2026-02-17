@@ -181,7 +181,7 @@ onUnmounted(() => {
 									class="bar-segment"
 									:style="{ flex: cat.completedMinutes, background: getCategoryColor(cat.name) }"
 								>
-									<span class="bar-text" v-if="cat.completedMinutes >= 30">{{ formatDuration(cat.completedMinutes) }}</span>
+									<span class="bar-text">{{ formatDuration(cat.completedMinutes) }}</span>
 								</div>
 
 								<!-- Planned Segment -->
@@ -190,7 +190,7 @@ onUnmounted(() => {
 									class="bar-segment planned"
 									:style="{ flex: cat.plannedMinutes, background: getCategoryColor(cat.name) }"
 								>
-									<span class="bar-text" v-if="cat.plannedMinutes >= 30">{{ formatDuration(cat.plannedMinutes) }}</span>
+									<span class="bar-text">{{ formatDuration(cat.plannedMinutes) }}</span>
 								</div>
 							</div>
 						</div>
@@ -466,7 +466,7 @@ onUnmounted(() => {
 
 .category-row {
 	display: grid;
-	grid-template-columns: 8rem 1fr 3rem;
+	grid-template-columns: 8rem 1fr 4rem;
 	gap: 1rem;
 	align-items: center;
 	padding: 0.5rem 0;
@@ -503,6 +503,7 @@ onUnmounted(() => {
 
 .split-bar-wrapper {
 	height: 100%;
+	min-width: 10%;
 	display: flex;
 	border-radius: var(--radius-sm);
 	overflow: hidden;
@@ -516,6 +517,7 @@ onUnmounted(() => {
 	justify-content: center;
 	overflow: hidden;
 	transition: flex 0.6s ease;
+	min-width: 1rem;
 }
 
 .bar-segment.planned {
@@ -538,7 +540,7 @@ onUnmounted(() => {
 	font-size: 0.75rem;
 	font-weight: 600;
 	color: white;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	text-shadow: 0 0 10px rgb(0 0 0);
 }
 
 .cat-meta {
