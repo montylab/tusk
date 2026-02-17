@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Task } from '../types'
 import * as firebaseService from '../services/firebaseService'
+import { applyStatDelta, buildDelta, isDateInPast } from '../services/statsService'
 import { useUserStore } from './user'
 import { formatDate } from '../utils/dateUtils'
 import { nerve, NERVE_EVENTS } from '../services/nerve'
@@ -213,10 +214,11 @@ export const useTasksStore = defineStore('tasks', () => {
 				isDeepWork: false
 			}
 
-			const finalTaskData = { ...defaults, ...taskData }
+			const finalTaskData = { ...defaults, ...taskData, isCompleted: isDateInPast(taskData.date || defaults.date) }
 			const date = finalTaskData.date
 			const res = await firebaseService.createTaskInPath(`calendar/${date}`, finalTaskData)
 			nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
+			applyStatDelta(date!, buildDelta(finalTaskData)).catch(console.error)
 			return res
 		} catch (err) {
 			console.error(err)
@@ -252,6 +254,21 @@ export const useTasksStore = defineStore('tasks', () => {
 			return
 		}
 
+		// Stat adjustments for duration/category changes
+		const existingTask = calendarTasksState.value[date]?.find((t) => t.id === id)
+		if (existingTask) {
+			const durationChanged = updates.duration !== undefined && updates.duration !== existingTask.duration
+			const categoryChanged = updates.category !== undefined && updates.category !== existingTask.category
+			if (durationChanged || categoryChanged) {
+				// Subtract old, add new
+				const oldDelta = buildDelta(existingTask, -1)
+				const newTask = { ...existingTask, ...updates }
+				const newDelta = buildDelta(newTask, 1)
+				applyStatDelta(date, oldDelta).catch(console.error)
+				applyStatDelta(date, newDelta).catch(console.error)
+			}
+		}
+
 		await firebaseService.updateTaskInPath(`calendar/${date}`, id, updates)
 		if (updates.completed === true) {
 			nerve.emit(NERVE_EVENTS.TASK_COMPLETED, { taskId: String(id) })
@@ -270,9 +287,10 @@ export const useTasksStore = defineStore('tasks', () => {
 		}
 
 		// Logic: Delete from 'todo', create in 'calendar/date'
-		const updates = { startTime, duration, date, isShortcut: false }
+		const updates = { startTime, duration, date, isShortcut: false, isCompleted: isDateInPast(date) }
 		await firebaseService.moveTask('todo', `calendar/${date}`, task, updates)
 		nerve.emit(NERVE_EVENTS.TASK_MOVED)
+		applyStatDelta(date, buildDelta({ ...task, ...updates })).catch(console.error)
 	}
 
 	const moveCalendarToTodo = async (id: string | number, date: string, order?: number) => {
@@ -288,6 +306,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
 		const updates = { startTime: null, date: null, isShortcut: false, order: finalOrder } as any
 		await firebaseService.moveTask(`calendar/${date}`, 'todo', task, updates)
+		applyStatDelta(date, buildDelta(task, -1)).catch(console.error)
 	}
 
 	// Convert (Move) To-Do -> Shortcut
@@ -334,6 +353,7 @@ export const useTasksStore = defineStore('tasks', () => {
 			order: finalOrder
 		} as any
 		await firebaseService.moveTask(`calendar/${date}`, 'shortcuts', task, updates)
+		applyStatDelta(date, buildDelta(task, -1)).catch(console.error)
 	}
 
 	const moveScheduledTask = async (id: string | number, fromDate: string, toDate: string, updates: Partial<Task>) => {
@@ -353,6 +373,9 @@ export const useTasksStore = defineStore('tasks', () => {
 
 		await firebaseService.moveTask(`calendar/${fromDate}`, `calendar/${toDate}`, task, moveUpdates)
 		nerve.emit(NERVE_EVENTS.TASK_MOVED)
+		// Subtract from old date, add to new date
+		applyStatDelta(fromDate, buildDelta(task, -1)).catch(console.error)
+		applyStatDelta(toDate, buildDelta({ ...task, ...moveUpdates })).catch(console.error)
 	}
 
 	// --- Copy Actions (Templates) ---
@@ -379,15 +402,10 @@ export const useTasksStore = defineStore('tasks', () => {
 		if (!shortcut) return
 
 		const { id: _, ...data } = shortcut
-		// We use createTaskInPath directly instead of createTodo to go straight to calendar
-		const res = await firebaseService.createTaskInPath(`calendar/${date}`, {
-			...data,
-			isShortcut: false,
-			date,
-			startTime,
-			duration
-		})
+		const taskData = { ...data, isShortcut: false, date, startTime, duration, isCompleted: isDateInPast(date) }
+		const res = await firebaseService.createTaskInPath(`calendar/${date}`, taskData)
 		nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
+		applyStatDelta(date, buildDelta(taskData)).catch(console.error)
 		return res
 	}
 
@@ -404,8 +422,12 @@ export const useTasksStore = defineStore('tasks', () => {
 	}
 
 	const deleteScheduledTask = async (id: string | number, date: string) => {
+		const task = calendarTasksState.value[date]?.find((t) => t.id === id)
 		await firebaseService.deleteTaskFromPath(`calendar/${date}`, id)
 		nerve.emit(NERVE_EVENTS.TASK_DELETED)
+		if (task) {
+			applyStatDelta(date, buildDelta(task, -1)).catch(console.error)
+		}
 	}
 
 	// --- Legacy / Helper for Reordering (Optional, generic reorder is tricky with explicit paths) ---

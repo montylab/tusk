@@ -3,6 +3,7 @@ import { useUserStore } from '../stores/user'
 import DayViewPage from '../views/DayViewPage.vue'
 import WeekViewPage from '../views/WeekViewPage.vue'
 import MonthViewPage from '../views/MonthViewPage.vue'
+import StatsPage from '../views/StatsPage.vue'
 import SettingsPage from '../views/SettingsPage.vue'
 import SignInPage from '../views/SignInPage.vue'
 import SignOutPage from '../views/SignOutPage.vue'
@@ -36,6 +37,12 @@ const routes: RouteRecordRaw[] = [
 		path: '/month/:year?/:month?/:day?',
 		name: 'month-ymd',
 		component: MonthViewPage,
+		meta: { requiresAuth: true }
+	},
+	{
+		path: '/stats',
+		name: 'stats',
+		component: StatsPage,
 		meta: { requiresAuth: true }
 	},
 	{

@@ -56,6 +56,10 @@ const currentView = computed(() => viewMap[route.name as string] || null)
 				<AppIcon name="theme" size="1rem" />
 			</button>
 
+			<router-link :to="{ name: 'stats' }" class="icon-btn" title="Statistics">
+				<AppIcon name="stats" size="1rem" />
+			</router-link>
+
 			<router-link :to="{ name: 'settings' }" class="icon-btn" title="Settings">
 				<AppIcon name="settings" size="1rem" />
 			</router-link>
