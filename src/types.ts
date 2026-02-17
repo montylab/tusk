@@ -34,6 +34,7 @@ export interface StatDoc {
 	completedMinutes: number
 	completedCount: number
 	deepWorkMinutes: number
+	completedDeepWorkMinutes: number
 	categories: Record<string, CategoryStat>
 }
 
@@ -43,5 +44,6 @@ export interface StatDelta {
 	completedMinutes: number
 	completedCount: number
 	deepWorkMinutes: number
+	completedDeepWorkMinutes: number
 	categories: Record<string, CategoryStat>
 }

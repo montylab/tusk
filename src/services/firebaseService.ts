@@ -1,5 +1,5 @@
 import { db, auth } from '../firebase'
-import { doc, onSnapshot, updateDoc, setDoc, deleteField, writeBatch, collection, type DocumentData } from 'firebase/firestore'
+import { doc, onSnapshot, updateDoc, setDoc, deleteField, writeBatch, collection, getDoc, type DocumentData } from 'firebase/firestore'
 import type { Task } from '../types'
 
 // --- Helpers ---
@@ -56,6 +56,13 @@ export const subscribeToDate = (date: string, callback: (tasks: Task[]) => void)
 	return onSnapshot(dayDocRef, (snapshot) => {
 		callback(parseTasks(snapshot.data(), date))
 	})
+}
+
+export const getTasksForDate = async (date: string): Promise<Task[]> => {
+	const root = getUserRoot()
+	const dayDocRef = doc(db, root, 'calendar', date)
+	const snapshot = await getDoc(dayDocRef)
+	return parseTasks(snapshot.data(), date)
 }
 
 export const subscribeToList = (listName: 'todo' | 'shortcuts', callback: (tasks: Task[]) => void) => {

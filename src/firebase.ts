@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
+import { getFunctions } from 'firebase/functions'
 
 const firebaseConfig = {
 	apiKey: 'AIzaSyArr5VtbRb1Fn2d6MB9cV-ThidIHIhFsjc',
@@ -18,6 +19,7 @@ const app = initializeApp(firebaseConfig)
 // Initialize services
 export const auth = getAuth(app)
 export const db = getFirestore(app, 'tusk-db')
+export const functions = getFunctions(app, 'europe-west1')
 
 import { migrateToFirestore } from './services/migrationService'
 

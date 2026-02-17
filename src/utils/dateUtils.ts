@@ -151,3 +151,26 @@ export const formatDuration = (minutes: number) => {
 	const m = Math.round(safeMinutes % 60)
 	return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
+/**
+ * Returns the start (Monday) and end (Sunday) Date objects for a given ISO week string (YYYY-WXX).
+ * The returned Dates are set to local midnight.
+ */
+export const getWeekRange = (isoWeekKey: string): { start: Date; end: Date } | null => {
+	const match = isoWeekKey.match(/^(\d{4})-W(\d{2})$/)
+	if (!match) return null
+	const year = parseInt(match[1])
+	const week = parseInt(match[2])
+
+	// Calculate Monday of ISO week using UTC to avoid DST issues
+	const jan4 = new Date(Date.UTC(year, 0, 4))
+	const dayOfWeek = jan4.getUTCDay() || 7
+	const mondayUTC = new Date(jan4)
+	mondayUTC.setUTCDate(jan4.getUTCDate() - dayOfWeek + 1 + (week - 1) * 7)
+
+	// Convert to local Date (00:00:00)
+	const localMonday = new Date(mondayUTC.getUTCFullYear(), mondayUTC.getUTCMonth(), mondayUTC.getUTCDate())
+	const localSunday = new Date(localMonday)
+	localSunday.setDate(localMonday.getDate() + 6)
+
+	return { start: localMonday, end: localSunday }
+}

@@ -31,7 +31,7 @@ export async function completeYesterdayTasksHandler() {
 
 		// Find tasks not yet completed
 		const taskUpdates = {}
-		const completionDelta = { completedMinutes: 0, completedCount: 0 }
+		const completionDelta = { completedMinutes: 0, completedCount: 0, completedDeepWorkMinutes: 0 }
 		const categoryDeltas = {}
 
 		for (const [taskId, task] of Object.entries(data.tasks)) {
@@ -40,6 +40,9 @@ export async function completeYesterdayTasksHandler() {
 			taskUpdates[`tasks.${taskId}.isCompleted`] = true
 			completionDelta.completedMinutes += task.duration || 0
 			completionDelta.completedCount += 1
+			if (task.isDeepWork) {
+				completionDelta.completedDeepWorkMinutes += task.duration || 0
+			}
 
 			const cat = task.category || 'Default'
 			if (!categoryDeltas[cat]) {
@@ -61,7 +64,8 @@ export async function completeYesterdayTasksHandler() {
 			const statRef = db.doc(`users/${uid}/stats/${period}`)
 			const statUpdates = {
 				completedMinutes: FieldValue.increment(completionDelta.completedMinutes),
-				completedCount: FieldValue.increment(completionDelta.completedCount)
+				completedCount: FieldValue.increment(completionDelta.completedCount),
+				completedDeepWorkMinutes: FieldValue.increment(completionDelta.completedDeepWorkMinutes)
 			}
 
 			for (const [cat, delta] of Object.entries(categoryDeltas)) {

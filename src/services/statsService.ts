@@ -1,5 +1,6 @@
-import { db, auth } from '../firebase'
+import { db, auth, functions } from '../firebase'
 import { doc, onSnapshot, increment, writeBatch } from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
 import type { Task, StatDelta, StatDoc } from '../types'
 import { formatDate } from '../utils/dateUtils'
 
@@ -129,4 +130,22 @@ export const subscribeToStat = (period: string, callback: (stat: StatDoc | null)
 		}
 		callback(data as StatDoc)
 	})
+}
+
+/**
+ * Trigger recalculation of stats for previous month + current month up to yesterday.
+ * Returns { daysProcessed, tasksCompleted, diffs }.
+ */
+export const triggerRecalcStats = async (): Promise<{
+	daysProcessed: number
+	tasksCompleted: number
+	tasksUncompleted: number
+	diffs: string[]
+}> => {
+	const callable = httpsCallable<void, { daysProcessed: number; tasksCompleted: number; tasksUncompleted: number; diffs: string[] }>(
+		functions,
+		'recalculateStats'
+	)
+	const result = await callable()
+	return result.data
 }

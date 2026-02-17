@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useStatsStore } from '../stores/stats'
 import { useCategoriesStore } from '../stores/categories'
+import { triggerRecalcStats } from '../services/statsService'
+import { getWeekRange } from '../utils/dateUtils'
 import type { Category } from '../types'
 
 const statsStore = useStatsStore()
@@ -15,11 +17,33 @@ const {
 	deepWorkHours,
 	taskCount,
 	categoryBreakdown,
-	deepWorkRatio,
-	completionRatio
+	completedHours,
+	completedCount,
+	completedDeepWorkHours,
+	plannedHours,
+	plannedCount,
+	plannedDeepWorkHours
 } = storeToRefs(statsStore)
 
 const periodLabels = { day: 'Day', week: 'Week', month: 'Month', year: 'Year' }
+
+const syncing = ref(false)
+const syncStatus = ref('')
+
+async function handleSync() {
+	syncing.value = true
+	syncStatus.value = ''
+	try {
+		const result = await triggerRecalcStats()
+		syncStatus.value = `✓ ${result.daysProcessed} days, ${result.tasksCompleted} completed, ${result.tasksUncompleted} uncompleted, ${result.diffs.length} diffs`
+		setTimeout(() => (syncStatus.value = ''), 8000)
+	} catch (e: any) {
+		syncStatus.value = `✗ ${e.message || 'Sync failed'}`
+		setTimeout(() => (syncStatus.value = ''), 8000)
+	} finally {
+		syncing.value = false
+	}
+}
 
 function getCategoryColor(name: string): string {
 	const cat = categoriesStore.categoriesArray.find((c: Category) => c.name === name)
@@ -31,7 +55,15 @@ function formatPeriodLabel(key: string, type: string): string {
 		const d = new Date(key + 'T00:00:00')
 		return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 	}
-	if (type === 'week') return key // e.g. 2025-W08
+	if (type === 'week') {
+		const range = getWeekRange(key)
+		if (range) {
+			const start = range.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+			const end = range.end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+			return `${key} (${start} - ${end})`
+		}
+		return key
+	}
 	if (type === 'month') {
 		const [y, m] = key.split('-')
 		const d = new Date(parseInt(y), parseInt(m) - 1, 1)
@@ -58,8 +90,19 @@ onUnmounted(() => {
 	<div class="stats-page">
 		<div class="stats-content-wrapper">
 			<header class="page-header">
-				<h1>Statistics</h1>
-				<p>Track your time and productivity</p>
+				<div class="header-top">
+					<div>
+						<h1>Statistics</h1>
+						<p>Track your time and productivity</p>
+					</div>
+					<button class="sync-btn" :disabled="syncing" @click="handleSync">
+						<span :class="{ spinning: syncing }">⟳</span>
+						{{ syncing ? 'Syncing…' : 'Sync' }}
+					</button>
+				</div>
+				<div v-if="syncStatus" class="sync-status" :class="{ error: syncStatus.startsWith('✗') }">
+					{{ syncStatus }}
+				</div>
 			</header>
 
 			<!-- Period Type Selector -->
@@ -86,27 +129,37 @@ onUnmounted(() => {
 			<div v-if="loading" class="loading-state">Loading...</div>
 
 			<!-- Summary Cards -->
-			<div v-else class="stats-grid">
-				<div class="stat-card">
-					<div class="stat-value">{{ totalHours }}h</div>
-					<div class="stat-label">Total Time</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-value">{{ taskCount }}</div>
-					<div class="stat-label">Tasks</div>
-				</div>
-				<div class="stat-card accent">
-					<div class="stat-value">{{ deepWorkHours }}h</div>
-					<div class="stat-label">Deep Work</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-value">{{ deepWorkRatio }}%</div>
-					<div class="stat-label">Deep Work Ratio</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-value">{{ completionRatio }}%</div>
-					<div class="stat-label">Completed</div>
-				</div>
+			<div v-else class="stats-table-container">
+				<table class="stats-table">
+					<thead>
+						<tr>
+							<th></th>
+							<th>Completed</th>
+							<th>Planned</th>
+							<th>Total</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td class="row-label">Tasks</td>
+							<td class="val-completed">{{ completedCount }}</td>
+							<td class="val-planned">{{ plannedCount }}</td>
+							<td class="val-total">{{ taskCount }}</td>
+						</tr>
+						<tr>
+							<td class="row-label">Hours</td>
+							<td class="val-completed">{{ completedHours }}h</td>
+							<td class="val-planned">{{ plannedHours }}h</td>
+							<td class="val-total">{{ totalHours }}h</td>
+						</tr>
+						<tr>
+							<td class="row-label">Deep Work</td>
+							<td class="val-completed">{{ completedDeepWorkHours }}h</td>
+							<td class="val-planned">{{ plannedDeepWorkHours }}h</td>
+							<td class="val-total">{{ deepWorkHours }}h</td>
+						</tr>
+					</tbody>
+				</table>
 			</div>
 
 			<!-- Category Breakdown -->
@@ -118,14 +171,34 @@ onUnmounted(() => {
 							<span class="cat-dot" :style="{ background: getCategoryColor(cat.name) }"></span>
 							<span class="cat-name">{{ cat.name }}</span>
 						</div>
+
+						<!-- Split Bar Container -->
 						<div class="bar-container">
-							<div class="bar-fill" :style="{ width: barWidth(cat.minutes), background: getCategoryColor(cat.name) }">
-								<span class="bar-text" v-if="cat.hours >= 0.5">{{ cat.hours }}h</span>
+							<div class="split-bar-wrapper" :style="{ width: barWidth(cat.minutes) }">
+								<!-- Completed Segment -->
+								<div
+									v-if="cat.completedMinutes > 0"
+									class="bar-segment"
+									:style="{ flex: cat.completedMinutes, background: getCategoryColor(cat.name) }"
+								>
+									<span class="bar-text" v-if="cat.completedHours >= 0.5">{{ cat.completedHours }}h</span>
+								</div>
+
+								<!-- Planned Segment -->
+								<div
+									v-if="cat.plannedMinutes > 0"
+									class="bar-segment planned"
+									:style="{ flex: cat.plannedMinutes, background: getCategoryColor(cat.name) }"
+								>
+									<span class="bar-text" v-if="cat.plannedHours >= 0.5">{{ cat.plannedHours }}h</span>
+								</div>
 							</div>
 						</div>
+
+						<!-- Total Column -->
 						<div class="cat-meta">
-							<span class="cat-hours">{{ cat.hours }}h</span>
-							<span class="cat-count">{{ cat.count }} tasks</span>
+							<span class="cat-hours">{{ cat.totalHours }}h</span>
+							<!-- <span class="cat-label-sm">Total</span> -->
 						</div>
 					</div>
 				</div>
@@ -160,6 +233,13 @@ onUnmounted(() => {
 	padding-bottom: 2rem;
 }
 
+.header-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 1rem;
+}
+
 .page-header h1 {
 	font-size: 2.5rem;
 	font-weight: 800;
@@ -173,6 +253,60 @@ onUnmounted(() => {
 .page-header p {
 	color: var(--text-muted);
 	font-size: 1.1rem;
+}
+
+.sync-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-sm);
+	background: var(--bg-card);
+	color: var(--text-secondary);
+	font-weight: 600;
+	font-size: 0.9rem;
+	cursor: pointer;
+	transition: all 0.2s;
+	white-space: nowrap;
+}
+
+.sync-btn:hover:not(:disabled) {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+.sync-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.sync-btn .spinning {
+	display: inline-block;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.sync-status {
+	margin-top: 0.75rem;
+	padding: 0.5rem 0.75rem;
+	border-radius: var(--radius-sm);
+	font-size: 0.85rem;
+	background: color-mix(in srgb, var(--accent), transparent 90%);
+	color: var(--accent);
+}
+
+.sync-status.error {
+	background: color-mix(in srgb, #e74c3c, transparent 90%);
+	color: #e74c3c;
 }
 
 /* Period Selector */
@@ -244,52 +378,71 @@ onUnmounted(() => {
 	text-align: center;
 }
 
-/* Summary Cards */
-.stats-grid {
-	display: grid;
-	grid-template-columns: repeat(5, 1fr);
-	gap: 1rem;
-	margin-bottom: 3rem;
-}
-
-.stat-card {
-	background: var(--bg-card);
-	border: 1px solid var(--border-color);
-	border-radius: var(--radius-md);
-	padding: 1.5rem 1rem;
-	text-align: center;
-	transition:
-		border-color 0.2s,
-		transform 0.2s;
-	animation: slideUp 0.4s ease-out;
-}
-
-.stat-card:hover {
-	border-color: var(--accent);
-	transform: translateY(-2px);
-}
-
-.stat-card.accent {
-	border-color: var(--accent);
-	background: color-mix(in srgb, var(--accent), var(--bg-card) 90%);
-}
-
-.stat-value {
-	font-size: 2rem;
-	font-weight: 800;
-	line-height: 1.2;
-	color: var(--text-primary);
-}
-
-.stat-card.accent .stat-value {
-	color: var(--accent);
-}
-
 .stat-label {
 	font-size: 0.85rem;
 	color: var(--text-muted);
 	margin-top: 0.25rem;
 	font-weight: 500;
+}
+
+/* Stats Table */
+.stats-table-container {
+	margin-bottom: 3rem;
+	overflow-x: auto;
+	background: var(--bg-card);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--border-color);
+	padding: 1rem;
+	animation: slideUp 0.4s ease-out;
+}
+
+.stats-table {
+	width: 100%;
+	border-collapse: collapse;
+	min-width: 300px;
+}
+
+.stats-table th {
+	text-align: right;
+	padding: 1rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	border-bottom: 2px solid var(--border-color);
+	font-size: 0.9rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.stats-table td {
+	padding: 1.25rem 1rem;
+	text-align: right;
+	border-bottom: 1px solid var(--border-color);
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.stats-table tr:last-child td {
+	border-bottom: none;
+}
+
+.stats-table .row-label {
+	text-align: left;
+	color: var(--text-secondary);
+	font-weight: 600;
+}
+
+.stats-table .val-completed {
+	color: var(--success, #2ecc71);
+}
+
+.stats-table .val-planned {
+	color: var(--text-muted);
+	font-family: monospace; /* optional style */
+}
+
+.stats-table .val-total {
+	font-weight: 800;
 }
 
 /* Category Breakdown */
@@ -342,20 +495,43 @@ onUnmounted(() => {
 
 .bar-container {
 	height: 28px;
-	background: var(--bg-card);
+	background: transparent;
 	border-radius: var(--radius-sm);
-	border: 1px solid var(--border-color);
+	/* border: 1px solid var(--border-color); */
 	overflow: hidden;
 }
 
-.bar-fill {
+.split-bar-wrapper {
 	height: 100%;
+	display: flex;
 	border-radius: var(--radius-sm);
+	overflow: hidden;
+	transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bar-segment {
+	height: 100%;
 	display: flex;
 	align-items: center;
-	padding: 0 0.5rem;
-	transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-	opacity: 0.85;
+	justify-content: center;
+	overflow: hidden;
+	transition: flex 0.6s ease;
+}
+
+.bar-segment.planned {
+	opacity: 0.35;
+	/* Optional: pattern for accessibility/differentiation */
+	background-image: linear-gradient(
+		45deg,
+		rgba(255, 255, 255, 0.15) 25%,
+		transparent 25%,
+		transparent 50%,
+		rgba(255, 255, 255, 0.15) 50%,
+		rgba(255, 255, 255, 0.15) 75%,
+		transparent 75%,
+		transparent
+	);
+	background-size: 8px 8px;
 }
 
 .bar-text {
@@ -416,14 +592,16 @@ onUnmounted(() => {
 
 /* Responsive */
 @media (max-width: 600px) {
-	.stats-grid {
-		grid-template-columns: repeat(2, 1fr);
-	}
 	.category-row {
 		grid-template-columns: 90px 1fr 80px;
 	}
 	.stats-content-wrapper {
 		padding: 2rem 1rem;
+	}
+	.stats-table th,
+	.stats-table td {
+		padding: 0.75rem 0.5rem;
+		font-size: 0.95rem;
 	}
 }
 </style>
