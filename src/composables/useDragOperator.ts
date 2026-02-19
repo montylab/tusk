@@ -194,8 +194,8 @@ async function handleEnd(event: MouseEvent | TouchEvent) {
 			return
 		}
 
-		// Call logic handler for relocation
-		await manageTaskRelocation(sourceZone.value, zone.name, draggedTask.value, dropData.value)
+		// Call logic handler for relocation - WITHOUT AWAIT for instant UI response
+		manageTaskRelocation(sourceZone.value, zone.name, draggedTask.value, dropData.value)
 	}
 
 	// Reset state
