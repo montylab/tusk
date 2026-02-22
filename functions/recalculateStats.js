@@ -211,6 +211,9 @@ export async function recalculateStatsHandler(request) {
 			} else if (isFuture) {
 				// Future: Force Uncomplete
 				if (task.isCompleted) {
+					logger.error(
+						`[recalculateStats] Future task wrongly completed: uid=${uid} date=${dateStr} taskId=${taskId} text="${task.text || ''}"`
+					)
 					taskUpdates[`tasks.${taskId}.isCompleted`] = false
 					totalTasksUncompleted++
 				}

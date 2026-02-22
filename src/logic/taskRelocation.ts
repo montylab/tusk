@@ -95,6 +95,9 @@ export async function manageTaskRelocation(source: string, dest: string, task: T
 	else if (dest === 'shortcut') {
 		const { order, index } = dropData || {}
 
+		// Cancel: temp-ID tasks (Ctrl+number copies) have no real data to save as a shortcut
+		if (task.id.toString().startsWith('temp-')) return
+
 		if (source.startsWith('calendar-day-')) {
 			// Calendar → Shortcut: Move (templatize)
 			const date = source.replace('calendar-day-', '')
