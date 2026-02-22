@@ -128,6 +128,13 @@ export const useSettingsStore = defineStore('settings', () => {
 		unsub = firebaseService.subscribeToSettings((data) => {
 			settingsData.value = { ...DEFAULT_SETTINGS, ...data }
 			loading.value = false
+
+			if (settingsData.value.onboarded === false) {
+				// We don't want to import onboardingService here to avoid circular dep
+				import('../services/onboardingService').then(({ runOnboarding }) => {
+					runOnboarding()
+				})
+			}
 		})
 	}
 

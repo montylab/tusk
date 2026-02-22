@@ -19,7 +19,7 @@ export const onboardingConfig: OnboardingConfig = {
 			text: 'Past Task (Already Completed)',
 			category: 'Work',
 			completed: true,
-			startTime: 8,
+			startTime: -2,
 			duration: 60,
 			description: "I was scheduled earlier. Since my time passed, I'm auto-completed! ✅"
 		},
@@ -27,7 +27,7 @@ export const onboardingConfig: OnboardingConfig = {
 			text: 'Current Task (Active)',
 			category: 'Work',
 			completed: false,
-			startTime: new Date().getHours() + new Date().getMinutes() / 60,
+			startTime: 0, // Will be centered around baseTime
 			duration: 60,
 			description: "I am happening right now! ⏱️ You'll hear a sound when I finish."
 		},
@@ -35,15 +35,15 @@ export const onboardingConfig: OnboardingConfig = {
 			text: 'Future Task (Planned)',
 			category: 'Learning',
 			completed: false,
-			startTime: new Date().getHours() + 2,
-			duration: 45,
+			startTime: 1.5,
+			duration: 60,
 			description: "I'm scheduled for later. Drag me to change my time! 🗓️"
 		},
 		{
 			text: 'Deep Work Focus',
 			category: 'Work',
 			completed: false,
-			startTime: new Date().getHours() + 3,
+			startTime: 3,
 			duration: 90,
 			isDeepWork: true,
 			description: 'Deep Work Session 🧠 (High impact task - check stats for me later!)'
@@ -52,19 +52,19 @@ export const onboardingConfig: OnboardingConfig = {
 			text: 'Task with Description',
 			category: 'Learning',
 			completed: false,
-			startTime: new Date().getHours() + 5,
+			startTime: 5,
 			duration: 30,
 			description:
 				'Once in edit menu, you can add a verbose description 📝 like this one! Double-click me or use the edit button to see my details.'
 		}
 	],
 	todoTasks: [
-		{ text: 'Schedule me! Drag me into the calendar 🗓️', category: 'Work', completed: false, duration: 60 },
-		{ text: "I'm a simple To-Do item", category: 'Life Admin', completed: false, duration: 30 },
-		{ text: 'Reorder me by dragging', category: 'Learning', completed: false, duration: 15 }
+		{ text: 'Schedule me! Drag me into the calendar 🗓️', category: 'Work', completed: false, duration: 60, startTime: null },
+		{ text: "I'm a simple To-Do item", category: 'Life Admin', completed: false, duration: 30, startTime: null },
+		{ text: 'Reorder me by dragging', category: 'Learning', completed: false, duration: 15, startTime: null }
 	],
 	shortcutTasks: [
-		{ text: 'Coffee Break ☕', category: 'Rest', completed: false, duration: 15 },
-		{ text: 'Email Batch 📩', category: 'Life Admin', completed: false, duration: 30 }
+		{ text: 'Coffee Break ☕', category: 'Rest', completed: false, duration: 15, startTime: null },
+		{ text: 'Email Batch 📩', category: 'Life Admin', completed: false, duration: 30, startTime: null }
 	]
 }
