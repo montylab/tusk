@@ -2,8 +2,10 @@ import { nerve, NERVE_EVENTS } from '../services/nerve'
 import { useSettingsStore } from '../stores/settings'
 import { storeToRefs } from 'pinia'
 import { onUnmounted } from 'vue'
+import { useTabLeader } from './useTabLeader'
 
 export function useNotificationSystem() {
+	const { isLeader } = useTabLeader()
 	const settingsStore = useSettingsStore()
 	const { settings } = storeToRefs(settingsStore)
 
@@ -38,13 +40,17 @@ export function useNotificationSystem() {
 	}
 
 	const onTaskStart = ({ title, body }: { title: string; body?: string }) => {
+		if (!isLeader.value) return
 		if (settings.value.notifications.enabled && settings.value.notifications.taskStarted) {
+			console.log('🔔 Task Start Notification')
 			showNotification(title, body)
 		}
 	}
 
 	const onTaskEnd = ({ title, body }: { title: string; body?: string }) => {
+		if (!isLeader.value) return
 		if (settings.value.notifications.enabled && settings.value.notifications.taskEnded) {
+			console.log('🔔 Task End Notification')
 			showNotification(title, body)
 		}
 	}

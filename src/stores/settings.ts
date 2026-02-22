@@ -18,6 +18,7 @@ export interface UserSettings {
 		taskEnded: boolean
 		taskDeleted: boolean
 	}
+	onboarded?: boolean
 }
 
 export const defaultColors = [
@@ -89,7 +90,8 @@ const DEFAULT_SETTINGS: UserSettings = {
 		taskStarted: true,
 		taskEnded: true,
 		taskDeleted: true
-	}
+	},
+	onboarded: false
 }
 
 export const useSettingsStore = defineStore('settings', () => {
