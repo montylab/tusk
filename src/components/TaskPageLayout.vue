@@ -32,7 +32,7 @@ const handleEditTask = (task: Task) => {
 		<ResizablePanel side="left" :min-size="250" :max-size="1600" :default-size="300" storage-key="right-sidebar-width">
 			<aside class="sidebar right">
 				<div class="pile-container">
-					<ResizablePanel side="bottom" :min-size="200" :default-size="400" storage-key="shortcuts-pile-height">
+					<ResizablePanel side="bottom" :min-size="200" :default-size="400" :max-percent-size="90" storage-key="shortcuts-pile-height">
 						<TaskPile title="Shortcuts" :tasks="shortcutTasks" list-type="shortcut" @edit="handleEditTask" />
 					</ResizablePanel>
 					<TaskPile title="To Do" :tasks="todoTasks" list-type="todo" @edit="handleEditTask" />

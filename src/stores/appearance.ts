@@ -8,15 +8,23 @@ export const SCHEMES = ['solid', 'glass', 'ink', 'neo'] as const
 export type ThemeType = (typeof THEMES)[number]
 export type ColorSchemeType = (typeof SCHEMES)[number]
 
+const DEFAULT_APPEARANCE = {
+	theme: 'dark' as ThemeType,
+	colorScheme: 'glass' as ColorSchemeType,
+	interfaceScale: 100,
+	hourHeight: 80, // to-do: check if used
+	headerHeight: 70 // to-do: check if used
+}
+
 export const useAppearanceStore = defineStore('appearance', () => {
 	// Load from localStorage or use defaults
 	const saved = JSON.parse(localStorage.getItem('appearance-settings') || '{}')
 
-	const theme = ref<ThemeType>(saved.theme || 'dark')
-	const colorScheme = ref<ColorSchemeType>(saved.colorScheme || 'glass')
-	const interfaceScale = ref<number>(saved.interfaceScale || 100)
-	const hourHeightBase = ref<number>(saved.hourHeight || 80)
-	const headerHeightBase = ref<number>(saved.headerHeight || 70)
+	const theme = ref<ThemeType>(saved.theme || DEFAULT_APPEARANCE.theme)
+	const colorScheme = ref<ColorSchemeType>(saved.colorScheme || DEFAULT_APPEARANCE.colorScheme)
+	const interfaceScale = ref<number>(saved.interfaceScale || DEFAULT_APPEARANCE.interfaceScale)
+	const hourHeightBase = ref<number>(saved.hourHeight || DEFAULT_APPEARANCE.hourHeight)
+	const headerHeightBase = ref<number>(saved.headerHeight || DEFAULT_APPEARANCE.headerHeight)
 
 	// Derived values
 	const uiScale = computed(() => interfaceScale.value / 100)

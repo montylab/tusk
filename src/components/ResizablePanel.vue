@@ -6,6 +6,8 @@ const props = withDefaults(
 		side: 'left' | 'right' | 'top' | 'bottom'
 		minSize?: number
 		maxSize?: number
+		minPercentSize?: number
+		maxPercentSize?: number
 		defaultSize?: number
 		storageKey?: string
 	}>(),
@@ -86,18 +88,17 @@ const handleStart = (e: MouseEvent | TouchEvent) => {
 	}
 }
 
-const handleStyle = computed(() => ({
-	[props.side]: '-4px'
-}))
+const cssSize = computed(() => `${size.value}px`)
+const cssMinSize = computed(() => `max(${props.minSize}px, ${props.minPercentSize || 0}%)`)
+const cssMaxSize = computed(() => `min(${props.maxSize}px, ${props.maxPercentSize || 100}%)`)
 </script>
 
 <template>
-	<div class="resizable-panel" :class="[dimension]" :style="{ [dimension]: `${size}px` }">
+	<div class="resizable-panel" :class="[dimension]">
 		<slot></slot>
 		<div
 			class="resize-handle"
 			:class="{ dragging: isDragging, [side]: true, [dimension]: true }"
-			:style="handleStyle"
 			@mousedown="handleStart"
 			@touchstart="handleStart"
 		>
@@ -106,84 +107,103 @@ const handleStyle = computed(() => ({
 	</div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .resizable-panel {
 	position: relative;
 	flex-shrink: 0;
-}
+	--handle-offset: -4px;
 
-.resizable-panel.width {
-	height: 100%;
-}
+	&.width {
+		height: 100%;
+		width: clamp(v-bind(cssMinSize), v-bind(cssSize), v-bind(cssMaxSize));
+	}
 
-.resizable-panel.height {
-	width: 100%;
-}
+	&.height {
+		width: 100%;
+		height: clamp(v-bind(cssMinSize), v-bind(cssSize), v-bind(cssMaxSize));
+	}
 
-.resize-handle {
-	position: absolute;
-	z-index: 10;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	transition: background-color 0.2s ease;
-}
+	.resize-handle {
+		position: absolute;
+		z-index: 10;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: background-color 0.2s ease;
 
-.resize-handle.width {
-	top: 0;
-	bottom: 0;
-	width: 8px;
-	cursor: col-resize;
-}
+		&.left {
+			left: var(--handle-offset);
+		}
+		&.right {
+			right: var(--handle-offset);
+		}
+		&.top {
+			top: var(--handle-offset);
+		}
+		&.bottom {
+			bottom: var(--handle-offset);
+		}
 
-.resize-handle.height {
-	left: 0;
-	right: 0;
-	height: 8px;
-	cursor: row-resize;
-}
+		&.width {
+			top: 0;
+			bottom: 0;
+			width: 8px;
+			cursor: col-resize;
 
-.resize-handle:hover,
-.resize-handle.dragging {
-	background-color: color-mix(in srgb, var(--accent), transparent 90%);
-}
+			.handle-indicator {
+				width: 2px;
+				height: 40px;
+			}
+		}
 
-.resize-handle.dragging {
-	background-color: color-mix(in srgb, var(--accent), transparent 80%);
-}
+		&.height {
+			left: 0;
+			right: 0;
+			height: 8px;
+			cursor: row-resize;
 
-.handle-indicator {
-	background: var(--border-color);
-	border-radius: 2px;
-	transition: all 0.2s ease;
-}
+			.handle-indicator {
+				width: 40px;
+				height: 2px;
+			}
+		}
 
-.resize-handle.width .handle-indicator {
-	width: 2px;
-	height: 40px;
-}
+		&:hover,
+		&.dragging {
+			background-color: color-mix(in srgb, var(--accent), transparent 90%);
 
-.resize-handle.height .handle-indicator {
-	width: 40px;
-	height: 2px;
-}
+			.handle-indicator {
+				background: var(--accent);
+			}
+		}
 
-.resize-handle:hover .handle-indicator,
-.resize-handle.dragging .handle-indicator {
-	background: var(--accent);
-}
+		&.dragging {
+			background-color: color-mix(in srgb, var(--accent), transparent 80%);
 
-.resize-handle.width:hover .handle-indicator,
-.resize-handle.width.dragging .handle-indicator {
-	height: 60px;
-}
+			.handle-indicator {
+				background: var(--accent-hover);
+			}
+		}
 
-.resize-handle.height:hover .handle-indicator,
-.resize-handle.height.dragging .handle-indicator {
-	width: 60px;
-}
+		.handle-indicator {
+			background: var(--border-color);
+			border-radius: 2px;
+			transition: all 0.2s ease;
+		}
 
-.resize-handle.dragging .handle-indicator {
-	background: var(--accent-hover);
+		&.width:hover,
+		&.width.dragging {
+			.handle-indicator {
+				height: 60px;
+			}
+		}
+
+		&.height:hover,
+		&.height.dragging {
+			.handle-indicator {
+				width: 60px;
+			}
+		}
+	}
 }
 </style>

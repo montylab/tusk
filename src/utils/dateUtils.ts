@@ -139,14 +139,6 @@ export const formatTime = (time: number) => {
 	const m = Math.round((time % 1) * 60)
 	return `${h}:${m.toString().padStart(2, '0')}`
 }
-
-/**
- * Formats minutes into H:MM format
- */
-export const formatMinutesToTime = (minutes: number) => {
-	return formatTime(minutes / 60)
-}
-
 /**
  * Formats duration in minutes to Hh Mm or Mm format
  */

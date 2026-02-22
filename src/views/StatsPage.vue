@@ -222,7 +222,7 @@ onUnmounted(() => {
 }
 
 .stats-content-wrapper {
-	max-width: 800px;
+	max-width: min(64rem, 100%);
 	margin: 0 auto;
 	padding: 3rem 2rem;
 }
@@ -327,6 +327,7 @@ onUnmounted(() => {
 	border-radius: var(--radius-sm);
 	background: transparent;
 	color: var(--text-secondary);
+	font-size: 1rem;
 	font-weight: 600;
 	cursor: pointer;
 	transition: all 0.2s;
@@ -352,8 +353,8 @@ onUnmounted(() => {
 }
 
 .nav-arrow {
-	width: 36px;
-	height: 36px;
+	width: 2.25rem;
+	height: 2.25rem;
 	border: 1px solid var(--border-color);
 	border-radius: 50%;
 	background: var(--bg-card);
@@ -374,7 +375,7 @@ onUnmounted(() => {
 .period-label {
 	font-size: 1.2rem;
 	font-weight: 600;
-	min-width: 180px;
+	min-width: 11.25rem;
 	text-align: center;
 }
 
@@ -399,7 +400,7 @@ onUnmounted(() => {
 .stats-table {
 	width: 100%;
 	border-collapse: collapse;
-	min-width: 300px;
+	min-width: 18.75rem;
 }
 
 .stats-table th {
@@ -454,7 +455,7 @@ onUnmounted(() => {
 	font-size: var(--font-lg);
 	margin-bottom: var(--spacing-md);
 	color: var(--text-primary);
-	border-left: 4px solid var(--accent);
+	border-left: 0.25rem solid var(--accent);
 	padding-left: var(--spacing-md);
 }
 
@@ -479,8 +480,8 @@ onUnmounted(() => {
 }
 
 .cat-dot {
-	width: 10px;
-	height: 10px;
+	width: 0.625rem;
+	height: 0.625rem;
 	border-radius: 50%;
 	flex-shrink: 0;
 }
@@ -494,7 +495,7 @@ onUnmounted(() => {
 }
 
 .bar-container {
-	height: 28px;
+	height: 1.75rem;
 	background: transparent;
 	border-radius: var(--radius-sm);
 	/* border: 1px solid var(--border-color); */
@@ -533,14 +534,14 @@ onUnmounted(() => {
 		transparent 75%,
 		transparent
 	);
-	background-size: 8px 8px;
+	background-size: 0.5rem 0.5rem;
 }
 
 .bar-text {
 	font-size: 0.75rem;
 	font-weight: 600;
 	color: white;
-	text-shadow: 0 0 10px rgb(0 0 0);
+	text-shadow: 0 0 0.625rem rgb(0 0 0);
 }
 
 .cat-meta {
@@ -584,7 +585,7 @@ onUnmounted(() => {
 @keyframes slideUp {
 	from {
 		opacity: 0;
-		transform: translateY(20px);
+		transform: translateY(1.25rem);
 	}
 	to {
 		opacity: 1;
@@ -593,9 +594,9 @@ onUnmounted(() => {
 }
 
 /* Responsive */
-@media (max-width: 600px) {
+@media (max-width: 37.5rem) {
 	.category-row {
-		grid-template-columns: 90px 1fr 80px;
+		grid-template-columns: 5.625rem 1fr 5rem;
 	}
 	.stats-content-wrapper {
 		padding: 2rem 1rem;

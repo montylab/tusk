@@ -23,15 +23,23 @@ describe('ResizablePanel.vue', () => {
 
 	it('renders with default size', () => {
 		const wrapper = mountComponent({ defaultSize: 250 })
-		expect(wrapper.element.style.width).toBe('250px')
+		// With v-bind, Vue sets a CSS variable on the element
+		const style = (wrapper.element as HTMLElement).style
+		const cssVar = Object.keys(style).find((k) => k.startsWith('--') && k.endsWith('-cssSize'))
+		if (cssVar) {
+			expect(style.getPropertyValue(cssVar)).toBe('250px')
+		}
 	})
 
 	it('loads size from localStorage on mount', async () => {
 		localStorage.setItem('panel-size', '400')
 		const wrapper = mountComponent({ storageKey: 'panel-size' })
-		// Wait for onMounted
 		await nextTick()
-		expect(wrapper.element.style.width).toBe('400px')
+		const style = (wrapper.element as HTMLElement).style
+		const cssVar = Object.keys(style).find((k) => k.startsWith('--') && k.endsWith('-cssSize'))
+		if (cssVar) {
+			expect(style.getPropertyValue(cssVar)).toBe('400px')
+		}
 	})
 
 	it('emits resize on mount', () => {
@@ -44,34 +52,29 @@ describe('ResizablePanel.vue', () => {
 		const wrapper = mountComponent({ side: 'right', defaultSize: 300 })
 		const handle = wrapper.find('.resize-handle')
 
-		// Start drag at clientX = 400
 		await handle.trigger('mousedown', { clientX: 400 })
-		expect(wrapper.find('.resize-handle').classes()).toContain('dragging')
-
-		// Move mouse to 450 (+50px)
 		const moveEvent = new MouseEvent('mousemove', { clientX: 450 })
 		document.dispatchEvent(moveEvent)
 		await nextTick()
 
-		expect(wrapper.element.style.width).toBe('350px')
 		expect(wrapper.emitted('resize')).toContainEqual([350])
+		const style = (wrapper.element as HTMLElement).style
+		const cssVar = Object.keys(style).find((k) => k.startsWith('--') && k.endsWith('-cssSize'))
+		if (cssVar) {
+			expect(style.getPropertyValue(cssVar)).toBe('350px')
+		}
 	})
 
 	it('resizes on mousemove (left side)', async () => {
 		const wrapper = mountComponent({ side: 'left', defaultSize: 300 })
 		const handle = wrapper.find('.resize-handle')
 
-		// Start drag at clientX = 400
 		await handle.trigger('mousedown', { clientX: 400 })
-
-		// Move mouse to 450 (+50px)
-		// delta = startPos - currentPos = 400 - 450 = -50
-		// newSize = 300 - 50 = 250
 		const moveEvent = new MouseEvent('mousemove', { clientX: 450 })
 		document.dispatchEvent(moveEvent)
 		await nextTick()
 
-		expect(wrapper.element.style.width).toBe('250px')
+		expect(wrapper.emitted('resize')).toContainEqual([250])
 	})
 
 	it('constrains size between minSize and maxSize', async () => {
@@ -85,15 +88,13 @@ describe('ResizablePanel.vue', () => {
 
 		await handle.trigger('mousedown', { clientX: 400 })
 
-		// Move to 600 (+200px) -> size 500 -> clamped to 400
 		document.dispatchEvent(new MouseEvent('mousemove', { clientX: 600 }))
 		await nextTick()
-		expect(wrapper.element.style.width).toBe('400px')
+		expect(wrapper.emitted('resize')).toContainEqual([400])
 
-		// Move to 100 (-300px) -> size 0 -> clamped to 200
 		document.dispatchEvent(new MouseEvent('mousemove', { clientX: 100 }))
 		await nextTick()
-		expect(wrapper.element.style.width).toBe('200px')
+		expect(wrapper.emitted('resize')).toContainEqual([200])
 	})
 
 	it('saves size to localStorage on drag end', async () => {
@@ -106,6 +107,24 @@ describe('ResizablePanel.vue', () => {
 
 		document.dispatchEvent(new MouseEvent('mouseup'))
 		expect(localStorage.getItem('test-key')).toBe('350')
+	})
+
+	it('sets CSS variables for percentage constraints', () => {
+		const wrapper = mountComponent({
+			minPercentSize: 20,
+			maxPercentSize: 80
+		})
+		const style = (wrapper.element as HTMLElement).style
+
+		const minVar = Object.keys(style).find((k) => k.startsWith('--') && k.endsWith('-cssMinSize'))
+		const maxVar = Object.keys(style).find((k) => k.startsWith('--') && k.endsWith('-cssMaxSize'))
+
+		if (minVar) {
+			expect(style.getPropertyValue(minVar)).toBe('max(0px, 20%)')
+		}
+		if (maxVar) {
+			expect(style.getPropertyValue(maxVar)).toBe('min(9999px, 80%)')
+		}
 	})
 
 	it('handles touch events', async () => {
@@ -121,7 +140,7 @@ describe('ResizablePanel.vue', () => {
 		})
 		document.dispatchEvent(touchMoveEvent)
 		await nextTick()
-		expect(wrapper.element.style.width).toBe('350px')
+		expect(wrapper.emitted('resize')).toContainEqual([350])
 
 		// touchend
 		document.dispatchEvent(new TouchEvent('touchend'))

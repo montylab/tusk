@@ -27,12 +27,3 @@ export function getYesterday() {
 	d.setDate(d.getDate() - 1)
 	return d.toISOString().slice(0, 10)
 }
-
-/**
- * Formats minutes into H:MM format
- */
-export function formatMinutesToTime(minutes) {
-	const h = Math.floor(minutes / 60)
-	const m = Math.round(minutes % 60)
-	return `${h}:${String(m).padStart(2, '0')}`
-}

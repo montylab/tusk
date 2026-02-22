@@ -30,6 +30,7 @@ const currentZone = ref<string | null>(null)
 const dropData = ref<any>(null)
 const sourceZone = ref<string | null>(null)
 const isDestroying = ref(false)
+const dragFromKeyboard = ref(false)
 
 // Zone registry
 const zones = new Map<string, ZoneInfo>()
@@ -130,6 +131,7 @@ function cleanup() {
 	dropData.value = null
 	sourceZone.value = null
 	isDestroying.value = false
+	dragFromKeyboard.value = false
 
 	if (cleanupListeners) {
 		cleanupListeners()
@@ -169,6 +171,7 @@ async function handleEnd(event: MouseEvent | TouchEvent) {
 
 	const coords = getEventCoordinates(event)
 	const zone = getZoneAtPoint(coords.x, coords.y)
+	const wasKeyboard = dragFromKeyboard.value
 
 	// Process drop
 	if (zone && draggedTask.value && sourceZone.value) {
@@ -201,6 +204,13 @@ async function handleEnd(event: MouseEvent | TouchEvent) {
 	// Reset state
 	if (!isDestroying.value) {
 		cleanup()
+	}
+
+	// Keyboard-initiated drags end with a real mouse click (mouseup + click).
+	// Suppress the click so the calendar slot handler doesn't fire a create-task popup.
+	if (wasKeyboard) {
+		const suppressClick = (e: Event) => e.stopImmediatePropagation()
+		document.addEventListener('click', suppressClick, { capture: true, once: true })
 	}
 }
 
@@ -315,6 +325,9 @@ export function useDragOperator() {
 			// Trigger initial move
 			handleMove({ clientX: cursorPosition.value.x, clientY: cursorPosition.value.y } as MouseEvent)
 		}
+
+		// Mark if drag originated from keyboard (no mouse event — e.g. Ctrl+number shortcut)
+		dragFromKeyboard.value = !event
 
 		// Set timer for 150ms
 		dragStartTimer.value = setTimeout(actualStartDrag, 150)
