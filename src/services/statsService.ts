@@ -1,5 +1,5 @@
 import { db, auth, functions } from '../firebase'
-import { doc, onSnapshot, increment, writeBatch } from 'firebase/firestore'
+import { doc, onSnapshot, increment, writeBatch, type WriteBatch } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import type { Task, StatDelta, StatDoc } from '../types'
 import { formatDate } from '../utils/dateUtils'
@@ -86,13 +86,12 @@ export const buildDelta = (task: Pick<Task, 'duration' | 'category' | 'isDeepWor
 }
 
 /**
- * Apply a stat delta to all period docs for a given date atomically.
- * Uses Firestore increment() for safe concurrent updates.
+ * Append stat-delta writes to an existing WriteBatch (does NOT commit).
+ * This enables atomic task+stat writes in a single batch.
  */
-export const applyStatDelta = async (dateStr: string, delta: StatDelta): Promise<void> => {
+export const addStatDeltaToBatch = (batch: WriteBatch, dateStr: string, delta: StatDelta): void => {
 	const root = getUserRoot()
 	const periods = computeStatPeriods(dateStr)
-	const batch = writeBatch(db)
 
 	const categoryUpdates: Record<string, any> = {}
 	for (const [cat, catDelta] of Object.entries(delta.categories)) {
@@ -119,7 +118,15 @@ export const applyStatDelta = async (dateStr: string, delta: StatDelta): Promise
 		const statRef = doc(db, root, 'stats', period)
 		batch.set(statRef, updates, { merge: true })
 	}
+}
 
+/**
+ * Apply a stat delta to all period docs for a given date atomically.
+ * Convenience wrapper — creates its own batch and commits.
+ */
+export const applyStatDelta = async (dateStr: string, delta: StatDelta): Promise<void> => {
+	const batch = writeBatch(db)
+	addStatDeltaToBatch(batch, dateStr, delta)
 	await batch.commit()
 }
 

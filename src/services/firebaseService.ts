@@ -2,16 +2,16 @@ import { db, auth } from '../firebase'
 import { doc, onSnapshot, updateDoc, setDoc, deleteField, writeBatch, collection, getDoc, type DocumentData } from 'firebase/firestore'
 import type { Task } from '../types'
 
-// --- Helpers ---
+// --- Helpers (exported for batch building in taskService) ---
 
-const getUserRoot = () => {
+export const getUserRoot = () => {
 	const user = auth.currentUser
 	if (!user) throw new Error('User must be logged in')
 	return `users/${user.uid}`
 }
 
 /** Generate a unique Firestore-style ID without creating a document */
-const generateId = (): string => {
+export const generateId = (): string => {
 	return doc(collection(db, '_')).id
 }
 
@@ -23,7 +23,7 @@ const generateId = (): string => {
  *   'todo'             → users/{uid}/lists/todo
  *   'shortcuts'        → users/{uid}/lists/shortcuts
  */
-const resolveDocRef = (path: string) => {
+export const resolveDocRef = (path: string) => {
 	const root = getUserRoot()
 	if (path.startsWith('calendar/')) {
 		const date = path.replace('calendar/', '')

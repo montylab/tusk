@@ -59,9 +59,9 @@ export const onboardingConfig: OnboardingConfig = {
 		}
 	],
 	todoTasks: [
-		{ text: 'Schedule me! Drag me into the calendar 🗓️', category: 'Work', completed: false, duration: 60, startTime: null },
-		{ text: "I'm a simple To-Do item", category: 'Life Admin', completed: false, duration: 30, startTime: null },
-		{ text: 'Reorder me by dragging', category: 'Learning', completed: false, duration: 15, startTime: null }
+		{ text: 'Schedule me! Drag me into the calendar 🗓️', category: 'Work', completed: false, duration: 60, startTime: null, order: 10000 },
+		{ text: "I'm a simple To-Do item", category: 'Life Admin', completed: false, duration: 30, startTime: null, order: 20000 },
+		{ text: 'Reorder me by dragging', category: 'Learning', completed: false, duration: 15, startTime: null, order: 30000 }
 	],
 	shortcutTasks: [
 		{ text: 'Coffee Break ☕', category: 'Rest', completed: false, duration: 15, startTime: null },

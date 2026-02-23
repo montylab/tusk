@@ -3,16 +3,40 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useTasksStore } from '../tasks'
 import { useUserStore } from '../user'
 import * as firebaseService from '../../services/firebaseService'
+import * as taskService from '../../services/taskService'
 import { nerve, NERVE_EVENTS } from '../../services/nerve'
 
-// Mock dependencies
+// Mock firebaseService (still needed for subscriptions)
 vi.mock('../../services/firebaseService', () => ({
 	subscribeToDate: vi.fn(() => vi.fn()),
 	subscribeToList: vi.fn(() => vi.fn()),
 	createTaskInPath: vi.fn(),
 	updateTaskInPath: vi.fn(),
 	deleteTaskFromPath: vi.fn(),
-	moveTask: vi.fn()
+	moveTask: vi.fn(),
+	resolveDocRef: vi.fn(),
+	generateId: vi.fn(() => 'mock-id'),
+	getUserRoot: vi.fn(() => 'users/test-uid')
+}))
+
+// Mock taskService (all mutations go through here now)
+vi.mock('../../services/taskService', () => ({
+	createTodo: vi.fn().mockResolvedValue({ id: 'new-id' }),
+	createShortcut: vi.fn().mockResolvedValue({ id: 'new-id' }),
+	createScheduledTask: vi.fn().mockResolvedValue({ id: 'new-id' }),
+	updateTodo: vi.fn().mockResolvedValue(undefined),
+	updateShortcut: vi.fn().mockResolvedValue(undefined),
+	updateScheduledTask: vi.fn().mockResolvedValue(undefined),
+	deleteTodo: vi.fn().mockResolvedValue(undefined),
+	deleteShortcut: vi.fn().mockResolvedValue(undefined),
+	deleteScheduledTask: vi.fn().mockResolvedValue(undefined),
+	moveTodoToCalendar: vi.fn().mockResolvedValue(undefined),
+	moveCalendarToTodo: vi.fn().mockResolvedValue(undefined),
+	moveTodoToShortcut: vi.fn().mockResolvedValue(undefined),
+	moveCalendarToShortcut: vi.fn().mockResolvedValue(undefined),
+	moveScheduledTask: vi.fn().mockResolvedValue(undefined),
+	copyShortcutToTodo: vi.fn().mockResolvedValue({ id: 'new-id' }),
+	copyShortcutToCalendar: vi.fn().mockResolvedValue({ id: 'new-id' })
 }))
 
 vi.mock('../../services/nerve', () => ({
@@ -40,7 +64,6 @@ describe('useTasksStore', () => {
 
 	describe('Initialization & Sync', () => {
 		it('initializes and subscribes when user is present', () => {
-			// Should subscribe to today (default in currentDates) + todo + shortcuts
 			expect(firebaseService.subscribeToDate).toHaveBeenCalled()
 			expect(firebaseService.subscribeToList).toHaveBeenCalledWith('todo', expect.any(Function))
 			expect(firebaseService.subscribeToList).toHaveBeenCalledWith('shortcuts', expect.any(Function))
@@ -48,7 +71,6 @@ describe('useTasksStore', () => {
 
 		it('clears state when user logs out', () => {
 			userStore.user = null
-			// Check internal state is cleared (indirectly via public getters or length)
 			expect(store.todoTasks).toEqual([])
 			expect(store.shortcutTasks).toEqual([])
 		})
@@ -62,7 +84,6 @@ describe('useTasksStore', () => {
 		})
 
 		it('removeDate unsubscribes (mock cleanup check)', () => {
-			// Mock return value of subscribe to be an unsub function
 			const unsubMock = vi.fn()
 			;(firebaseService.subscribeToDate as any).mockReturnValue(unsubMock)
 
@@ -75,67 +96,72 @@ describe('useTasksStore', () => {
 	})
 
 	describe('CRUD Operations', () => {
-		it('createTodo calls service and emits event', async () => {
-			;(firebaseService.createTaskInPath as any).mockResolvedValue({ id: 'new-id' })
+		it('createTodo delegates to taskService', async () => {
 			await store.createTodo({ text: 'New Todo' })
-
-			expect(firebaseService.createTaskInPath).toHaveBeenCalledWith('todo', expect.objectContaining({ text: 'New Todo' }))
-			expect(nerve.emit).toHaveBeenCalledWith(NERVE_EVENTS.TASK_CREATED, { taskId: 'new-id' })
+			expect(taskService.createTodo).toHaveBeenCalledWith(expect.objectContaining({ text: 'New Todo' }))
 		})
 
-		it('updateTodo calls service', async () => {
+		it('createScheduledTask delegates to taskService', async () => {
+			const today = store.currentDates[0]
+			await store.createScheduledTask({ text: 'Event' })
+			expect(taskService.createScheduledTask).toHaveBeenCalledWith(expect.objectContaining({ text: 'Event' }), today)
+		})
+
+		it('updateTodo delegates to taskService', async () => {
 			await store.updateTodo('task-1', { completed: true })
-			expect(firebaseService.updateTaskInPath).toHaveBeenCalledWith('todo', 'task-1', { completed: true })
+			expect(taskService.updateTodo).toHaveBeenCalledWith('task-1', { completed: true })
 		})
 
-		it('deleteTodo calls service and emits event', async () => {
+		it('updateScheduledTask delegates with existing task', async () => {
+			// Populate calendar state
+			const today = store.currentDates[0]
+			const subscribeCallback = (firebaseService.subscribeToDate as Mock).mock.calls.find((c) => c[0] === today)[1]
+			subscribeCallback([{ id: 'task-1', text: 'Event', duration: 60, category: 'Work' }])
+
+			await store.updateScheduledTask('task-1', today, { completed: true })
+			expect(taskService.updateScheduledTask).toHaveBeenCalledWith(
+				'task-1',
+				today,
+				{ completed: true },
+				expect.objectContaining({ id: 'task-1' })
+			)
+		})
+
+		it('deleteTodo delegates to taskService', async () => {
 			await store.deleteTodo('task-1')
-			expect(firebaseService.deleteTaskFromPath).toHaveBeenCalledWith('todo', 'task-1')
-			expect(nerve.emit).toHaveBeenCalledWith(NERVE_EVENTS.TASK_DELETED)
+			expect(taskService.deleteTodo).toHaveBeenCalledWith('task-1')
 		})
 
-		it('updateScheduledTask emits completion events', async () => {
-			await store.updateScheduledTask('task-1', '2025-01-01', { completed: true })
-			expect(nerve.emit).toHaveBeenCalledWith(NERVE_EVENTS.TASK_COMPLETED, { taskId: 'task-1' })
+		it('deleteScheduledTask delegates with existing task', async () => {
+			const today = store.currentDates[0]
+			const subscribeCallback = (firebaseService.subscribeToDate as Mock).mock.calls.find((c) => c[0] === today)[1]
+			subscribeCallback([{ id: 'task-1', text: 'Event', duration: 60, category: 'Work' }])
 
-			await store.updateScheduledTask('task-1', '2025-01-01', { completed: false })
-			expect(nerve.emit).toHaveBeenCalledWith(NERVE_EVENTS.TASK_UNCOMPLETED, { taskId: 'task-1' })
+			await store.deleteScheduledTask('task-1', today)
+			expect(taskService.deleteScheduledTask).toHaveBeenCalledWith('task-1', today, expect.objectContaining({ id: 'task-1' }))
 		})
 	})
 
 	describe('Move Operations', () => {
-		it('moveTodoToCalendar calls moveTask', async () => {
-			// Need to mock state finding the task,
-			// but store state is populated via via callbacks which we mocked.
-			// We need to simulate data population first.
+		it('moveTodoToCalendar delegates to taskService', async () => {
 			const subscribeCallback = (firebaseService.subscribeToList as Mock).mock.calls.find((c) => c[0] === 'todo')[1]
 			subscribeCallback([{ id: 'task-1', text: 'Todo 1' }])
 
 			await store.moveTodoToCalendar('task-1', '2025-01-01', 10, 60)
 
-			expect(firebaseService.moveTask).toHaveBeenCalledWith(
-				'todo',
-				'calendar/2025-01-01',
-				expect.objectContaining({ id: 'task-1' }),
-				expect.objectContaining({ startTime: 10, date: '2025-01-01' })
-			)
-			expect(nerve.emit).toHaveBeenCalledWith(NERVE_EVENTS.TASK_MOVED)
+			expect(taskService.moveTodoToCalendar).toHaveBeenCalledWith(expect.objectContaining({ id: 'task-1' }), '2025-01-01', 10, 60)
 		})
 
-		it('moveScheduledTask calls moveTask', async () => {
-			// Simulate calendar data
+		it('moveScheduledTask delegates to taskService', async () => {
 			const today = store.currentDates[0]
 			const subscribeCallback = (firebaseService.subscribeToDate as Mock).mock.calls.find((c) => c[0] === today)[1]
 			subscribeCallback([{ id: 'task-cal-1', text: 'Event 1' }])
 
 			await store.moveScheduledTask('task-cal-1', today, '2025-12-31', { startTime: 12 })
 
-			expect(firebaseService.moveTask).toHaveBeenCalledWith(
-				`calendar/${today}`,
-				`calendar/2025-12-31`,
-				expect.objectContaining({ id: 'task-cal-1' }),
-				expect.objectContaining({ date: '2025-12-31', startTime: 12 })
-			)
+			expect(taskService.moveScheduledTask).toHaveBeenCalledWith(expect.objectContaining({ id: 'task-cal-1' }), today, '2025-12-31', {
+				startTime: 12
+			})
 		})
 	})
 

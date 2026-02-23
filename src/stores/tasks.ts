@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Task } from '../types'
 import * as firebaseService from '../services/firebaseService'
-import { applyStatDelta, buildDelta, isDateInPast } from '../services/statsService'
+import * as taskService from '../services/taskService'
 import { useUserStore } from './user'
 import { formatDate } from '../utils/dateUtils'
 import { nerve, NERVE_EVENTS } from '../services/nerve'
@@ -59,17 +59,12 @@ export const useTasksStore = defineStore('tasks', () => {
 		(newDates) => {
 			if (!userStore.user) return
 
-			// Subscribe to new dates
 			newDates.forEach((date) => {
 				if (!calendarUnsubs.has(date)) {
 					subscribeToCalendarDate(date)
 				}
 			})
 
-			// Unsubscribe from removed dates (optional, but good for cleanup)
-			// Actually, for DayView we probably want to keep them if they are still in view?
-			// But DayViewPage replaces the array.
-			// Let's unsubscribe from anything NOT in the new list.
 			for (const date of calendarUnsubs.keys()) {
 				if (!newDates.includes(date)) {
 					unsubscribeFromCalendarDate(date)
@@ -93,10 +88,8 @@ export const useTasksStore = defineStore('tasks', () => {
 		clearState()
 		loading.value = true
 
-		// 1. Calendar (Initial Dates)
 		currentDates.value.forEach((date) => subscribeToCalendarDate(date))
 
-		// 2. To-Do
 		unsubs.push(
 			firebaseService.subscribeToList('todo', (newTasks) => {
 				todoTasksState.value = newTasks
@@ -104,7 +97,6 @@ export const useTasksStore = defineStore('tasks', () => {
 			})
 		)
 
-		// 3. Shortcuts
 		unsubs.push(
 			firebaseService.subscribeToList('shortcuts', (newTasks) => {
 				shortcutsTasksState.value = newTasks
@@ -145,29 +137,34 @@ export const useTasksStore = defineStore('tasks', () => {
 		tasks.value = [...allCalendarTasks, ...todoTasksState.value, ...shortcutsTasksState.value]
 	}
 
-	// --- Creation Actions ---
+	// --- Helpers ---
+
+	const calculateNewOrder = (list: Task[], targetIndex: number): number => {
+		const sortedList = list.sort((a, b) => (a.order || 0) - (b.order || 0))
+
+		if (targetIndex === 0) {
+			if (sortedList.length === 0) return 10000
+			return (sortedList[0].order || 0) / 2
+		} else if (targetIndex >= sortedList.length) {
+			const last = sortedList[sortedList.length - 1]
+			return (last.order || 0) + 10000
+		} else {
+			const prev = sortedList[targetIndex - 1]
+			const next = sortedList[targetIndex]
+			return ((prev.order || 0) + (next.order || 0)) / 2
+		}
+	}
+
+	const getMaxOrder = (list: Task[]): number => {
+		return list.length > 0 ? Math.max(...list.map((t) => t.order || 0)) : 0
+	}
+
+	// --- Actions (thin delegation to taskService) ---
 
 	const createTodo = async (taskData: Omit<Task, 'id'>) => {
 		try {
-			const list = todoTasks.value
-			const maxOrder = list.length > 0 ? Math.max(...list.map((t) => t.order || 0)) : 0
-
-			const defaults = {
-				text: 'New To-Do',
-				category: 'Default',
-				completed: false,
-				startTime: null,
-				duration: 60,
-				isShortcut: false,
-				order: maxOrder + 10000,
-				// date: null, // Not relevant for todo
-				isDeepWork: false
-			}
-
-			const finalTaskData = { ...defaults, ...taskData }
-			const res = await firebaseService.createTaskInPath('todo', finalTaskData)
-			nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
-			return res
+			const order = getMaxOrder(todoTasks.value) + 10000
+			return await taskService.createTodo({ ...taskData, order })
 		} catch (err) {
 			console.error(err)
 			error.value = 'Failed to create todo'
@@ -176,23 +173,8 @@ export const useTasksStore = defineStore('tasks', () => {
 
 	const createShortcut = async (taskData: Omit<Task, 'id'>) => {
 		try {
-			const list = shortcutTasks.value
-			const maxOrder = list.length > 0 ? Math.max(...list.map((t) => t.order || 0)) : 0
-
-			const defaults = {
-				text: 'New Shortcut',
-				category: 'Default',
-				completed: false,
-				startTime: null,
-				duration: 60,
-				isShortcut: true,
-				order: maxOrder + 10000,
-				date: null,
-				isDeepWork: false
-			}
-
-			const finalTaskData = { ...defaults, ...taskData }
-			return await firebaseService.createTaskInPath('shortcuts', finalTaskData)
+			const order = getMaxOrder(shortcutTasks.value) + 10000
+			return await taskService.createShortcut({ ...taskData, order })
 		} catch (err) {
 			console.error(err)
 			error.value = 'Failed to create shortcut'
@@ -201,89 +183,30 @@ export const useTasksStore = defineStore('tasks', () => {
 
 	const createScheduledTask = async (taskData: Omit<Task, 'id'>) => {
 		try {
-			const defaults = {
-				text: 'New Event',
-				category: 'Default',
-				completed: false,
-				startTime: 9,
-				duration: 60,
-				isShortcut: false,
-				order: 0,
-				date: taskData.date || currentDates.value[0],
-				color: null,
-				isDeepWork: false
-			}
-
-			const finalTaskData = { ...defaults, ...taskData, isCompleted: isDateInPast(taskData.date || defaults.date) }
-			const date = finalTaskData.date
-			const res = await firebaseService.createTaskInPath(`calendar/${date}`, finalTaskData)
-			nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
-
-			const delta = buildDelta(finalTaskData)
-			applyStatDelta(date!, delta).catch(console.error)
-			return res
+			const date = taskData.date || currentDates.value[0]
+			return await taskService.createScheduledTask(taskData, date)
 		} catch (err) {
 			console.error(err)
 			error.value = 'Failed to create scheduled task'
 		}
 	}
 
-	// --- Update Actions (In-Place) ---
-
-	// Update properties of a To-Do item (text, category, order, completed)
 	const updateTodo = async (id: string | number, updates: Partial<Task>) => {
-		// Safety: Ensure we don't accidentally move it via generic properties
-		// Verify it exists in todo list? We can, but firebase would just fail if path is wrong.
-		if (updates.startTime !== undefined && updates.startTime !== null) {
-			console.warn('Use moveTodoToCalendar to change startTime')
-			return
-		}
-		await firebaseService.updateTaskInPath('todo', id, updates)
+		await taskService.updateTodo(id, updates)
 	}
 
 	const updateShortcut = async (id: string | number, updates: Partial<Task>) => {
-		await firebaseService.updateTaskInPath('shortcuts', id, updates)
+		await taskService.updateShortcut(id, updates)
 	}
 
 	const updateScheduledTask = async (id: string | number, date: string, updates: Partial<Task>) => {
-		// Safety: If date changes, we need a move.
-		if (updates.date && updates.date !== date) {
-			console.warn('Use moveScheduledTaskToDate to change date')
-			return
-		}
-		if (updates.startTime === null) {
-			console.warn('Use moveCalendarToTodo to unschedule')
-			return
-		}
-
-		// Stat adjustments for duration/category changes
 		const existingTask = calendarTasksState.value[date]?.find((t) => t.id === id)
-		if (existingTask) {
-			const durationChanged = updates.duration !== undefined && updates.duration !== existingTask.duration
-			const categoryChanged = updates.category !== undefined && updates.category !== existingTask.category
-			const completedChanged = updates.completed !== undefined && updates.completed !== existingTask.completed
-			const deepWorkChanged = updates.isDeepWork !== undefined && updates.isDeepWork !== existingTask.isDeepWork
-
-			if (durationChanged || categoryChanged || completedChanged || deepWorkChanged) {
-				console.log('[updateScheduledTask] Triggering stat delta update', { id, updates })
-				// Subtract old, add new
-				const oldDelta = buildDelta(existingTask, -1)
-				const newTask = { ...existingTask, ...updates }
-				const newDelta = buildDelta(newTask, 1)
-				applyStatDelta(date, oldDelta).catch(console.error)
-				applyStatDelta(date, newDelta).catch(console.error)
-			}
+		if (!existingTask) {
+			console.error('Task not found for stat update')
+			return
 		}
-
-		await firebaseService.updateTaskInPath(`calendar/${date}`, id, updates)
-		if (updates.completed === true) {
-			nerve.emit(NERVE_EVENTS.TASK_COMPLETED, { taskId: String(id) })
-		} else if (updates.completed === false) {
-			nerve.emit(NERVE_EVENTS.TASK_UNCOMPLETED, { taskId: String(id) })
-		}
+		await taskService.updateScheduledTask(id, date, updates, existingTask)
 	}
-
-	// --- Move Actions (Atomic Transfer) ---
 
 	const moveTodoToCalendar = async (id: string | number, date: string, startTime: number, duration: number) => {
 		const task = todoTasksState.value.find((t) => t.id === id)
@@ -291,12 +214,7 @@ export const useTasksStore = defineStore('tasks', () => {
 			console.error('Task not found in todo list')
 			return
 		}
-
-		// Logic: Delete from 'todo', create in 'calendar/date'
-		const updates = { startTime, duration, date, isShortcut: false, isCompleted: isDateInPast(date) }
-		await firebaseService.moveTask('todo', `calendar/${date}`, task, updates)
-		nerve.emit(NERVE_EVENTS.TASK_MOVED)
-		applyStatDelta(date, buildDelta({ ...task, ...updates })).catch(console.error)
+		await taskService.moveTodoToCalendar(task, date, startTime, duration)
 	}
 
 	const moveCalendarToTodo = async (id: string | number, date: string, order?: number) => {
@@ -305,61 +223,22 @@ export const useTasksStore = defineStore('tasks', () => {
 			console.error('Task not found in calendar')
 			return
 		}
-
-		// Use provided order or calculate temporary order
-		const finalOrder =
-			order !== undefined ? order : todoTasks.value.length > 0 ? Math.max(...todoTasks.value.map((t) => t.order || 0)) + 10000 : 10000
-
-		const updates = { startTime: null, date: null, isShortcut: false, order: finalOrder } as any
-		await firebaseService.moveTask(`calendar/${date}`, 'todo', task, updates)
-		applyStatDelta(date, buildDelta(task, -1)).catch(console.error)
+		const finalOrder = order !== undefined ? order : getMaxOrder(todoTasks.value) + 10000
+		await taskService.moveCalendarToTodo(task, date, finalOrder)
 	}
 
-	// Convert (Move) To-Do -> Shortcut
 	const moveTodoToShortcut = async (id: string | number, order?: number) => {
 		const task = todoTasksState.value.find((t) => t.id === id)
 		if (!task) return
-
-		// Use provided order or calculate temporary order
-		const finalOrder =
-			order !== undefined
-				? order
-				: shortcutTasks.value.length > 0
-					? Math.max(...shortcutTasks.value.map((t) => t.order || 0)) + 10000
-					: 10000
-
-		const updates = {
-			startTime: null,
-			date: null,
-			isShortcut: true,
-			completed: false,
-			order: finalOrder
-		} as any
-		await firebaseService.moveTask('todo', 'shortcuts', task, updates)
+		const finalOrder = order !== undefined ? order : getMaxOrder(shortcutTasks.value) + 10000
+		await taskService.moveTodoToShortcut(task, finalOrder)
 	}
 
-	// Convert (Move) Calendar -> Shortcut
 	const moveCalendarToShortcut = async (id: string | number, date: string, order?: number) => {
 		const task = calendarTasksState.value[date]?.find((t) => t.id === id)
 		if (!task) return
-
-		// Use provided order or calculate temporary order
-		const finalOrder =
-			order !== undefined
-				? order
-				: shortcutTasks.value.length > 0
-					? Math.max(...shortcutTasks.value.map((t) => t.order || 0)) + 10000
-					: 10000
-
-		const updates = {
-			startTime: null,
-			date: null,
-			isShortcut: true,
-			completed: false,
-			order: finalOrder
-		} as any
-		await firebaseService.moveTask(`calendar/${date}`, 'shortcuts', task, updates)
-		applyStatDelta(date, buildDelta(task, -1)).catch(console.error)
+		const finalOrder = order !== undefined ? order : getMaxOrder(shortcutTasks.value) + 10000
+		await taskService.moveCalendarToShortcut(task, date, finalOrder)
 	}
 
 	const moveScheduledTask = async (id: string | number, fromDate: string, toDate: string, updates: Partial<Task>) => {
@@ -368,96 +247,35 @@ export const useTasksStore = defineStore('tasks', () => {
 			console.error('Task not found in source date')
 			return
 		}
-
-		// Logic: Delete from 'calendar/fromDate', create in 'calendar/toDate'
-		// We must include all existing data plus updates
-		const moveUpdates = {
-			...updates,
-			date: toDate,
-			isShortcut: false
-		}
-
-		await firebaseService.moveTask(`calendar/${fromDate}`, `calendar/${toDate}`, task, moveUpdates)
-		nerve.emit(NERVE_EVENTS.TASK_MOVED)
-		// Subtract from old date, add to new date
-		applyStatDelta(fromDate, buildDelta(task, -1)).catch(console.error)
-		applyStatDelta(toDate, buildDelta({ ...task, ...moveUpdates })).catch(console.error)
+		await taskService.moveScheduledTask(task, fromDate, toDate, updates)
 	}
-
-	// --- Copy Actions (Templates) ---
 
 	const copyShortcutToTodo = async (id: string | number, order?: number) => {
 		const shortcut = shortcutsTasksState.value.find((t) => t.id === id)
 		if (!shortcut) return
-
-		const { id: _, ...data } = shortcut
-		const taskData = { ...data, isShortcut: false, startTime: null, date: null }
-
-		// If order is provided, use it directly instead of letting createTodo calculate
-		if (order !== undefined) {
-			const res = await firebaseService.createTaskInPath('todo', { ...taskData, order })
-			nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
-			return res
-		}
-
-		return await createTodo(taskData)
+		const finalOrder = order !== undefined ? order : getMaxOrder(todoTasks.value) + 10000
+		return await taskService.copyShortcutToTodo(shortcut, finalOrder)
 	}
 
 	const copyShortcutToCalendar = async (id: string | number, date: string, startTime: number, duration: number) => {
 		const shortcut = shortcutsTasksState.value.find((t) => t.id === id)
 		if (!shortcut) return
-
-		const { id: _, ...data } = shortcut
-		const taskData = { ...data, isShortcut: false, date, startTime, duration, isCompleted: isDateInPast(date) }
-		const res = await firebaseService.createTaskInPath(`calendar/${date}`, taskData)
-		nerve.emit(NERVE_EVENTS.TASK_CREATED, { taskId: String(res.id || 'unknown') })
-		applyStatDelta(date, buildDelta(taskData)).catch(console.error)
-		return res
+		return await taskService.copyShortcutToCalendar(shortcut, date, startTime, duration)
 	}
 
-	// --- Delete Actions ---
-
 	const deleteTodo = async (id: string | number) => {
-		await firebaseService.deleteTaskFromPath('todo', id)
-		nerve.emit(NERVE_EVENTS.TASK_DELETED)
+		await taskService.deleteTodo(id)
 	}
 
 	const deleteShortcut = async (id: string | number) => {
-		await firebaseService.deleteTaskFromPath('shortcuts', id)
-		nerve.emit(NERVE_EVENTS.TASK_DELETED)
+		await taskService.deleteShortcut(id)
 	}
 
 	const deleteScheduledTask = async (id: string | number, date: string) => {
 		const task = calendarTasksState.value[date]?.find((t) => t.id === id)
-		await firebaseService.deleteTaskFromPath(`calendar/${date}`, id)
-		nerve.emit(NERVE_EVENTS.TASK_DELETED)
-		if (task) {
-			applyStatDelta(date, buildDelta(task, -1)).catch(console.error)
-		}
+		await taskService.deleteScheduledTask(id, date, task)
 	}
 
-	// --- Legacy / Helper for Reordering (Optional, generic reorder is tricky with explicit paths) ---
-	// We can implement specific reorders
-	const calculateNewOrder = (list: Task[], targetIndex: number): number => {
-		const sortedList = list.sort((a, b) => (a.order || 0) - (b.order || 0))
-
-		if (targetIndex === 0) {
-			// Moving to top
-			if (sortedList.length === 0) return 10000
-			return (sortedList[0].order || 0) / 2
-		} else if (targetIndex >= sortedList.length) {
-			// Moving to bottom
-			const last = sortedList[sortedList.length - 1]
-			return (last.order || 0) + 10000
-		} else {
-			// Moving between two items
-			const prev = sortedList[targetIndex - 1]
-			const next = sortedList[targetIndex]
-			return ((prev.order || 0) + (next.order || 0)) / 2
-		}
-	}
-
-	// Explicit reorder that takes a target INDEX (not order value)
 	const reorderTodo = (id: string | number, targetIndex: number) => {
 		const finalOrder = calculateNewOrder(todoTasks.value, targetIndex)
 		updateTodo(id, { order: finalOrder })
